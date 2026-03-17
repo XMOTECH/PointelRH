@@ -8,6 +8,7 @@ networks:
 volumes:
   auth_db_data:
   redis_data:
+  employee_db_data:
 
 services:
 
@@ -71,3 +72,47 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ─── EMPLOYEE SERVICE ────────────────────────────────────
+  employee-service:
+    build:
+      context: ./services/employee-service
+      dockerfile: Dockerfile
+    container_name: employee_service
+    restart: unless-stopped
+    ports:
+      - "8002:80"
+    volumes:
+      - ./services/employee-service:/var/www/html
+    environment:
+      - DB_HOST=employee_db
+      - DB_DATABASE=employee_db
+      - DB_USERNAME=emp_user
+      - DB_PASSWORD=emp_pass
+      - REDIS_HOST=redis
+      - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
+    depends_on:
+      - employee_db
+      - redis
+    networks:
+      - Pointel
+ 
+  employee_db:
+    image: mysql:8.0
+    container_name: employee_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: employee_db
+      MYSQL_USER: emp_user
+      MYSQL_PASSWORD: emp_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    volumes:
+      - employee_db_data:/var/lib/mysql
+    networks:
+      - Pointel
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
