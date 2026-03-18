@@ -35,8 +35,11 @@ return [
         ],
     ],
 
+    'employee' => [
+        'url' => env('EMPLOYEE_SERVICE_URL'),
+    ],
+
     'auth' => [
-        'verify_url' => env('AUTH_SERVICE_URL', 'http://auth-service/api/auth/verify'),
         'jwt_secret' => env('JWT_SECRET'),
     ],
 

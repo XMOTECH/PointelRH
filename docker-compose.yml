@@ -2,13 +2,16 @@
 name: plateforme-rh
 
 networks:
-  Pointel:
+  pointel_net:
     driver: bridge
 
 volumes:
   auth_db_data:
   redis_data:
   employee_db_data:
+  pointage_db_data:
+  rabbitmq_data:
+
 
 services:
 
@@ -36,7 +39,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - Pointel
+      - pointel_net
 
   # ─── DATABASE ─────────────────────────────────────────────
   auth_db:
@@ -51,7 +54,7 @@ services:
     volumes:
       - auth_db_data:/var/lib/mysql   
     networks:
-      - Pointel
+      - pointel_net
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -66,7 +69,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - Pointel
+      - pointel_net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -95,7 +98,7 @@ services:
       - employee_db
       - redis
     networks:
-      - Pointel
+      - pointel_net
  
   employee_db:
     image: mysql:8.0
@@ -109,10 +112,80 @@ services:
     volumes:
       - employee_db_data:/var/lib/mysql
     networks:
-      - Pointel
+      - pointel_net
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+
+  # ─── POINTAGE SERVICE ────────────────────────────────────
+  pointage-service:
+    build:
+      context: ./services/pointage-service
+      dockerfile: Dockerfile
+    container_name: pointage_service
+    restart: unless-stopped
+    ports:
+      - "8003:80"
+    volumes:
+      - ./services/pointage-service:/var/www/html
+    environment:
+      - DB_HOST=pointage_db
+      - DB_DATABASE=pointage_db
+      - DB_USERNAME=pt_user
+      - DB_PASSWORD=pt_pass
+      - REDIS_HOST=redis
+      - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
+      - EMPLOYEE_SERVICE_URL=http://employee-service/api
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=pointel
+      - RABBITMQ_PASSWORD=pointel_pass
+    depends_on:
+      - pointage_db
+      - redis
+      - rabbitmq
+    networks:
+      - pointel_net
+
+  pointage_db:
+    image: mysql:8.0
+    container_name: pointage_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: pointage_db
+      MYSQL_USER: pt_user
+      MYSQL_PASSWORD: pt_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    volumes:
+      - pointage_db_data:/var/lib/mysql
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── RABBITMQ ─────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=pointel
+      - RABBITMQ_DEFAULT_PASS=pointel_pass
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
