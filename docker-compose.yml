@@ -10,6 +10,8 @@ volumes:
   redis_data:
   employee_db_data:
   pointage_db_data:
+  notif_db_data:
+  analytics_db_data:
   rabbitmq_data:
 
 
@@ -189,3 +191,89 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
+  # ─── NOTIFICATION SERVICE ────────────────────────────────
+  notif-service:
+    build:
+      context: ./services/notif-service
+      dockerfile: Dockerfile
+    container_name: notif_service
+    restart: unless-stopped
+    ports:
+      - "8004:80"
+    volumes:
+      - ./services/notif-service:/var/www/html
+    environment:
+      - DB_HOST=notif_db
+      - DB_DATABASE=notif_db
+      - DB_USERNAME=notif_user
+      - DB_PASSWORD=notif_pass
+      - REDIS_HOST=redis
+      - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
+      - EMPLOYEE_SERVICE_URL=http://employee-service/api
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=pointel
+      - RABBITMQ_PASSWORD=pointel_pass
+      - RABBITMQ_QUEUE=pointel.notifications
+    depends_on:
+      - notif_db
+      - redis
+      - rabbitmq
+    networks:
+      - pointel_net
+
+  notif_db:
+    image: mysql:8.0
+    container_name: notif_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: notif_db
+      MYSQL_USER: notif_user
+      MYSQL_PASSWORD: notif_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    volumes:
+      - notif_db_data:/var/lib/mysql
+    networks:
+      - pointel_net
+
+  # ─── ANALYTICS SERVICE ──────────────────────────────────
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    container_name: analytics_service
+    restart: unless-stopped
+    ports:
+      - "8005:80"
+    volumes:
+      - ./services/analytics-service:/var/www/html
+    environment:
+      - DB_CONNECTION=pgsql
+      - DB_HOST=analytics_db
+      - DB_DATABASE=analytics_db
+      - DB_USERNAME=ana_user
+      - DB_PASSWORD=ana_pass
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=pointel
+      - RABBITMQ_PASSWORD=pointel_pass
+      - RABBITMQ_QUEUE=pointel.analytics
+    depends_on:
+      - analytics_db
+      - redis
+      - rabbitmq
+    networks:
+      - pointel_net
+
+  analytics_db:
+    image: postgres:alpine
+    container_name: analytics_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: ana_user
+      POSTGRES_PASSWORD: ana_pass
+    volumes:
+      - analytics_db_data:/var/lib/postgresql
+    networks:
+      - pointel_net

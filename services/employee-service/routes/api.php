@@ -16,6 +16,9 @@ use App\Http\Controllers\Api\ScheduleController;
 |
 */
 
+// ── Internal Service Routes (No JWT for faster inter-service communication)
+Route::get('/employees/{id}/notification-context', [\App\Http\Controllers\Api\EmployeeNotificationController::class, 'getNotificationContext']);
+
 // ── Routes protégées par JWT ──────────────────────────────
 Route::middleware(['auth.jwt'])->group(function () {
  
