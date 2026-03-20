@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import api from '../lib/axios';
 import type { User } from '../types';
 
@@ -15,41 +15,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restaurer la session au chargement
+  // Restaurer la session au chargement (une seule fois)
   useEffect(() => {
-    const token = sessionStorage.getItem('access_token');
-    if (token) {
-      // Verifier le token aupres de l'API Gateway
-      api.post('/api/auth/verify')
-        .then(({ data }) => setUser(data))
-        .catch(() => sessionStorage.clear())
-        .finally(() => setLoading(false));
-    } else {
+    const restoreSession = async () => {
+      const token = sessionStorage.getItem('access_token');
+      if (token) {
+        try {
+          // Vérifier le token auprès de l'API
+          const response = await api.post('/api/auth/verify');
+          const userData = response.data?.data?.user || response.data?.user || response.data;
+          setUser(userData);
+        } catch {
+          sessionStorage.clear();
+        }
+      }
       setLoading(false);
+    };
+
+    restoreSession();
+  }, []); // Dépendance vide = une seule fois au montage
+
+  const login = useCallback(async (email: string, password: string) => {
+    const response = await api.post('/api/auth/login', { email, password });
+    const responseData = response.data?.data || response.data;
+    
+    if (!responseData.access_token || !responseData.user) {
+      throw new Error('Réponse API invalide');
     }
+
+    sessionStorage.setItem('access_token', responseData.access_token);
+    if (responseData.refresh_token) {
+      sessionStorage.setItem('refresh_token', responseData.refresh_token);
+    }
+    
+    setUser(responseData.user);
+    return responseData.user;
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const { data } = await api.post('/api/auth/login', { email, password });
-    sessionStorage.setItem('access_token', data.access_token);
-    setUser(data.user);
-    return data.user;
-  };
-
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await api.post('/api/auth/logout');
     } catch {
-      // Ignore errors during logout
+      // Ignorer les erreurs lors de la déconnexion
     } finally {
       sessionStorage.clear();
       setUser(null);
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
-        {children}
+      {children}
     </AuthContext.Provider>
   );
 }
