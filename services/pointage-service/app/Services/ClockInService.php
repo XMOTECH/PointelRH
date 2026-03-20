@@ -50,7 +50,8 @@ class ClockInService
         $attendance = $this->attendances->create([
             'id'            => (string) Str::uuid(),
             'employee_id'   => $employee->id,
-            'company_id'    => $data->companyId,
+            'employee_name' => trim($employee->first_name . ' ' . $employee->last_name),
+            'company_id'    => $employee->company_id, // Utiliser la company_id renvoyée par l'employé
             'department_id' => $employee->department_id,
             'channel'       => $data->channel,
             'checked_in_at' => now(),

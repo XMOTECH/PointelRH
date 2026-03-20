@@ -31,10 +31,14 @@ class QrDriver implements ClockInDriver
         }
 
         if (!$response->successful()) {
-            throw new \RuntimeException("Employee Service indisponible");
+            throw new \RuntimeException("Employee Service indisponible: " . $response->status() . " " . $response->body());
         }
 
-        return Employee::fromArray($response->json('employee'));
+        $responseData = $response->json('data');
+        $employeeData = $responseData['employee'] ?? [];
+        $employeeData['schedule'] = $responseData['schedule'] ?? null;
+
+        return Employee::fromArray($employeeData);
     }
 
     public function channelName(): string { return 'qr'; }

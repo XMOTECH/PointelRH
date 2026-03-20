@@ -10,13 +10,14 @@ use App\Services\EmployeeService;
 use App\Services\LoggingService;
 use App\Exceptions\ResourceNotFoundException;
 use App\Exceptions\InvalidDataException;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 /**
  * EmployeeController
  * Gère les opérations CRUD et requêtes spéciales sur les employés
- * 
+ *
  * Responsabilités:
  * - Valider les entrées
  * - Appeler les services métier
@@ -38,7 +39,7 @@ class EmployeeController extends BaseApiController
         try {
             $filters = [
                 'department_id' => $request->query('department_id'),
-                'status' => $request->query('status'),
+                'status'        => $request->query('status'),
                 'contract_type' => $request->query('contract_type'),
             ];
 
@@ -49,7 +50,7 @@ class EmployeeController extends BaseApiController
 
             LoggingService::info('Employees list retrieved', [
                 'company_id' => $request->auth_company_id,
-                'count' => $employees->count(),
+                'count'      => $employees->count(),
             ]);
 
             return $this->respondSuccess(
@@ -69,7 +70,7 @@ class EmployeeController extends BaseApiController
     public function store(StoreEmployeeRequest $request): JsonResponse
     {
         try {
-            $data = $request->validated();
+            $data               = $request->validated();
             $data['company_id'] = $request->auth_company_id;
 
             $employee = $this->employeeService->create($data);
@@ -164,24 +165,26 @@ class EmployeeController extends BaseApiController
     public function resolveQr(Request $request): JsonResponse
     {
         try {
-            $request->validate(['qr_token' => 'required|string']);
+            $qrToken = $request->input('qr_token') ?: $request->json('qr_token');
+            if (!$qrToken) {
+                return $this->respondError('The qr token field is required.', 422);
+            }
 
             $employee = Employee::with(['schedule', 'department'])
-                ->where('qr_token', $request->qr_token)
+                ->where('qr_token', $qrToken)
                 ->where('status', 'active')
-                ->where('company_id', $request->auth_company_id)
                 ->first();
 
             if (!$employee) {
-                LoggingService::warning('Invalid QR token', ['company_id' => $request->auth_company_id]);
+                LoggingService::warning('Invalid QR token', ['qr_token' => $qrToken]);
                 return $this->respondNotFound('QR token invalide ou employé inactif');
             }
 
             LoggingService::info('Employee resolved via QR', ['employee_id' => $employee->id]);
 
             return $this->respondSuccess([
-                'employee' => new EmployeeResource($employee),
-                'schedule' => $employee->schedule,
+                'employee'   => new EmployeeResource($employee),
+                'schedule'   => $employee->schedule,
                 'department' => $employee->department,
             ]);
         } catch (\Exception $e) {
@@ -200,11 +203,11 @@ class EmployeeController extends BaseApiController
             $employee = Employee::with('schedule')->findOrFail($id);
 
             return $this->respondSuccess([
-                'schedule' => $employee->schedule,
-                'work_days' => $employee->schedule->work_days,
-                'start_time' => $employee->schedule->start_time,
+                'schedule'      => $employee->schedule,
+                'work_days'     => $employee->schedule->work_days,
+                'start_time'    => $employee->schedule->start_time,
                 'grace_minutes' => $employee->schedule->grace_minutes,
-                'timezone' => $employee->schedule->timezone,
+                'timezone'      => $employee->schedule->timezone,
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             LoggingService::warning('Employee not found for schedule', ['employee_id' => $id]);
@@ -214,24 +217,34 @@ class EmployeeController extends BaseApiController
             return $this->respondServerError('Impossible de récupérer l\'horaire');
         }
     }
-}
-    }
 
     /**
      * Update the status of an employee.
      * PATCH /api/employees/{id}/status
      */
-    public function updateStatus(Request $request, string $id): EmployeeResource
+    public function updateStatus(Request $request, string $id): JsonResponse
     {
-        $request->validate([
-            'status' => 'required|in:active,inactive,suspended'
-        ]);
+        try {
+            $request->validate([
+                'status' => 'required|in:active,inactive,suspended',
+            ]);
 
-        $employee = Employee::where('company_id', $request->auth_company_id)
-            ->findOrFail($id);
+            $employee = Employee::where('company_id', $request->auth_company_id)
+                ->findOrFail($id);
 
-        $employee->update(['status' => $request->status]);
+            $employee->update(['status' => $request->status]);
 
-        return new EmployeeResource($employee);
+            return $this->respondSuccess(
+                new EmployeeResource($employee),
+                'Statut mis à jour',
+                200
+            );
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            LoggingService::warning('Employee not found for status update', ['employee_id' => $id]);
+            return $this->respondNotFound('Employé non trouvé');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to update employee status', $e);
+            return $this->respondServerError('Impossible de mettre à jour le statut');
+        }
     }
 }

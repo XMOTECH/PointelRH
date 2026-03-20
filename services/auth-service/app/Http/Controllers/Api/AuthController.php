@@ -99,13 +99,11 @@ class AuthController extends BaseApiController
     public function verify(Request $request): JsonResponse
     {
         try {
-            $token = auth('api')->user();
+            $user = auth('api')->user();
 
             return $this->respondSuccess([
-                'valid'      => true,
-                'user_id'    => $token->id,
-                'company_id' => $token->company_id,
-                'role'       => $token->role,
+                'valid' => true,
+                'user'  => new UserResource($user),
             ]);
         } catch (\Exception $e) {
             return $this->respondUnauthorized('Token invalide ou expiré');
