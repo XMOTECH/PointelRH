@@ -12,9 +12,20 @@ import { format } from 'date-fns';
 import { usePresenceTrend } from '../hooks/useDashboard';
 
 export function PresenceChart({ period }: { period: string }) {
-  const { data, isLoading } = usePresenceTrend(period);
+  const { data: rawData, isLoading } = usePresenceTrend(period);
+  
+  // Assurer que data est un array
+  const data = Array.isArray(rawData) ? rawData : (Array.isArray(rawData?.data) ? rawData.data : []);
 
   if (isLoading) return <div className="card" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Chargement...</div>;
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="card" style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Pas de données disponibles</p>
+      </div>
+    );
+  }
 
   return (
     <div className="card" style={{ height: '400px', padding: '1.5rem' }}>

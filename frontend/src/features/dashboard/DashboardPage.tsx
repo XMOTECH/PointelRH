@@ -7,8 +7,12 @@ import { Clock, Filter } from 'lucide-react';
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<'7d' | '30d'>('7d');
-  const { data: dashboardData, isLoading: dashboardLoading } = useDashboard();
-  const { data: todayAttendances, isLoading: attendancesLoading } = useAttendancesToday();
+  const { data: rawDashboardData, isLoading: dashboardLoading } = useDashboard();
+  const { data: rawAttendances, isLoading: attendancesLoading } = useAttendancesToday();
+
+  // Assurer que les données sont correctement extraites
+  const dashboardData = rawDashboardData?.data || rawDashboardData || {};
+  const todayAttendances = Array.isArray(rawAttendances) ? rawAttendances : (Array.isArray(rawAttendances?.data) ? rawAttendances.data : []);
 
   return (
     <div className="dashboard-container">
@@ -52,14 +56,14 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {attendancesLoading ? (
               <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Chargement...</p>
-            ) : todayAttendances?.length === 0 ? (
+            ) : !Array.isArray(todayAttendances) || todayAttendances.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', backgroundColor: '#F8F9FA', borderRadius: 'var(--radius-md)' }}>
                 <Clock size={32} style={{ color: '#CBD5E0', marginBottom: '0.5rem' }} />
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>Aucun pointage aujourd'hui</p>
               </div>
             ) : (
-              todayAttendances?.slice(0, 5).map((att: any) => (
-                <div key={att.id} style={{ 
+              Array.isArray(todayAttendances) && todayAttendances.slice(0, 5).map((att: any) => (
+                <div key={att.id || Math.random()} style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'space-between', 
