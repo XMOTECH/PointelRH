@@ -12,17 +12,31 @@ import { format } from 'date-fns';
 import { usePresenceTrend } from '../hooks/useDashboard';
 
 export function PresenceChart({ period }: { period: string }) {
-  const { data: rawData, isLoading } = usePresenceTrend(period);
+  const { data: rawData, isLoading, error } = usePresenceTrend(period);
   
-  // Assurer que data est un array
-  const data = Array.isArray(rawData) ? rawData : (Array.isArray(rawData?.data) ? rawData.data : []);
-
+  // Valider et transformer les données correctement
+  let data: any[] = [];
+  
+  if (Array.isArray(rawData)) {
+    data = rawData;
+  } else if (rawData?.data && Array.isArray(rawData.data)) {
+    data = rawData.data;
+  } else if (typeof rawData === 'object' && rawData !== null) {
+    // Si c'est un objet unique, le mettre dans un array
+    data = [rawData];
+  }
+  
+  // Valider que chaque item a les bonnes clés pour recharts
+  const chartData = Array.isArray(data) ? data.filter(item => item && typeof item === 'object') : [];
+  
   if (isLoading) return <div className="card" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Chargement...</div>;
 
-  if (!data || data.length === 0) {
+  if (error || !chartData || chartData.length === 0) {
     return (
       <div className="card" style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Pas de données disponibles</p>
+        <p style={{ color: 'var(--text-muted)' }}>
+          {error ? 'Erreur lors du chargement' : 'Pas de données disponibles'}
+        </p>
       </div>
     );
   }
@@ -34,7 +48,7 @@ export function PresenceChart({ period }: { period: string }) {
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Derniers {period === '7d' ? '7' : '30'} jours</span>
       </div>
       <ResponsiveContainer width="100%" height="85%">
-        <AreaChart data={data}>
+        <AreaChart data={chartData}>
           <defs>
             <linearGradient id="colorPresence" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.1}/>

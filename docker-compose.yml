@@ -100,6 +100,7 @@ services:
       - DB_USERNAME=emp_user
       - DB_PASSWORD=emp_pass
       - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
     depends_on:
       - employee-db
@@ -145,6 +146,7 @@ services:
       - DB_USERNAME=pt_user
       - DB_PASSWORD=pt_pass
       - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
       - EMPLOYEE_SERVICE_URL=http://employee-service/api
       - RABBITMQ_HOST=rabbitmq
@@ -217,6 +219,7 @@ services:
       - DB_USERNAME=notif_user
       - DB_PASSWORD=notif_pass
       - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
       - EMPLOYEE_SERVICE_URL=http://employee-service/api
       - RABBITMQ_HOST=rabbitmq
@@ -264,6 +267,7 @@ services:
       - DB_USERNAME=ana_user
       - DB_PASSWORD=ana_pass
       - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_USER=pointel
       - RABBITMQ_PASSWORD=pointel_pass
