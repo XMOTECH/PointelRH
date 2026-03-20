@@ -2,78 +2,189 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Schedule;
+use App\Http\Resources\ScheduleResource;
+use App\Services\ScheduleService;
+use App\Services\LoggingService;
+use App\Exceptions\ResourceNotFoundException;
+use App\Exceptions\InvalidDataException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 
-class ScheduleController extends Controller
+/**
+ * ScheduleController
+ * Gère les opérations CRUD sur les horaires
+ * 
+ * Responsabilités:
+ * - Valider les entrées
+ * - Appeler les services métier
+ * - Retourner les réponses formatées
+ * - Tracer les opérations
+ */
+class ScheduleController extends BaseApiController
 {
+    public function __construct(
+        private readonly ScheduleService $scheduleService
+    ) {}
     /**
-     * Display a listing of the resource.
+     * Lister tous les horaires de la compagnie
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
-        $schedules = Schedule::where('company_id', $request->auth_company_id)->get();
-        return response()->json($schedules);
+        try {
+            $schedules = $this->scheduleService->list($request->auth_company_id);
+
+            LoggingService::info('Schedules list retrieved', [
+                'company_id' => $request->auth_company_id,
+                'count' => $schedules->count(),
+            ]);
+
+            return $this->respondSuccess(
+                ScheduleResource::collection($schedules),
+                null,
+                200
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to list schedules', $e);
+            return $this->respondServerError();
+        }
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Créer un nouvel horaire
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'work_days' => 'required|array',
-            'start_time' => 'required|date_format:H:i:s',
-            'end_time' => 'required|date_format:H:i:s',
-            'grace_minutes' => 'integer|min:0',
-            'timezone' => 'string|max:100',
-        ]);
+        try {
+            $data = $request->validate([
+                'name' => 'required|string|max:255',
+                'work_days' => 'required|array',
+                'start_time' => 'required|date_format:H:i:s',
+                'end_time' => 'required|date_format:H:i:s',
+                'grace_minutes' => 'integer|min:0',
+                'timezone' => 'string|max:100',
+            ]);
 
-        $data['company_id'] = $request->auth_company_id;
-        $schedule = Schedule::create($data);
+            $data['company_id'] = $request->auth_company_id;
+            $schedule = $this->scheduleService->create($data);
 
-        return response()->json($schedule, 201);
+            return $this->respondSuccess(
+                new ScheduleResource($schedule),
+                'Schedule created successfully',
+                201
+            );
+        } catch (ValidationException $e) {
+            LoggingService::warning('Validation failed when creating schedule', ['errors' => $e->errors()]);
+            return $this->respondValidationError($e->errors());
+        } catch (InvalidDataException $e) {
+            LoggingService::warning('Invalid data when creating schedule', ['error' => $e->getMessage()]);
+            return $this->respondError($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to create schedule', $e);
+            return $this->respondServerError();
+        }
     }
 
     /**
-     * Display the specified resource.
+     * Récupérer un horaire spécifique
+     *
+     * @param string $id
+     * @param Request $request
+     * @return JsonResponse
      */
     public function show(string $id, Request $request): JsonResponse
     {
-        $schedule = Schedule::where('company_id', $request->auth_company_id)->findOrFail($id);
-        return response()->json($schedule);
+        try {
+            $schedule = $this->scheduleService->getById($id);
+
+            LoggingService::info('Schedule retrieved', [
+                'schedule_id' => $id,
+            ]);
+
+            return $this->respondSuccess(
+                new ScheduleResource($schedule),
+                null,
+                200
+            );
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Schedule not found', ['schedule_id' => $id]);
+            return $this->respondNotFound('Schedule not found');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve schedule', $e);
+            return $this->respondServerError();
+        }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Modifier un horaire
+     *
+     * @param Request $request
+     * @param string $id
+     * @return JsonResponse
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $schedule = Schedule::where('company_id', $request->auth_company_id)->findOrFail($id);
-        
-        $data = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'work_days' => 'sometimes|array',
-            'start_time' => 'sometimes|date_format:H:i:s',
-            'end_time' => 'sometimes|date_format:H:i:s',
-            'grace_minutes' => 'sometimes|integer|min:0',
-            'timezone' => 'sometimes|string|max:100',
-        ]);
+        try {
+            $data = $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'work_days' => 'sometimes|array',
+                'start_time' => 'sometimes|date_format:H:i:s',
+                'end_time' => 'sometimes|date_format:H:i:s',
+                'grace_minutes' => 'sometimes|integer|min:0',
+                'timezone' => 'sometimes|string|max:100',
+            ]);
 
-        $schedule->update($data);
-        return response()->json($schedule);
+            $schedule = $this->scheduleService->update($id, $data);
+
+            return $this->respondSuccess(
+                new ScheduleResource($schedule),
+                'Schedule updated successfully',
+                200
+            );
+        } catch (ValidationException $e) {
+            LoggingService::warning('Validation failed when updating schedule', ['errors' => $e->errors()]);
+            return $this->respondValidationError($e->errors());
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Schedule not found for update', ['schedule_id' => $id]);
+            return $this->respondNotFound('Schedule not found');
+        } catch (InvalidDataException $e) {
+            LoggingService::warning('Invalid data when updating schedule', ['error' => $e->getMessage()]);
+            return $this->respondError($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to update schedule', $e);
+            return $this->respondServerError();
+        }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Supprimer un horaire
+     *
+     * @param string $id
+     * @param Request $request
+     * @return JsonResponse
      */
     public function destroy(string $id, Request $request): JsonResponse
     {
-        $schedule = Schedule::where('company_id', $request->auth_company_id)->findOrFail($id);
-        $schedule->delete();
-        return response()->json(null, 204);
+        try {
+            $this->scheduleService->delete($id);
+
+            return $this->respondSuccess(
+                null,
+                'Schedule deleted successfully',
+                200
+            );
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Schedule not found for deletion', ['schedule_id' => $id]);
+            return $this->respondNotFound('Schedule not found');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to delete schedule', $e);
+            return $this->respondServerError();
+        }
     }
 }

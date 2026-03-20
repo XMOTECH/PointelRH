@@ -2,122 +2,219 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Employee;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\EmployeeCollection;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
+use App\Services\EmployeeService;
+use App\Services\LoggingService;
+use App\Exceptions\ResourceNotFoundException;
+use App\Exceptions\InvalidDataException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
-class EmployeeController extends Controller
+/**
+ * EmployeeController
+ * Gère les opérations CRUD et requêtes spéciales sur les employés
+ * 
+ * Responsabilités:
+ * - Valider les entrées
+ * - Appeler les services métier
+ * - Retourner les réponses formatées
+ * - Tracer les opérations
+ */
+class EmployeeController extends BaseApiController
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request): EmployeeCollection
-    {
-        $employees = Employee::where('company_id', $request->auth_company_id)
-            ->when($request->department_id, fn($q) => $q->where('department_id', $request->department_id))
-            ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->when($request->contract_type, fn($q) => $q->where('contract_type', $request->contract_type))
-            ->paginate();
+    public function __construct(
+        private readonly EmployeeService $employeeService
+    ) {}
 
-        return new EmployeeCollection($employees);
+    /**
+     * Lister les employés de la compagnie
+     * Supports filtrage par département, statut, type de contrat
+     */
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            $filters = [
+                'department_id' => $request->query('department_id'),
+                'status' => $request->query('status'),
+                'contract_type' => $request->query('contract_type'),
+            ];
+
+            $employees = $this->employeeService->list(
+                $request->auth_company_id,
+                array_filter($filters)
+            );
+
+            LoggingService::info('Employees list retrieved', [
+                'company_id' => $request->auth_company_id,
+                'count' => $employees->count(),
+            ]);
+
+            return $this->respondSuccess(
+                new EmployeeCollection($employees),
+                null,
+                200
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to list employees', $e);
+            return $this->respondServerError('Impossible de récupérer la liste des employés');
+        }
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Créer un nouvel employé
      */
-    public function store(StoreEmployeeRequest $request): EmployeeResource
+    public function store(StoreEmployeeRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $data['company_id'] = $request->auth_company_id;
+        try {
+            $data = $request->validated();
+            $data['company_id'] = $request->auth_company_id;
 
-        $employee = Employee::create($data);
+            $employee = $this->employeeService->create($data);
 
-        return new EmployeeResource($employee);
+            return $this->respondSuccess(
+                new EmployeeResource($employee),
+                'Employé créé avec succès',
+                201
+            );
+        } catch (InvalidDataException $e) {
+            LoggingService::warning('Invalid data when creating employee', ['error' => $e->getMessage()]);
+            return $this->respondError($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to create employee', $e);
+            return $this->respondServerError('Impossible de créer l\'employé');
+        }
     }
 
     /**
-     * Display the specified resource.
+     * Afficher les détails d'un employé
      */
-    public function show(string $id, Request $request): EmployeeResource
+    public function show(string $id, Request $request): JsonResponse
     {
-        $employee = Employee::with(['schedule', 'department'])
-            ->where('company_id', $request->auth_company_id)
-            ->findOrFail($id);
+        try {
+            $employee = $this->employeeService->getById($id);
 
-        return new EmployeeResource($employee);
+            return $this->respondSuccess(
+                new EmployeeResource($employee),
+                null,
+                200
+            );
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Employee not found', ['employee_id' => $id]);
+            return $this->respondNotFound('Employé non trouvé');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve employee', $e);
+            return $this->respondServerError('Impossible de récupérer l\'employé');
+        }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Mettre à jour un employé
      */
-    public function update(UpdateEmployeeRequest $request, string $id): EmployeeResource
+    public function update(UpdateEmployeeRequest $request, string $id): JsonResponse
     {
-        $employee = Employee::where('company_id', $request->auth_company_id)
-            ->findOrFail($id);
+        try {
+            $employee = $this->employeeService->update($id, $request->validated());
 
-        $employee->update($request->validated());
-
-        return new EmployeeResource($employee);
+            return $this->respondSuccess(
+                new EmployeeResource($employee),
+                'Employé mis à jour',
+                200
+            );
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Employee not found for update', ['employee_id' => $id]);
+            return $this->respondNotFound('Employé non trouvé');
+        } catch (InvalidDataException $e) {
+            LoggingService::warning('Invalid data when updating employee', ['error' => $e->getMessage()]);
+            return $this->respondError($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to update employee', $e);
+            return $this->respondServerError('Impossible de mettre à jour l\'employé');
+        }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Supprimer un employé
      */
     public function destroy(string $id, Request $request): JsonResponse
     {
-        $employee = Employee::where('company_id', $request->auth_company_id)
-            ->findOrFail($id);
+        try {
+            $this->employeeService->delete($id);
 
-        $employee->delete();
-
-        return response()->json(null, 204);
+            return $this->respondSuccess(
+                null,
+                'Employé supprimé',
+                200
+            );
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Employee not found for deletion', ['employee_id' => $id]);
+            return $this->respondNotFound('Employé non trouvé');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to delete employee', $e);
+            return $this->respondServerError('Impossible de supprimer l\'employé');
+        }
     }
 
     /**
-     * Resolve an employee from their QR token.
+     * Résoudre un employé via son QR token
      * POST /api/employees/resolve-qr
      */
     public function resolveQr(Request $request): JsonResponse
     {
-        $request->validate(['qr_token' => 'required|string']);
-     
-        $employee = Employee::with(['schedule', 'department'])
-            ->where('qr_token', $request->qr_token)
-            ->where('status', 'active')
-            ->where('company_id', $request->auth_company_id)
-            ->first();
-     
-        if (!$employee) {
-            return response()->json(['error' => 'QR token invalide ou employé inactif'], 404);
+        try {
+            $request->validate(['qr_token' => 'required|string']);
+
+            $employee = Employee::with(['schedule', 'department'])
+                ->where('qr_token', $request->qr_token)
+                ->where('status', 'active')
+                ->where('company_id', $request->auth_company_id)
+                ->first();
+
+            if (!$employee) {
+                LoggingService::warning('Invalid QR token', ['company_id' => $request->auth_company_id]);
+                return $this->respondNotFound('QR token invalide ou employé inactif');
+            }
+
+            LoggingService::info('Employee resolved via QR', ['employee_id' => $employee->id]);
+
+            return $this->respondSuccess([
+                'employee' => new EmployeeResource($employee),
+                'schedule' => $employee->schedule,
+                'department' => $employee->department,
+            ]);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to resolve QR token', $e);
+            return $this->respondServerError('Impossible de résoudre le QR token');
         }
-     
-        return response()->json([
-            'employee'   => new EmployeeResource($employee),
-            'schedule'   => $employee->schedule,
-            'department' => $employee->department,
-        ]);
     }
-     
+
     /**
-     * Get the active schedule of an employee.
+     * Récupérer l'horaire actif d'un employé
      * GET /api/employees/{id}/schedule
      */
     public function schedule(string $id): JsonResponse
     {
-        $employee = Employee::with('schedule')->findOrFail($id);
-     
-        return response()->json([
-            'schedule'     => $employee->schedule,
-            'work_days'    => $employee->schedule->work_days,
-            'start_time'   => $employee->schedule->start_time,
-            'grace_minutes'=> $employee->schedule->grace_minutes,
-            'timezone'     => $employee->schedule->timezone,
-        ]);
+        try {
+            $employee = Employee::with('schedule')->findOrFail($id);
+
+            return $this->respondSuccess([
+                'schedule' => $employee->schedule,
+                'work_days' => $employee->schedule->work_days,
+                'start_time' => $employee->schedule->start_time,
+                'grace_minutes' => $employee->schedule->grace_minutes,
+                'timezone' => $employee->schedule->timezone,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            LoggingService::warning('Employee not found for schedule', ['employee_id' => $id]);
+            return $this->respondNotFound('Employé non trouvé');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve employee schedule', $e);
+            return $this->respondServerError('Impossible de récupérer l\'horaire');
+        }
+    }
+}
     }
 
     /**

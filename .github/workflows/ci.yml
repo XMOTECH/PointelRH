@@ -1,0 +1,54 @@
+# .github/workflows/ci.yml
+name: Pointel CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ─── Tests Laravel (Auth + Employee + Pointage + Notif + Analytics) ───
+  laravel-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth-service, employee-service, pointage-service, notif-service, analytics-service]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with: { php-version: "8.3", extensions: "pdo_mysql redis" }
+
+      - name: Install dependencies
+        run: cd services/${{ matrix.service }} && composer install --no-interaction
+
+      - name: Copy .env.testing
+        run: cd services/${{ matrix.service }} && cp .env.example .env
+
+      - name: Run tests
+        run: cd services/${{ matrix.service }} && php artisan test --parallel
+
+  # ─── Tests React ──────────────────────────────────────────────────
+  react-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Install dependencies
+        run: cd frontend && npm ci
+      - name: Run tests
+        run: cd frontend && npm test -- --run
+
+  # ─── Build Docker (seulement si tests passent) ────────────────────
+  docker-build:
+    needs: [laravel-tests, react-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build all images
+        run: docker compose build

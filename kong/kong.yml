@@ -1,0 +1,72 @@
+# kong/kong.yml — Kong declaratif (DB-less mode)
+_format_version: "3.0"
+
+# ─── Services → microservices cibles ─────────────────────────────
+services:
+  - name: auth-service
+    url: http://auth-service:80
+    routes:
+      - name: auth-routes
+        paths: ["/api/auth"]
+        strip_path: false
+
+  - name: employee-service
+    url: http://employee-service:80
+    routes:
+      - name: employee-routes
+        paths: ["/api/employees", "/api/departments", "/api/schedules"]
+        strip_path: false
+
+  - name: pointage-service
+    url: http://pointage-service:80
+    routes:
+      - name: pointage-routes
+        paths: ["/api/clock-in", "/api/clock-out", "/api/attendances"]
+        strip_path: false
+
+  - name: notif-service
+    url: http://notif-service:80
+    routes:
+      - name: notif-routes
+        paths: ["/api/notifications"]
+        strip_path: false
+
+  - name: analytics-service
+    url: http://analytics-service:80
+    routes:
+      - name: analytics-routes
+        paths: ["/api/analytics"]
+        strip_path: false
+
+# ─── Plugins globaux ──────────────────────────────────────────────
+plugins:
+  # CORS — autoriser React (localhost:5173)
+  - name: cors
+    config:
+      origins: ["http://localhost:5173"]
+      methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
+      headers: ["Authorization","Content-Type","X-Company-ID"]
+      credentials: true
+      max_age: 3600
+
+  # Rate limiting — protection DoS
+  - name: rate-limiting
+    config:
+      minute: 120          # 120 req/min par IP
+      hour: 3600
+      policy: local
+      error_message: "Trop de requetes — reessayez dans un moment"
+
+#   # JWT validation — simple bypass for login/refresh
+#   - name: pre-function
+#     config:
+#       access:
+#         - |
+#           local path = kong.request.get_path()
+#           if path == "/api/auth/login" or path == "/api/auth/refresh" then
+#             return
+#           end
+#           local token = kong.request.get_header("Authorization")
+#           if not token then
+#             kong.response.exit(401, { error = "Token manquant" })
+#           end

@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\ClockInRequest;
 use App\Http\Resources\AttendanceResource;
 use App\Services\ClockInService;
 use App\Services\DTOs\ClockInData;
+use App\Services\LoggingService;
 use App\Exceptions\AlreadyClockedInException;
 use App\Exceptions\InvalidTokenException;
 use App\Exceptions\NotAWorkDayException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 
-class ClockInController extends Controller
+class ClockInController extends BaseApiController
 {
     public function __construct(
         private readonly ClockInService $clockInService
@@ -30,23 +29,31 @@ class ClockInController extends Controller
                 )
             );
  
-            return response()->json([
-                'success'    => true,
-                'attendance' => new AttendanceResource($attendance),
-                'message'    => $attendance->isLate()
+            LoggingService::info('Clock-in successful', [
+                'employee_id' => $attendance->employee_id,
+                'late_minutes' => $attendance->late_minutes,
+            ]);
+ 
+            return $this->respondSuccess(
+                new AttendanceResource($attendance),
+                $attendance->isLate()
                     ? "Pointe avec {$attendance->late_minutes} min de retard"
                     : "Pointage enregistre — bonjour !",
-            ], 201);
+                201
+            );
  
         } catch (AlreadyClockedInException $e) {
-            return response()->json(['error' => $e->getMessage()], 409);
+            LoggingService::warning('Clock-in failed: already clocked in', ['error' => $e->getMessage()]);
+            return $this->respondConflict($e->getMessage());
         } catch (InvalidTokenException $e) {
-            return response()->json(['error' => 'QR invalide ou expire'], 404);
+            LoggingService::warning('Clock-in failed: invalid token', ['error' => $e->getMessage()]);
+            return $this->respondNotFound('QR invalide ou expire');
         } catch (NotAWorkDayException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            LoggingService::warning('Clock-in failed: not a work day', ['error' => $e->getMessage()]);
+            return $this->respondError($e->getMessage(), 422);
         } catch (\Exception $e) {
-            \Log::error("Erreur clock-in: " . $e->getMessage());
-            return response()->json(['error' => 'Une erreur interne est survenue: ' . $e->getMessage()], 500);
+            LoggingService::error('Clock-in error', $e);
+            return $this->respondServerError('Une erreur est survenue lors du pointage');
         }
     }
 }

@@ -51,6 +51,7 @@ RUN git config --global --add safe.directory /var/www/html \
 # 6. Copier les configurations
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
 
 EXPOSE 80
 

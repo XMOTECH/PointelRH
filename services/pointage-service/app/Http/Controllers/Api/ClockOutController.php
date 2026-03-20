@@ -2,42 +2,63 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Services\ClockOutService;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use App\Http\Requests\ClockOutRequest;
 use App\Http\Resources\AttendanceResource;
+use App\Services\ClockOutService;
+use App\Services\LoggingService;
 use App\Exceptions\AttendanceNotFoundException;
-use Illuminate\Support\Facades\Log;
+use App\Exceptions\NotClockedInException;
+use Illuminate\Http\JsonResponse;
 
-class ClockOutController extends Controller
+/**
+ * ClockOutController
+ * Gère les demandes de pointage de sortie
+ * 
+ * Responsabilités:
+ * - Valider les entrées
+ * - Appeler le service métier
+ * - Retourner les réponses formatées
+ * - Tracer les erreurs
+ */
+class ClockOutController extends BaseApiController
 {
     public function __construct(
         private readonly ClockOutService $clockOutService
     ) {}
 
-    public function store(Request $request): JsonResponse
+    /**
+     * Enregistrer une sortie (clock-out)
+     */
+    public function store(ClockOutRequest $request): JsonResponse
     {
-        $request->validate([
-            'employee_id' => 'required|uuid',
-        ]);
-
         try {
             $attendance = $this->clockOutService->clockOut(
-                $request->employee_id,
-                $request->auth_company_id
+                employeeId: $request->validated('employee_id'),
+                companyId: $request->auth_company_id,
             );
 
-            return response()->json([
-                'success' => true,
-                'attendance' => new AttendanceResource($attendance),
-                'message' => 'Pointage de sortie enregistre. Travail effectue: ' . $attendance->work_minutes . ' min',
+            LoggingService::info('Clock-out successful', [
+                'employee_id' => $attendance->employee_id,
+                'work_minutes' => $attendance->work_minutes,
             ]);
+
+            return $this->respondSuccess(
+                new AttendanceResource($attendance),
+                "Pointage de sortie enregistré. Travail effectué: {$attendance->work_minutes} min",
+                200
+            );
+
         } catch (AttendanceNotFoundException $e) {
-            return response()->json(['error' => $e->getMessage()], 404);
+            LoggingService::warning('Clock-out failed: attendance not found', ['error' => $e->getMessage()]);
+            return $this->respondNotFound($e->getMessage());
+
+        } catch (NotClockedInException $e) {
+            LoggingService::warning('Clock-out failed: not clocked in', ['error' => $e->getMessage()]);
+            return $this->respondConflict($e->getMessage());
+
         } catch (\Exception $e) {
-            \Log::error("Erreur clock-out: " . $e->getMessage());
-            return response()->json(['error' => 'Une erreur interne est survenue: ' . $e->getMessage()], 500);
+            LoggingService::error('Clock-out error', $e);
+            return $this->respondServerError('Une erreur est survenue lors du pointage de sortie');
         }
     }
 }

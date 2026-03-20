@@ -1,56 +1,143 @@
-# Fichiers d'environnement et secrets
+# ==========================================
+# 🔐 Fichiers d'environnement et secrets
+# ==========================================
 .env
+.env.local
+.env.*.local
 .env.*
 !.env.example
+!.env.example.*
 !.env.global
 
-# Dépendances Node.js (Frontend et Mix/Vite)
+# Secrets collectés
+.env.*.backup
+.env.*.bak
+
+# ==========================================
+# Services Node.js et Mix/Vite
+# ==========================================
 node_modules/
 npm-debug.log
+npm-debug.log.*
 yarn-error.log
+yarn-error.log.*
+pointel-mobile/node_modules/
 
-# Dépendances PHP (Backend Laravel)
+# ==========================================
+# 📦 Dépendances PHP (Backend Laravel)
+# ==========================================
 vendor/
 services/*/vendor/
 services/*/composer.lock
+services/auth-service/.env*
+services/employee-service/.env*
+services/pointage-service/.env*
+services/notif-service/.env*
+services/analytics-service/.env*
 
-# Fichiers de cache et temporaires (Laravel)
+# ==========================================
+# 📁 Caches et fichiers temporaires (Laravel)
+# ==========================================
 services/*/storage/logs/*
 services/*/storage/framework/cache/*
 services/*/storage/framework/sessions/*
 services/*/storage/framework/views/*
 services/*/bootstrap/cache/*
+services/*/storage/work/*
+services/*/storage/tmp/*
 !services/*/storage/logs/.gitkeep
 !services/*/storage/framework/cache/.gitkeep
 !services/*/storage/framework/sessions/.gitkeep
 !services/*/storage/framework/views/.gitkeep
 !services/*/bootstrap/cache/.gitkeep
 
-# Fichiers compilés et publics
+# ==========================================
+# 🎨 Fichiers compilés et publics
+# ==========================================
 services/*/public/hot
 services/*/public/storage
 services/*/public/build/
+services/*/public/mix-manifest.json
+services/*/public/css/
+services/*/public/js/
+frontend/dist/
+frontend/build/
 
-# Bases de données locales SQLite ou dumps
+# ==========================================
+# 🗄️ Bases de données locales
+# ==========================================
 *.sqlite
 *.sqlite3
+*.db
 services/*/database/*.sqlite
-*.sql
+services/*/database/*.sqlite3
+services/*/database/*.db
+services/*/*_db
+services/*/*_db-journal
+auth_db
+auth_db-journal
+notif_db
+pointage_db
 
-# Outils de développement, IDE et logs OS
+# Dumps SQL
+*.sql
+*.sql.gz
+dump.rdb
+
+# ==========================================
+# 💻 IDE, Outils de dev et logs OS
+# ==========================================
 .idea/
 .vscode/
 .history/
-*.log
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Logs
+*.log
+logs/
 Homestead.json
 Homestead.yaml
 
-# Caches de tests PHPUnit
+# ==========================================
+# 🧪 Tests et Caches
+# ==========================================
 .phpunit.cache
 .phpunit.result.cache
+coverage/
+.coverage/
+htmlcov/
+pytest_cache/
+.pytest_cache/
+.nyc_output/
 
-# Fichiers locaux Docker (si besoin d'exclure les volumes montés localement)
+# ==========================================
+# 🐳 Docker
+# ==========================================
 docker-data/
 *_data/
+.container_data/
+docker-compose.override.yml
+
+# ==========================================
+# 📚 Dépendances Frontend
+# ==========================================
+frontend/.nuxt/
+frontend/.cache/
+frontend/dist/
+frontend/coverage/
+
+# ==========================================
+# ⚙️ Fichiers spécifiques Laravel/Services
+# ==========================================
+services/*/supervisord.pid
+services/*/supervisord.log
+services/*/.phpstorm.meta.php
+services/*/_ide_helper.php
+services/*/.env.dusk.local

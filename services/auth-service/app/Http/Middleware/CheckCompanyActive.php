@@ -15,6 +15,9 @@ class CheckCompanyActive
      */
     public function handle(Request $request, Closure $next): Response
     {
-        return $next($request);
+        \Log::debug('CheckCompanyActive middleware started');
+        $res = $next($request);
+        \Log::debug('CheckCompanyActive middleware finished');
+        return $res;
     }
 }

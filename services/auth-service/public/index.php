@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
+file_put_contents('php://stderr', "[".date('Y-m-d H:i:s')."] === INDEX.PHP START ===\n");
 
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {

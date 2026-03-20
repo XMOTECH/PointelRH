@@ -2,34 +2,40 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Requests\LoginRequest;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Illuminate\Http\JsonResponse;
 use App\Models\RefreshToken;
 use App\Http\Resources\UserResource;
+use App\Services\LoggingService;
 use Illuminate\Support\Str;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
-class AuthController extends Controller
+class AuthController extends BaseApiController
 {
+    public function ping(): JsonResponse
+    {
+        return $this->respondSuccess(['status' => 'ready']);
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->only(['email', 'password']);
 
         if (!$token = auth('api')->attempt($credentials)) {
-            return response()->json(['error' => 'Identifiants invalides'], 401);
+            LoggingService::warning('Failed login attempt', ['email' => $credentials['email']]);
+            return $this->respondUnauthorized('Identifiants invalides');
         }
 
         $user = auth('api')->user();
 
         if (!$user->is_active) {
-            return response()->json(['error' => 'Compte désactivé'], 403);
+            LoggingService::warning('Login attempt with inactive account', ['user_id' => $user->id]);
+            return $this->respondForbidden('Compte désactivé');
         }
 
         $rawToken = Str::random(64);
 
-        $refreshToken = RefreshToken::create([
+        RefreshToken::create([
             'id'         => Str::uuid(),
             'user_id'    => $user->id,
             'token'      => hash('sha256', $rawToken),
@@ -39,18 +45,21 @@ class AuthController extends Controller
 
         $user->update(['last_login_at' => now()]);
 
-        return response()->json([
+        LoggingService::info('User logged in successfully', ['user_id' => $user->id]);
+
+        return $this->respondSuccess([
             'access_token'  => $token,
             'token_type'    => 'bearer',
             'expires_in'    => config('jwt.ttl') * 60,
             'refresh_token' => $rawToken,
             'user'          => new UserResource($user),
-        ]);
+        ], 'Connexion réussie', 200);
     }
+
 
     public function me(): JsonResponse
     {
-        return response()->json([
+        return $this->respondSuccess([
             'user' => new UserResource(auth('api')->user())
         ]);
     }
@@ -58,49 +67,48 @@ class AuthController extends Controller
     public function refresh(): JsonResponse
     {
         try {
-            return response()->json([
+            return $this->respondSuccess([
                 'access_token' => auth('api')->refresh(),
                 'token_type'   => 'bearer',
                 'expires_in'   => config('jwt.ttl') * 60
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Erreur lors du rafraîchissement du token'], 401);
+            LoggingService::error('Token refresh failed', $e);
+            return $this->respondUnauthorized('Impossible de rafraîchir le token');
         }
     }
 
     public function logout(): JsonResponse
     {
         auth('api')->logout();
-
-        return response()->json(['message' => 'Déconnexion réussie']);
+        LoggingService::info('User logged out', ['user_id' => auth('api')->user()->id ?? null]);
+        return $this->respondSuccess(null, 'Déconnexion réussie');
     }
 
     public function logoutAll(): JsonResponse
     {
         $user = auth('api')->user();
         
-        // Revoke all refresh tokens
         RefreshToken::where('user_id', $user->id)->update(['revoked_at' => now()]);
-        
         auth('api')->logout();
 
-        return response()->json(['message' => 'Déconnecté de tous les appareils']);
+        LoggingService::info('User logged out from all devices', ['user_id' => $user->id]);
+        return $this->respondSuccess(null, 'Déconnecté de tous les appareils');
     }
 
     public function verify(Request $request): JsonResponse
     {
         try {
-            $token = JWTAuth::parseToken()->authenticate();
+            $token = auth('api')->user();
 
-            return response()->json([
+            return $this->respondSuccess([
                 'valid'      => true,
                 'user_id'    => $token->id,
                 'company_id' => $token->company_id,
                 'role'       => $token->role,
-                'permissions'=> $token->getAllPermissions()->pluck('name'),
             ]);
         } catch (\Exception $e) {
-            return response()->json(['valid' => false, 'error' => $e->getMessage()], 401);
+            return $this->respondUnauthorized('Token invalide ou expiré');
         }
     }
 }

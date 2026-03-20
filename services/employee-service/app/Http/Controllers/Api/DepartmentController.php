@@ -2,73 +2,186 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Department;
+use App\Http\Resources\DepartmentResource;
+use App\Services\DepartmentService;
+use App\Services\LoggingService;
+use App\Exceptions\ResourceNotFoundException;
+use App\Exceptions\InvalidDataException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 
-class DepartmentController extends Controller
+/**
+ * DepartmentController
+ * Gère les opérations CRUD sur les départements
+ * 
+ * Responsabilités:
+ * - Valider les entrées
+ * - Appeler les services métier
+ * - Retourner les réponses formatées
+ * - Tracer les opérations
+ */
+class DepartmentController extends BaseApiController
 {
-    /**
-     * Display a listing of the resource.
+    public function __construct(
+        private readonly DepartmentService $departmentService
+    ) {}
+   /**
+     * Lister tous les départements de la compagnie
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
-        $departments = Department::where('company_id', $request->auth_company_id)->get();
-        return response()->json($departments);
+        try {
+            $departments = $this->departmentService->list($request->auth_company_id);
+            
+            LoggingService::info('Departments list retrieved', [
+                'company_id' => $request->auth_company_id,
+                'count' => $departments->count(),
+            ]);
+
+            return $this->respondSuccess(
+                DepartmentResource::collection($departments),
+                null,
+                200
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to list departments', $e);
+            return $this->respondServerError();
+        }
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Créer un nouveau département
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'manager_id' => 'nullable|uuid',
-            'parent_id' => 'nullable|uuid',
-            'location' => 'nullable|string|max:255',
-        ]);
+        try {
+            $data = $request->validate([
+                'name' => 'required|string|max:255',
+                'manager_id' => 'nullable|uuid',
+                'parent_id' => 'nullable|uuid',
+                'location' => 'nullable|string|max:255',
+            ]);
 
-        $data['company_id'] = $request->auth_company_id;
-        $department = Department::create($data);
+            $data['company_id'] = $request->auth_company_id;
+            $department = $this->departmentService->create($data);
 
-        return response()->json($department, 201);
+            return $this->respondSuccess(
+                new DepartmentResource($department),
+                'Department created successfully',
+                201
+            );
+        } catch (ValidationException $e) {
+            LoggingService::warning('Validation failed when creating department', ['errors' => $e->errors()]);
+            return $this->respondValidationError($e->errors());
+        } catch (InvalidDataException $e) {
+            LoggingService::warning('Invalid data when creating department', ['error' => $e->getMessage()]);
+            return $this->respondError($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to create department', $e);
+            return $this->respondServerError();
+        }
     }
 
     /**
-     * Display the specified resource.
+     * Récupérer un département spécifique
+     *
+     * @param string $id
+     * @param Request $request
+     * @return JsonResponse
      */
     public function show(string $id, Request $request): JsonResponse
     {
-        $department = Department::where('company_id', $request->auth_company_id)->findOrFail($id);
-        return response()->json($department);
+        try {
+            $department = $this->departmentService->getById($id);
+
+            LoggingService::info('Department retrieved', [
+                'department_id' => $id,
+            ]);
+
+            return $this->respondSuccess(
+                new DepartmentResource($department),
+                null,
+                200
+            );
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Department not found', ['department_id' => $id]);
+            return $this->respondNotFound('Department not found');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve department', $e);
+            return $this->respondServerError();
+        }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Modifier un département
+     *
+     * @param Request $request
+     * @param string $id
+     * @return JsonResponse
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $department = Department::where('company_id', $request->auth_company_id)->findOrFail($id);
-        $data = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'manager_id' => 'nullable|uuid',
-            'parent_id' => 'nullable|uuid',
-            'location' => 'nullable|string|max:255',
-        ]);
+        try {
+            $data = $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'manager_id' => 'nullable|uuid',
+                'parent_id' => 'nullable|uuid',
+                'location' => 'nullable|string|max:255',
+            ]);
 
-        $department->update($data);
-        return response()->json($department);
+            $department = $this->departmentService->update($id, $data);
+
+            return $this->respondSuccess(
+                new DepartmentResource($department),
+                'Department updated successfully',
+                200
+            );
+        } catch (ValidationException $e) {
+            LoggingService::warning('Validation failed when updating department', ['errors' => $e->errors()]);
+            return $this->respondValidationError($e->errors());
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Department not found for update', ['department_id' => $id]);
+            return $this->respondNotFound('Department not found');
+        } catch (InvalidDataException $e) {
+            LoggingService::warning('Invalid data when updating department', ['error' => $e->getMessage()]);
+            return $this->respondError($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to update department', $e);
+            return $this->respondServerError();
+        }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Supprimer un département
+     *
+     * @param string $id
+     * @param Request $request
+     * @return JsonResponse
      */
     public function destroy(string $id, Request $request): JsonResponse
     {
-        $department = Department::where('company_id', $request->auth_company_id)->findOrFail($id);
-        $department->delete();
-        return response()->json(null, 204);
+        try {
+            $this->departmentService->delete($id);
+
+            return $this->respondSuccess(
+                null,
+                'Department deleted successfully',
+                200
+            );
+        } catch (ResourceNotFoundException $e) {
+            LoggingService::warning('Department not found for deletion', ['department_id' => $id]);
+            return $this->respondNotFound('Department not found');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to delete department', $e);
+            return $this->respondServerError();
+        }
     }
 }
+

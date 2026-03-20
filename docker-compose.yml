@@ -24,19 +24,21 @@ services:
       dockerfile: Dockerfile
     container_name: auth-service
     restart: unless-stopped
-    ports:
-      - "8001:80"
     volumes:
       - ./services/auth-service:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/bootstrap/cache
+      - ./services/auth-service/docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./services/auth-service/docker/supervisord.conf:/etc/supervisord.conf:ro
     environment:
-      - DB_HOST=auth_db
+      - DB_HOST=auth-db
       - DB_DATABASE=auth_db
       - DB_USERNAME=auth_user
       - DB_PASSWORD=auth_pass
       - REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}  
     depends_on:
-      auth_db:
+      auth-db:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -44,9 +46,10 @@ services:
       - pointel_net
 
   # ─── DATABASE ─────────────────────────────────────────────
-  auth_db:
+  auth-db:
     image: mysql:8.0
-    container_name: auth_mysql
+    container_name: auth-db
+    command: --skip-name-resolve
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: auth_db
@@ -83,28 +86,30 @@ services:
     build:
       context: ./services/employee-service
       dockerfile: Dockerfile
-    container_name: employee_service
+    container_name: employee-service
     restart: unless-stopped
-    ports:
-      - "8002:80"
     volumes:
       - ./services/employee-service:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/bootstrap/cache
+      - ./services/employee-service/docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./services/employee-service/docker/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
     environment:
-      - DB_HOST=employee_db
+      - DB_HOST=employee-db
       - DB_DATABASE=employee_db
       - DB_USERNAME=emp_user
       - DB_PASSWORD=emp_pass
       - REDIS_HOST=redis
       - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
     depends_on:
-      - employee_db
+      - employee-db
       - redis
     networks:
       - pointel_net
- 
-  employee_db:
+
+  employee-db:
     image: mysql:8.0
-    container_name: employee_mysql
+    container_name: employee-db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: employee_db
@@ -121,20 +126,21 @@ services:
       timeout: 5s
       retries: 5
 
-
   # ─── POINTAGE SERVICE ────────────────────────────────────
   pointage-service:
     build:
       context: ./services/pointage-service
       dockerfile: Dockerfile
-    container_name: pointage_service
+    container_name: pointage-service
     restart: unless-stopped
-    ports:
-      - "8003:80"
     volumes:
       - ./services/pointage-service:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/bootstrap/cache
+      - ./services/pointage-service/docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./services/pointage-service/docker/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
     environment:
-      - DB_HOST=pointage_db
+      - DB_HOST=pointage-db
       - DB_DATABASE=pointage_db
       - DB_USERNAME=pt_user
       - DB_PASSWORD=pt_pass
@@ -146,15 +152,15 @@ services:
       - RABBITMQ_USER=pointel
       - RABBITMQ_PASSWORD=pointel_pass
     depends_on:
-      - pointage_db
+      - pointage-db
       - redis
       - rabbitmq
     networks:
       - pointel_net
 
-  pointage_db:
+  pointage-db:
     image: mysql:8.0
-    container_name: pointage_mysql
+    container_name: pointage-db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: pointage_db
@@ -197,14 +203,16 @@ services:
     build:
       context: ./services/notif-service
       dockerfile: Dockerfile
-    container_name: notif_service
+    container_name: notif-service
     restart: unless-stopped
-    ports:
-      - "8004:80"
     volumes:
       - ./services/notif-service:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/bootstrap/cache
+      - ./services/notif-service/docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./services/notif-service/docker/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
     environment:
-      - DB_HOST=notif_db
+      - DB_HOST=notif-db
       - DB_DATABASE=notif_db
       - DB_USERNAME=notif_user
       - DB_PASSWORD=notif_pass
@@ -216,15 +224,15 @@ services:
       - RABBITMQ_PASSWORD=pointel_pass
       - RABBITMQ_QUEUE=pointel.notifications
     depends_on:
-      - notif_db
+      - notif-db
       - redis
       - rabbitmq
     networks:
       - pointel_net
 
-  notif_db:
+  notif-db:
     image: mysql:8.0
-    container_name: notif_mysql
+    container_name: notif-db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: notif_db
@@ -241,15 +249,17 @@ services:
     build:
       context: ./services/analytics-service
       dockerfile: Dockerfile
-    container_name: analytics_service
+    container_name: analytics-service
     restart: unless-stopped
-    ports:
-      - "8005:80"
     volumes:
       - ./services/analytics-service:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/bootstrap/cache
+      - ./services/analytics-service/docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./services/analytics-service/docker/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
     environment:
       - DB_CONNECTION=pgsql
-      - DB_HOST=analytics_db
+      - DB_HOST=analytics-db
       - DB_DATABASE=analytics_db
       - DB_USERNAME=ana_user
       - DB_PASSWORD=ana_pass
@@ -259,15 +269,39 @@ services:
       - RABBITMQ_PASSWORD=pointel_pass
       - RABBITMQ_QUEUE=pointel.analytics
     depends_on:
-      - analytics_db
+      - analytics-db
       - redis
       - rabbitmq
     networks:
       - pointel_net
 
-  analytics_db:
+  # ─── KONG API GATEWAY ──────────────────────────────────
+  kong:
+    image: kong:3.6
+    container_name: kong
+    ports:
+      - "8000:8000"    # API publique — React pointe ici
+      - "8001:8001"    # Admin API — localhost seulement
+    environment:
+      KONG_DATABASE: "off"             # Mode declaratif — pas de DB Kong
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_LOG_LEVEL: info
+    volumes:
+      - ./kong/kong.yml:/etc/kong/kong.yml:ro
+    depends_on:
+      - auth-service
+      - employee-service
+      - pointage-service
+      - notif-service
+      - analytics-service
+    networks:
+      - pointel_net
+
+  analytics-db:
     image: postgres:alpine
-    container_name: analytics_postgres
+    container_name: analytics-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: analytics_db
