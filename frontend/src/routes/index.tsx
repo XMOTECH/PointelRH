@@ -6,9 +6,7 @@ import { MainLayout } from '../components/layouts/MainLayout';
 import ClockInPage from '../features/clockin/ClockInPage';
 import DashboardPage from '../features/dashboard/DashboardPage';
 import { EmployeeListPage } from '../features/employees/EmployeeListPage';
-
-// Simple placeholders for other pages to avoid build errors
-const NotificationsPage = () => <div className="p-8"><h1>Centre de Notifications</h1><p>Aucun nouveau message.</p></div>;
+import { NotificationsPage } from '../features/notifications/NotificationsPage';
 
 function RoleBasedRedirect() {
   const { user } = useAuth();

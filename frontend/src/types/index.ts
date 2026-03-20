@@ -2,9 +2,11 @@ export interface User {
   id: string;
   first_name: string;
   last_name: string;
+  name?: string;         // Computed full name from backend
   email: string;
   role: 'admin' | 'manager' | 'employee';
   department_id?: string;
+  qr_token?: string;
   created_at: string;
   updated_at: string;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { clsx } from 'clsx';
+import { cn } from '../../lib/utils';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', cla
   };
 
   return (
-    <span className={clsx(baseStyle, variants[variant], className)}>
+    <span className={cn(baseStyle, variants[variant], className)}>
       {children}
     </span>
   );
