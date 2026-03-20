@@ -1,7 +1,18 @@
 import api from '../../../lib/axios';
 
 export const dashboardApi = {
-  getDashboard: () => api.get('/api/analytics/dashboard').then(r => r.data),
-  getPresenceTrend: (period = '7d') => api.get(`/api/analytics/presence?period=${period}`).then(r => r.data),
-  getAttendancesToday: () => api.get('/api/attendances/today').then(r => r.data),
+  getDashboard: async () => {
+    const response = await api.get('/api/analytics/dashboard');
+    return response.data?.data || response.data || [];
+  },
+  getPresenceTrend: async (period = '7d') => {
+    const response = await api.get(`/api/analytics/presence?period=${period}`);
+    return response.data?.data || response.data || [];
+  },
+  getAttendancesToday: async () => {
+    const response = await api.get('/api/attendances/today');
+    const data = response.data?.data || response.data || [];
+    // S'assurer que c'est un array
+    return Array.isArray(data) ? data : [];
+  },
 };
