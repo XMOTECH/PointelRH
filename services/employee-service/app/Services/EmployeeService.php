@@ -18,6 +18,10 @@ use Illuminate\Support\Collection;
  */
 class EmployeeService
 {
+    public function __construct(
+        private readonly \App\Repositories\EmployeeRepository $employeeRepository
+    ) {}
+
     /**
      * Créer un nouvel employé
      *
@@ -26,7 +30,7 @@ class EmployeeService
     public function create(array $data): Employee
     {
         try {
-            $employee = Employee::create($data);
+            $employee = $this->employeeRepository->create($data);
             LoggingService::info('Employee created via service', [
                 'employee_id' => $employee->id,
             ]);
@@ -44,7 +48,7 @@ class EmployeeService
      */
     public function getById(string $id): Employee
     {
-        $employee = Employee::find($id);
+        $employee = $this->employeeRepository->findById($id);
         if (!$employee) {
             throw new ResourceNotFoundException('Employee');
         }
@@ -83,7 +87,7 @@ class EmployeeService
     public function delete(string $id): bool
     {
         $employee = $this->getById($id);
-        $deleted = $employee->delete();
+        $deleted = $this->employeeRepository->delete($id);
         
         if ($deleted) {
             LoggingService::info('Employee deleted via service', [
@@ -99,20 +103,32 @@ class EmployeeService
      */
     public function list(string $companyId, array $filters = []): Collection
     {
-        $query = Employee::where('company_id', $companyId);
-
-        if (!empty($filters['department_id'])) {
-            $query->where('department_id', $filters['department_id']);
+        // Priorité au filtre injecté par le middleware ScopeByDepartment pour les managers
+        if (request()->has('filter_department_id')) {
+            $filters['department_id'] = request()->filter_department_id;
         }
 
-        if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
+        return $this->employeeRepository->search($companyId, $filters);
+    }
+
+    /**
+     * Résoudre un employé via un QR token ou son propre ID
+     */
+    public function resolve(string $identifier): ?Employee
+    {
+        // Essayer par ID d'abord (format JSON de l'app)
+        $decoded = json_decode($identifier, true);
+        if (is_array($decoded) && isset($decoded['user_id'])) {
+            return Employee::with(['schedule', 'department'])
+                ->where('id', $decoded['user_id'])
+                ->where('status', \App\Enums\EmployeeStatus::ACTIVE->value)
+                ->first();
         }
 
-        if (!empty($filters['contract_type'])) {
-            $query->where('contract_type', $filters['contract_type']);
-        }
-
-        return $query->get();
+        // Sinon par QR token brut
+        return Employee::with(['schedule', 'department'])
+            ->where('qr_token', $identifier)
+            ->where('status', \App\Enums\EmployeeStatus::ACTIVE->value)
+            ->first();
     }
 }

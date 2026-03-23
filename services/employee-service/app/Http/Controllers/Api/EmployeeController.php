@@ -170,25 +170,17 @@ class EmployeeController extends BaseApiController
                 return $this->respondError('The qr token field is required.', 422);
             }
 
-            // Le token peut être un JSON dynamique (généré par l'app) ou le qr_token brut (badge)
-            $decodedToken = json_decode($qrToken, true);
-            $query = Employee::with(['schedule', 'department'])->where('status', 'active');
-
-            if (is_array($decodedToken) && isset($decodedToken['user_id'])) {
-                $employee = $query->where('id', $decodedToken['user_id'])->first();
-            } else {
-                $employee = $query->where('qr_token', $qrToken)->first();
-            }
+            $employee = $this->employeeService->resolve($qrToken);
 
             if (!$employee) {
-                LoggingService::warning('Invalid QR token', ['qr_token' => $qrToken]);
+                LoggingService::warning('Invalid QR token or employee resolution failed', ['qr_token' => $qrToken]);
                 return $this->respondNotFound('QR token invalide ou employé inactif');
             }
 
-            LoggingService::info('Employee resolved via QR', ['employee_id' => $employee->id]);
+            LoggingService::info('Employee resolved via service', ['employee_id' => $employee->id]);
 
             return $this->respondSuccess([
-                'employee'   => new EmployeeResource($employee),
+                'employee'   => (new EmployeeResource($employee))->resolve(),
                 'schedule'   => $employee->schedule,
                 'department' => $employee->department,
             ]);
@@ -250,6 +242,36 @@ class EmployeeController extends BaseApiController
         } catch (\Exception $e) {
             LoggingService::error('Failed to update employee status', $e);
             return $this->respondServerError('Impossible de mettre à jour le statut');
+        }
+    }
+
+    /**
+     * Récupérer les informations de l'employé connecté
+     * GET /api/employee/me
+     */
+    public function me(Request $request): JsonResponse
+    {
+        try {
+            if (!$request->auth_user_id) {
+                return $this->respondUnauthorized('Utilisateur non authentifié');
+            }
+
+            // Un utilisateur peut avoir un employee_id lié
+            $user = \App\Models\User::find($request->auth_user_id);
+            if (!$user || !$user->employee_id) {
+                return $this->respondNotFound('Aucun profil employé lié à cet utilisateur');
+            }
+
+            $employee = $this->employeeService->getById($user->employee_id);
+
+            return $this->respondSuccess(
+                new EmployeeResource($employee),
+                'Profil récupéré',
+                200
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve self profile', $e);
+            return $this->respondServerError('Impossible de récupérer votre profil');
         }
     }
 }

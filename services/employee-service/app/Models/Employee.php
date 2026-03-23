@@ -20,7 +20,9 @@ class Employee extends Model
     ];
  
     protected $casts = [
-        'hire_date' => 'date',
+        'hire_date'     => 'date',
+        'status'        => \App\Enums\EmployeeStatus::class,
+        'contract_type' => \App\Enums\ContractType::class,
     ];
  
     // ── Relations ──────────────────────────────────────────

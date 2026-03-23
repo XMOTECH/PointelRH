@@ -30,10 +30,11 @@ class ValidateJwtFromAuthService
 
             // Injecter les infos dans la requête
             $request->merge([
-                'auth_user_id'     => $payload['sub'],
-                'auth_company_id'  => $payload['company_id'],
-                'auth_role'        => $payload['role'],
-                'auth_permissions' => $payload['permissions'] ?? [],
+                'auth_user_id'       => $payload['sub'],
+                'auth_company_id'    => $payload['company_id'],
+                'auth_department_id' => $payload['department_id'] ?? null,
+                'auth_role'          => $payload['role'],
+                'auth_permissions'   => $payload['permissions'] ?? [],
             ]);
 
         } catch (\Exception $e) {

@@ -22,7 +22,7 @@ class QrDriver implements ClockInDriver
     {
         // Appel HTTP vers le service employee pour récupérer l'employé ET son planning complet (requis pour le pointage)
         $response = Http::timeout(5)
-            ->post("{$this->employeeServiceUrl}/api/employees/resolve-qr", [
+            ->post("{$this->employeeServiceUrl}/employees/resolve-qr", [
                 'qr_token' => $payload['qr_token']
             ]);
 

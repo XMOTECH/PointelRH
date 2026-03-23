@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use App\Jobs\Consumers\HandleLateArrival;
+use App\Jobs\Consumers\HandleAbsenceDetected;
 
 class ConsumePointageEvents extends Command
 {
@@ -51,6 +52,19 @@ class ConsumePointageEvents extends Command
                     if ($dispatchPayload['employee_id'] && $dispatchPayload['company_id']) {
                         HandleLateArrival::dispatch($dispatchPayload);
                         $this->info(" [v] Dispatched HandleLateArrival for employee: {$dispatchPayload['employee_id']}");
+                    }
+                }
+
+                if ($event === 'AbsenceDetected') {
+                    $dispatchPayload = [
+                        'event_id'      => md5($msg->body),
+                        'employee_id'   => $data['employee_id'] ?? null,
+                        'company_id'    => $data['company_id'] ?? null,
+                    ];
+
+                    if ($dispatchPayload['employee_id'] && $dispatchPayload['company_id']) {
+                        HandleAbsenceDetected::dispatch($dispatchPayload);
+                        $this->info(" [v] Dispatched HandleAbsenceDetected for employee: {$dispatchPayload['employee_id']}");
                     }
                 }
 

@@ -24,6 +24,7 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'company_id',
         'employee_id',
+        'department_id',
         'email',
         'password',
         'role',
@@ -84,6 +85,7 @@ class User extends Authenticatable implements JWTSubject
         return [
             'role' => $this->role,
             'company_id' => $this->company_id,
+            'department_id' => $this->department_id,
             'permissions' => $this->getAllPermissions()->pluck('name')->toArray(),
         ];
     }

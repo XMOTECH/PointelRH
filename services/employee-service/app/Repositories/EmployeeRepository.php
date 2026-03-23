@@ -75,7 +75,29 @@ class EmployeeRepository
     public function findActiveByCompanyId(string $companyId): Collection
     {
         return Employee::where('company_id', $companyId)
-            ->where('status', 'active')
+            ->where('status', \App\Enums\EmployeeStatus::ACTIVE)
             ->get();
+    }
+
+    /**
+     * Filtrer les employés avec des critères multiples
+     */
+    public function search(string $companyId, array $filters): Collection
+    {
+        $query = Employee::where('company_id', $companyId);
+
+        if (!empty($filters['department_id'])) {
+            $query->where('department_id', $filters['department_id']);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['contract_type'])) {
+            $query->where('contract_type', $filters['contract_type']);
+        }
+
+        return $query->get();
     }
 }

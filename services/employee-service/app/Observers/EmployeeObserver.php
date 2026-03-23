@@ -21,29 +21,28 @@ class EmployeeObserver
 
     public function created(Employee $employee): void
     {
-        $rabbitMQ = new \App\Services\RabbitMQService();
-        $rabbitMQ->publishEvent('EmployeeCreated', $employee->toArray());
+        app(\App\Services\RabbitMQService::class)->publishEvent('EmployeeCreated', $employee->toArray());
     }
 
     public function updated(Employee $employee): void
     {
-        $rabbitMQ = new \App\Services\RabbitMQService();
+        $rabbitMQ = app(\App\Services\RabbitMQService::class);
         $data = $employee->toArray();
         if ($employee->isDirty('department_id')) {
             $data['old_department_id'] = $employee->getOriginal('department_id');
         }
         $rabbitMQ->publishEvent('EmployeeUpdated', $data);
         
-        // Also emit a suspended event if the status changed to inactive
-        if ($employee->isDirty('status') && $employee->status === 'inactive') {
+        // Also emit a suspended event if the status changed to inactive/suspended
+        if ($employee->isDirty('status') && 
+            ($employee->status === \App\Enums\EmployeeStatus::INACTIVE || $employee->status === \App\Enums\EmployeeStatus::SUSPENDED)) {
             $rabbitMQ->publishEvent('EmployeeSuspended', $employee->toArray());
         }
     }
 
     public function deleted(Employee $employee): void
     {
-        $rabbitMQ = new \App\Services\RabbitMQService();
-        $rabbitMQ->publishEvent('EmployeeDeleted', [
+        app(\App\Services\RabbitMQService::class)->publishEvent('EmployeeDeleted', [
             'id' => $employee->id,
             'department_id' => $employee->department_id,
             'company_id' => $employee->company_id,
