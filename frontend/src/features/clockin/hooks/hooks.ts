@@ -1,11 +1,16 @@
 /**
- * Hook personnalisé pour gérer l'horloge en temps réel
- * Responsabilité unique: mettre à jour l'heure chaque seconde
+ * Hooks personnalisés pour la page Clock-In
  */
 
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { DELAYS } from '../constants';
+import { employeesApi } from '../../employees/api/employees.api';
 
+/**
+ * Hook pour gérer l'horloge en temps réel
+ * Responsabilité unique: mettre à jour l'heure chaque seconde
+ */
 export function useRealTimeClock() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -18,26 +23,18 @@ export function useRealTimeClock() {
 }
 
 /**
- * Hook pour générer et gérer le QR Code
- * Responsabilité unique: créer les données du QR Code
+ * Hook pour récupérer le vrai qr_token de l'employé depuis l'API
+ * Responsabilité unique: récupérer le qr_token et le mettre en cache
  */
-import { useMemo } from 'react';
+export function useQRCodeData(employeeId: string | undefined): { qrToken: string | null; isLoading: boolean } {
+  const { data: qrToken = null, isLoading } = useQuery({
+    queryKey: ['employee-qr', employeeId],
+    queryFn: () => employeesApi.getMyQrToken(employeeId!),
+    enabled: !!employeeId,
+    staleTime: 5 * 60 * 1000, // 5 minutes — le token ne change pas souvent
+  });
 
-interface QRData {
-  user_id: string | undefined;
-  type: 'clock-in';
-  timestamp: string;
-}
-
-export function useQRCodeData(userId: string | undefined): string {
-  return useMemo(() => {
-    const qrData: QRData = {
-      user_id: userId,
-      type: 'clock-in',
-      timestamp: new Date().toISOString(),
-    };
-    return JSON.stringify(qrData);
-  }, [userId]);
+  return { qrToken: qrToken ?? null, isLoading };
 }
 
 /**

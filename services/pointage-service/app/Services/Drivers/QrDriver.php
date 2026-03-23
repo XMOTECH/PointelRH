@@ -20,25 +20,46 @@ class QrDriver implements ClockInDriver
 
     public function resolve(array $payload, string $companyId): Employee
     {
-        $response = Http::withHeaders(['X-Company-ID' => $companyId])
-            ->timeout(3)
-            ->post("{$this->employeeServiceUrl}/employees/resolve-qr", [
-                'qr_token' => $payload['qr_token'],
+        // Appel HTTP vers le service employee pour récupérer l'employé ET son planning complet (requis pour le pointage)
+        $response = Http::timeout(5)
+            ->post("{$this->employeeServiceUrl}/api/employees/resolve-qr", [
+                'qr_token' => $payload['qr_token']
             ]);
 
-        if ($response->status() === 404) {
-            throw new InvalidTokenException("QR token inconnu");
-        }
-
         if (!$response->successful()) {
-            throw new \RuntimeException("Employee Service indisponible: " . $response->status() . " " . $response->body());
+            throw new InvalidTokenException("QR token inconnu, invalide ou employé inactif.");
         }
 
-        $responseData = $response->json('data');
-        $employeeData = $responseData['employee'] ?? [];
-        $employeeData['schedule'] = $responseData['schedule'] ?? null;
+        $resData = $response->json('data');
+        $empData = $resData['employee'] ?? null;
+        $scheduleData = $resData['schedule'] ?? null;
 
-        return Employee::fromArray($employeeData);
+        if (!$empData) {
+            throw new InvalidTokenException("Employé introuvable.");
+        }
+
+        if (($empData['status'] ?? 'active') !== 'active') {
+            throw new \RuntimeException("Cet employé est désactivé.");
+        }
+
+        if (($empData['company_id'] ?? null) !== $companyId) {
+            throw new InvalidTokenException("Ce QR Code n'appartient pas à cette entreprise.");
+        }
+
+        return Employee::fromArray([
+            'id' => $empData['id'],
+            'first_name' => $empData['first_name'] ?? 'Inconnu',
+            'last_name' => $empData['last_name'] ?? '',
+            'company_id' => $empData['company_id'],
+            'department_id' => $empData['department_id'] ?? null,
+            'schedule' => $scheduleData ? [
+                'id' => $scheduleData['id'],
+                'start_time' => $scheduleData['start_time'],
+                'grace_minutes' => $scheduleData['grace_minutes'],
+                'work_days' => $scheduleData['work_days'],
+                'timezone' => $scheduleData['timezone'] ?? env('APP_TIMEZONE', 'Africa/Dakar')
+            ] : null,
+        ]);
     }
 
     public function channelName(): string { return 'qr'; }

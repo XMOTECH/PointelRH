@@ -47,7 +47,7 @@ export function PresenceChart({ period }: { period: string }) {
         <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-header)', margin: 0 }}>Tendance de Présence</h3>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Derniers {period === '7d' ? '7' : '30'} jours</span>
       </div>
-      <ResponsiveContainer width="100%" height="85%">
+      <ResponsiveContainer width="100%" height={320}>
         <AreaChart data={chartData}>
           <defs>
             <linearGradient id="colorPresence" x1="0" y1="0" x2="0" y2="1">

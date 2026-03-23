@@ -10,6 +10,7 @@
         "laravel/framework": "^12.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
+        "php-amqplib/php-amqplib": "*",
         "vladimir-yuldashev/laravel-queue-rabbitmq": "^14.4"
     },
     "require-dev": {

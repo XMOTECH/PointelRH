@@ -19,6 +19,7 @@ class KpiCacheService
                 'snapshot_date' => $date,
             ])->get()->map(fn($s) => [
                 'department_id'   => $s->department_id,
+                'total_employees' => $s->total_employees,
                 'present'         => $s->present_count,
                 'late'            => $s->late_count,
                 'absent'          => $s->absent_count,

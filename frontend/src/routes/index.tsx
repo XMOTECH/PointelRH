@@ -8,6 +8,7 @@ import ClockInPage from '../features/clockin/ClockInPage';
 import DashboardPage from '../features/dashboard/DashboardPage';
 import { EmployeeListPage } from '../features/employees/EmployeeListPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
+import KioskPage from '../features/kiosk/KioskPage';
 
 function RoleBasedRedirect() {
   const { user, loading } = useAuth();
@@ -25,7 +26,6 @@ function RoleBasedRedirect() {
     }
   }, [user, loading, navigate]);
 
-  // Afficher un spinner pendant le chargement ou la redirection
   return (
     <div style={{
       display: 'flex',
@@ -35,22 +35,8 @@ function RoleBasedRedirect() {
       backgroundColor: '#f5f5f5'
     }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{
-          display: 'inline-block',
-          width: '40px',
-          height: '40px',
-          border: '4px solid #e0e0e0',
-          borderTop: '4px solid #0066cc',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
-        <p style={{ marginTop: '1rem', color: '#666' }}>Chargement...</p>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+        <div className="inline-block w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+        <p className="mt-4 text-gray-600">Chargement...</p>
       </div>
     </div>
   );
@@ -66,6 +52,9 @@ export function AppRoutes() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
+
+        {/* KIOSK MVP (Public for tablet) */}
+        <Route path="/kiosk" element={<KioskPage />} />
 
         {/* Layout Wrapper for all protected routes */}
         <Route element={
@@ -88,3 +77,4 @@ export function AppRoutes() {
     </BrowserRouter>
   );
 }
+

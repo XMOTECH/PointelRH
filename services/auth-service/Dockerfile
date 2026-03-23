@@ -25,7 +25,7 @@ RUN apk add --no-cache --virtual .build-deps \
     libwebp-dev \
     oniguruma-dev \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
- && docker-php-ext-install -j$(nproc) gd pdo_mysql bcmath \
+ && docker-php-ext-install -j$(nproc) gd pdo_mysql bcmath sockets \
  # Opcache est installé séparément sans -j$(nproc) pour éviter le plantage
  && docker-php-ext-install opcache \
  && pecl install redis \

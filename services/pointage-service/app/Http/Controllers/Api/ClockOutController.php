@@ -42,6 +42,15 @@ class ClockOutController extends BaseApiController
                 'work_minutes' => $attendance->work_minutes,
             ]);
 
+            // Broadcast event to clear Analytics cache
+            (new \App\Services\RabbitMQService())->publishEvent('EmployeeCheckedOut', [
+                'employee_id' => $attendance->employee_id,
+                'company_id' => $attendance->company_id,
+                'department_id' => $attendance->department_id,
+                'work_minutes' => $attendance->work_minutes,
+                'date' => now()->toDateString(),
+            ], 'pointage_events');
+
             return $this->respondSuccess(
                 new AttendanceResource($attendance),
                 "Pointage de sortie enregistré. Travail effectué: {$attendance->work_minutes} min",

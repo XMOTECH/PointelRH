@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\UserController;
 
 Route::prefix('auth')->group(function () {
     // ── Routes publiques ───────────────────────────────────
@@ -15,6 +16,7 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/users', [UserController::class, 'store']); // Moved inside prefix('auth')
     });
 });
 

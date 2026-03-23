@@ -6,6 +6,8 @@ export interface User {
   email: string;
   role: 'admin' | 'manager' | 'employee';
   department_id?: string;
+  company_id?: string;
+  employee_id?: string;
   qr_token?: string;
   created_at: string;
   updated_at: string;

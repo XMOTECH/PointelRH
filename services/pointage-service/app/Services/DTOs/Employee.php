@@ -22,7 +22,7 @@ class Employee
             last_name: $data['last_name'],
             email: $data['email'] ?? '',
             company_id: $data['company_id'] ?? '',
-            department_id: $data['department_id'],
+            department_id: $data['department_id'] ?? ($data['department']['id'] ?? ''),
             schedule: $data['schedule'] ?? null,
         );
     }

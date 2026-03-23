@@ -11,6 +11,11 @@ class Attendance extends Model
 {
     use HasFactory, HasUuids;
 
+    protected static function booted()
+    {
+        static::addGlobalScope(new \App\Models\Scopes\CompanyScope);
+    }
+
     protected $fillable = [
         'id',
         'employee_id',

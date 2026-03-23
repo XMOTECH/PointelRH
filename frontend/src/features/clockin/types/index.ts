@@ -23,6 +23,7 @@ export interface AttendanceResponse {
 export interface ClockInRequestPayload {
   channel: string;
   payload: {
-    qr_token: string;
+    qr_token?: string;
+    pin_code?: string;
   };
 }

@@ -21,7 +21,7 @@ services:
     url: http://pointage-service:80
     routes:
       - name: pointage-routes
-        paths: ["/api/clock-in", "/api/clock-out", "/api/attendances"]
+        paths: ["/api/pointage", "/api/attendances"]
         strip_path: false
 
   - name: notif-service
@@ -68,5 +68,5 @@ plugins:
 #           end
 #           local token = kong.request.get_header("Authorization")
 #           if not token then
-#             kong.response.exit(401, { error = "Token manquant" })
+#             kong.response.exit(401, { error: "Token manquant" })
 #           end

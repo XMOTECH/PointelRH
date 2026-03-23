@@ -10,7 +10,8 @@ export const dashboardApi = {
     return response.data?.data || response.data || [];
   },
   getAttendancesToday: async () => {
-    const response = await api.get('/api/attendances/today');
+    // pointage-service expose GET /api/pointage/attendances/today
+    const response = await api.get('/api/pointage/attendances/today');
     const data = response.data?.data || response.data || [];
     // S'assurer que c'est un array
     return Array.isArray(data) ? data : [];

@@ -33,6 +33,16 @@ class ClockInController extends BaseApiController
                 'employee_id' => $attendance->employee_id,
                 'late_minutes' => $attendance->late_minutes,
             ]);
+            
+            // Broadcast event to clear Analytics cache AND generate snapshots
+            (new \App\Services\RabbitMQService())->publishEvent('EmployeeCheckedIn', [
+                'employee_id' => $attendance->employee_id,
+                'company_id' => $attendance->company_id,
+                'department_id' => $attendance->department_id,
+                'late_minutes' => $attendance->late_minutes,
+                'checked_in_at' => now()->toIso8601String(),
+                'date' => now()->toDateString(),
+            ], 'pointage_events');
  
             return $this->respondSuccess(
                 new AttendanceResource($attendance),

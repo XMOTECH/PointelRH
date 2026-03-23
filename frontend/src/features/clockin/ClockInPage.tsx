@@ -18,7 +18,7 @@ export default function ClockInPage() {
   const { user } = useAuth();
   const { mutate: clockIn, isPending, isSuccess, isError, error } = useClockIn();
   const currentTime = useRealTimeClock();
-  const qrValue = useQRCodeData(user?.id);
+  const { qrToken, isLoading: qrLoading } = useQRCodeData(user?.employee_id);
 
   // Extraire le message d'erreur de manière sûre
   const errorMessage = (error as any)?.response?.data?.error || 'Une erreur est survenue.';
@@ -45,11 +45,14 @@ export default function ClockInPage() {
       >
         <ClockCard
           currentTime={currentTime}
-          onClockIn={() => clockIn()}
-          isPending={isPending}
+          onClockIn={() => clockIn({
+            channel: 'qr',
+            payload: { qr_token: qrToken || '' }
+          })}
+          isPending={isPending || qrLoading}
           isSuccess={isSuccess}
         />
-        <QRCodeCard qrValue={qrValue} userId={user?.id} />
+        <QRCodeCard qrValue={qrToken || ''} userId={user?.id} />
       </div>
 
       {/* Messages de statut */}

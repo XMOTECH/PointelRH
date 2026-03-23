@@ -170,10 +170,15 @@ class EmployeeController extends BaseApiController
                 return $this->respondError('The qr token field is required.', 422);
             }
 
-            $employee = Employee::with(['schedule', 'department'])
-                ->where('qr_token', $qrToken)
-                ->where('status', 'active')
-                ->first();
+            // Le token peut être un JSON dynamique (généré par l'app) ou le qr_token brut (badge)
+            $decodedToken = json_decode($qrToken, true);
+            $query = Employee::with(['schedule', 'department'])->where('status', 'active');
+
+            if (is_array($decodedToken) && isset($decodedToken['user_id'])) {
+                $employee = $query->where('id', $decodedToken['user_id'])->first();
+            } else {
+                $employee = $query->where('qr_token', $qrToken)->first();
+            }
 
             if (!$employee) {
                 LoggingService::warning('Invalid QR token', ['qr_token' => $qrToken]);

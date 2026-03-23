@@ -26,6 +26,8 @@ class EmployeeResource extends JsonResource
             'hire_date' => $this->hire_date,
             'status' => $this->status,
             'company_id' => $this->company_id,
+            'department_id' => $this->department_id,
+            'schedule_id' => $this->schedule_id,
             'department' => new DepartmentResource($this->whenLoaded('department')),
             'schedule' => new ScheduleResource($this->whenLoaded('schedule')),
             'created_at' => $this->created_at,
