@@ -11,6 +11,7 @@ class Employee
         public string $email,
         public string $company_id,
         public string $department_id,
+        public ?string $location_id = null,
         public ?array $schedule = null,
     ) {}
 
@@ -23,6 +24,7 @@ class Employee
             email: $data['email'] ?? '',
             company_id: $data['company_id'] ?? '',
             department_id: $data['department_id'] ?? ($data['department']['id'] ?? ''),
+            location_id: $data['location_id'] ?? null,
             schedule: $data['schedule'] ?? null,
         );
     }

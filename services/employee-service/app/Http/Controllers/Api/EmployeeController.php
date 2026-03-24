@@ -191,6 +191,43 @@ class EmployeeController extends BaseApiController
     }
 
     /**
+     * Résoudre un employé via son code PIN
+     * POST /api/employees/resolve-pin
+     */
+    public function resolvePin(Request $request): JsonResponse
+    {
+        try {
+            $pin = $request->input('pin');
+            $companyId = $request->input('company_id');
+
+            if (!$pin || !$companyId) {
+                return $this->respondError('The pin and company_id fields are required.', 422);
+            }
+
+            $employee = $this->employeeService->resolveByPin($pin, $companyId);
+
+            if (!$employee) {
+                LoggingService::warning('Invalid PIN or employee resolution failed', [
+                    'pin' => '***', 
+                    'company_id' => $companyId
+                ]);
+                return $this->respondNotFound('Code PIN invalide ou employé inactif');
+            }
+
+            LoggingService::info('Employee resolved via PIN', ['employee_id' => $employee->id]);
+
+            return $this->respondSuccess([
+                'employee'   => (new EmployeeResource($employee))->resolve(),
+                'schedule'   => $employee->schedule,
+                'department' => $employee->department,
+            ]);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to resolve PIN', $e);
+            return $this->respondServerError('Impossible de résoudre le code PIN');
+        }
+    }
+
+    /**
      * Récupérer l'horaire actif d'un employé
      * GET /api/employees/{id}/schedule
      */
@@ -272,6 +309,26 @@ class EmployeeController extends BaseApiController
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve self profile', $e);
             return $this->respondServerError('Impossible de récupérer votre profil');
+        }
+    }
+
+    /**
+     * Résoudre un employé via son user_id (inter-service)
+     * GET /api/employees/by-user/{userId}
+     */
+    public function resolveByUser(string $userId): JsonResponse
+    {
+        try {
+            $employee = Employee::with(['schedule', 'department'])->where('user_id', $userId)->first();
+
+            if (!$employee) {
+                return $this->respondNotFound('Aucun employé lié à cet utilisateur');
+            }
+
+            return $this->respondSuccess(new EmployeeResource($employee));
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to resolve employee by user_id', $e);
+            return $this->respondServerError('Erreur lors de la résolution de l\'employé');
         }
     }
 }

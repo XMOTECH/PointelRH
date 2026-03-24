@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wifi, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Numpad } from '../../components/ui/Numpad';
@@ -14,9 +14,16 @@ export default function KioskPage() {
   const currentTime = useRealTimeClock();
   const { mutate: clockIn, isPending, isError, isSuccess, data } = useClockIn();
 
+  // Identifiant de l'entreprise (à rendre dynamique plus tard via config ou URL)
+  const COMPANY_ID = '3a655ab3-1c07-404c-8201-a9226aeda728';
+
   useEffect(() => {
     if (pin.length === 4) {
-      clockIn({ channel: 'pin', payload: { pin_code: pin } } as any);
+      clockIn({ 
+        channel: 'pin', 
+        company_id: COMPANY_ID,
+        payload: { pin_code: pin } 
+      } as any);
     }
   }, [pin, clockIn]);
 
@@ -49,48 +56,62 @@ export default function KioskPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col bg-[#F9FAFB] font-sans">
-      <header className="flex w-full items-center justify-between px-10 py-6">
-        <h1 className="text-xl font-bold tracking-tight text-gray-900">
-          Operational Precision
-        </h1>
-        <div className="flex items-center space-x-2 text-sm font-semibold tracking-wide text-gray-600">
-          <Wifi className="h-5 w-5 text-blue-600" />
-          <span>CONNECTÉ</span>
+    <div className="relative flex h-screen w-full flex-col bg-surface font-inter text-on-surface overflow-hidden">
+      {/* Header - No Line Rule */}
+      <header className="flex w-full items-center justify-between px-12 py-8 bg-surface">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-bold tracking-tighter text-on-surface uppercase font-space">
+            Pointel<span className="text-primary">RH</span>
+          </h1>
+          <p className="text-[10px] font-bold tracking-[0.3em] text-on-surface-variant uppercase">
+            Operational Precision
+          </p>
+        </div>
+        <div className="flex items-center space-x-3 px-4 py-2 rounded-full bg-surface-container-lowest shadow-ambient">
+          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">Kiosk Actif</span>
         </div>
       </header>
 
-      <main className="flex flex-1 items-center justify-center p-10">
-        <div className="flex w-full max-w-5xl items-center justify-between">
+      <main className="flex flex-1 items-center justify-center p-12">
+        <div className="flex w-full max-w-6xl items-center justify-between gap-24">
           
-          <div className="flex flex-col space-y-6">
-            <h2 className="text-sm font-bold tracking-[0.2em] text-blue-600">
-              POINTAGE SALARIÉ
+          {/* Editorial Clock Section - Architectural Authority */}
+          <div className="flex flex-col space-y-4 flex-1">
+            <h2 className="text-xs font-bold tracking-[0.4em] text-primary uppercase">
+              The Digital Atelier
             </h2>
-            <div className="text-[10rem] font-bold leading-none tracking-tighter text-gray-900">
+            <div className="text-[12rem] font-medium leading-[0.8] tracking-tighter text-on-surface font-space">
               {format(currentTime, 'HH:mm')}
             </div>
-            <div className="text-4xl font-light text-gray-500">
+            <div className="text-3xl font-light text-on-surface-variant tracking-tight pl-2">
               {format(currentTime, "EEEE d MMMM yyyy", { locale: fr })}
+            </div>
+            
+            <div className="mt-12 flex items-center space-x-4 opacity-40">
+               <div className="h-[1px] w-12 bg-on-surface-variant" />
+               <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-on-surface-variant italic">Synchronisé en temps réel</span>
             </div>
           </div>
 
-          <div className="flex flex-col items-center rounded-[2rem] bg-[#F3F4F6] p-12 shadow-sm">
-            <p className="mb-8 text-xs font-bold tracking-[0.2em] text-gray-500">
-              SAISISSEZ VOTRE PIN
+          {/* Interaction Module - Tonal Layering */}
+          <div className="flex flex-col items-center rounded-[3rem] bg-surface-container-low p-16 shadow-ambient w-[420px] transition-all duration-500">
+            <p className="mb-10 text-[10px] font-bold tracking-[0.3em] text-on-surface-variant uppercase">
+              Saisissez votre PIN
             </p>
             
-            <div className="mb-10 flex space-x-4">
+            {/* PIN Indicators - Lithographic Depth */}
+            <div className="mb-14 flex space-x-5">
               {[0, 1, 2, 3].map((index) => {
                 const isFilled = index < pin.length;
                 return (
                   <div
                     key={index}
                     className={cn(
-                      "h-4 w-4 rounded-full border-2 transition-all duration-200",
+                      "h-3 w-3 rounded-full transition-all duration-300 ease-out",
                       isFilled 
-                        ? "border-blue-600 bg-blue-600" 
-                        : "border-gray-300 bg-transparent"
+                        ? "bg-primary scale-125 shadow-[0_0_15px_rgba(0,82,204,0.4)]" 
+                        : "bg-surface-container-highest"
                     )}
                   />
                 );
@@ -103,38 +124,49 @@ export default function KioskPage() {
               disabled={isPending || isSuccess}
             />
 
-            {isError && (
-              <p className="mt-6 text-sm font-semibold text-red-500 animate-pulse">
-                PIN incorrect. Veuillez réessayer.
-              </p>
-            )}
-            {isPending && (
-              <p className="mt-6 text-sm font-semibold text-blue-500 animate-pulse">
-                Vérification...
-              </p>
-            )}
+            <div className="h-8 mt-8 flex items-center justify-center w-full">
+                {isError && (
+                  <p className="text-[10px] font-bold tracking-widest text-red-500 uppercase animate-bounce">
+                    PIN incorrect. réessayez.
+                  </p>
+                )}
+                {isPending && (
+                  <div className="flex items-center space-x-2">
+                    <div className="h-1 w-8 bg-primary/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary animate-[loading_1s_infinite]" />
+                    </div>
+                    <span className="text-[10px] font-bold tracking-widest text-primary uppercase">Validation</span>
+                  </div>
+                )}
+            </div>
           </div>
         </div>
       </main>
 
+      {/* Success Overlay - Glassmorphism */}
       <div 
         className={cn(
-          "absolute bottom-0 left-0 w-full transform transition-transform duration-500 ease-in-out",
-          successMsg ? "translate-y-0" : "translate-y-full"
+          "absolute inset-0 z-50 flex items-center justify-center transition-all duration-700 ease-in-out pointer-events-none",
+          successMsg ? "opacity-100 backdrop-blur-2xl" : "opacity-0 backdrop-blur-0"
         )}
       >
-        <div className="flex bg-[#0052CC] px-8 py-6 text-white shadow-lg items-center">
-          <div className="flex items-center space-x-6">
-             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
-               <CheckCircle2 className="h-6 w-6 text-white" />
-             </div>
-             <div>
-               <h3 className="text-xl font-bold">{successMsg}</h3>
-               <p className="text-sm font-medium text-blue-200">
-                 Bonne journée de travail avec l'équipe Pointel.
-               </p>
-             </div>
-          </div>
+        <div 
+          className={cn(
+            "flex flex-col items-center space-y-8 transform transition-all duration-700 ease-out p-12 rounded-[4rem]",
+            successMsg ? "scale-100 translate-y-0" : "scale-90 translate-y-12"
+          )}
+        >
+           <div className="flex h-32 w-32 items-center justify-center rounded-full bg-primary shadow-[0_20px_60px_rgba(0,82,204,0.3)] animate-pulse">
+             <CheckCircle2 className="h-16 w-16 text-white" />
+           </div>
+           <div className="text-center">
+             <h3 className="text-5xl font-bold font-space tracking-tighter text-on-surface mb-2 tracking-tight">
+               {successMsg.split(',')[0]}
+             </h3>
+             <p className="text-lg font-medium text-on-surface-variant">
+               {successMsg.split(',')[1] || "Pointage enregistré."}
+             </p>
+           </div>
         </div>
       </div>
     </div>

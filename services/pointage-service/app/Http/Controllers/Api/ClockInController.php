@@ -24,8 +24,11 @@ class ClockInController extends BaseApiController
             $attendance = $this->clockInService->clockIn(
                 new ClockInData(
                     channel:   $request->validated('channel', 'qr'),
-                    payload:   $request->validated('payload', []),
-                    companyId: $request->auth_company_id,
+                    payload:   array_merge(
+                        $request->validated('payload', []),
+                        ['auth_user_id' => $request->auth_user_id]
+                    ),
+                    companyId: $request->auth_company_id ?? $request->input('company_id'),
                 )
             );
  
@@ -57,7 +60,7 @@ class ClockInController extends BaseApiController
             return $this->respondConflict($e->getMessage());
         } catch (InvalidTokenException $e) {
             LoggingService::warning('Clock-in failed: invalid token', ['error' => $e->getMessage()]);
-            return $this->respondNotFound('QR invalide ou expire');
+            return $this->respondNotFound($e->getMessage());
         } catch (NotAWorkDayException $e) {
             LoggingService::warning('Clock-in failed: not a work day', ['error' => $e->getMessage()]);
             return $this->respondError($e->getMessage(), 422);

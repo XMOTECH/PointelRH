@@ -14,8 +14,9 @@ class ClockInRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'channel' => 'required|string|in:qr,pin,nfc,face',
-            'payload' => 'required|array',
+            'channel'    => 'required|string|in:qr,pin,qr_location,nfc,face',
+            'payload'    => 'required|array',
+            'company_id' => 'nullable|string',
         ];
     }
 }

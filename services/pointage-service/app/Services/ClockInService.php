@@ -53,6 +53,7 @@ class ClockInService
             'employee_name' => trim($employee->first_name . ' ' . $employee->last_name),
             'company_id'    => $employee->company_id, // Utiliser la company_id renvoyée par l'employé
             'department_id' => $employee->department_id,
+            'location_id'   => $employee->location_id,
             'channel'       => $data->channel,
             'checked_in_at' => now(),
             'work_date'     => today(),

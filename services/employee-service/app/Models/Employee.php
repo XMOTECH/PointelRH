@@ -16,15 +16,32 @@ class Employee extends Model
     protected $fillable = [
         'first_name', 'last_name', 'email', 'phone',
         'department_id', 'schedule_id', 'contract_type',
-        'qr_token', 'hire_date', 'status', 'company_id',
+        'qr_token', 'pin', 'hire_date', 'status', 'company_id', 'user_id',
     ];
  
+    /**
+     * The attributes that should be hidden for serialization.
+     */
+    protected $hidden = [
+        'pin',
+    ];
+
     protected $casts = [
         'hire_date'     => 'date',
         'status'        => \App\Enums\EmployeeStatus::class,
         'contract_type' => \App\Enums\ContractType::class,
     ];
- 
+
+    /**
+     * Hash the PIN before saving.
+     */
+    protected function setPinAttribute($value)
+    {
+        if ($value) {
+            $this->attributes['pin'] = \Illuminate\Support\Facades\Hash::make($value);
+        }
+    }
+
     // ── Relations ──────────────────────────────────────────
     public function department(): BelongsTo
     {

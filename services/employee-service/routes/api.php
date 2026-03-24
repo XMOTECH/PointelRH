@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\ScheduleController;
 // ── Internal Service Routes (No JWT for faster inter-service communication)
 Route::get('/employees/{id}/notification-context', [\App\Http\Controllers\Api\EmployeeNotificationController::class , 'getNotificationContext']);
 Route::post('/employees/resolve-qr', [EmployeeController::class , 'resolveQr']);
+Route::post('/employees/resolve-pin', [EmployeeController::class , 'resolvePin']);
+Route::get('/employees/by-user/{userId}', [EmployeeController::class , 'resolveByUser']);
+Route::get('/locations/resolve/{token}', [\App\Http\Controllers\Api\LocationController::class, 'resolve']);
 
 // ── Routes protégées par JWT ──────────────────────────────
 Route::middleware(['auth.jwt'])->group(function () {

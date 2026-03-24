@@ -131,4 +131,25 @@ class EmployeeService
             ->where('status', \App\Enums\EmployeeStatus::ACTIVE->value)
             ->first();
     }
+
+    /**
+     * Résoudre un employé via son code PIN
+     */
+    public function resolveByPin(string $pin, string $companyId): ?Employee
+    {
+        // On récupère les candidats potentiels (actifs dans cette entreprise)
+        // Note: On ne peut pas filtrer par PIN dans le SQL car il est haché
+        $employees = Employee::with(['schedule', 'department'])
+            ->where('company_id', $companyId)
+            ->where('status', \App\Enums\EmployeeStatus::ACTIVE->value)
+            ->get();
+
+        foreach ($employees as $employee) {
+            if (\Illuminate\Support\Facades\Hash::check($pin, $employee->pin)) {
+                return $employee;
+            }
+        }
+
+        return null;
+    }
 }
