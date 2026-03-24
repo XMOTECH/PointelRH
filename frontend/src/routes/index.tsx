@@ -3,9 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import { useAuth } from '../features/auth/hooks/useAuth';
 import { LoginPage } from '../features/auth/LoginPage';
 import { ProtectedRoute } from '../components/layouts/ProtectedRoute';
-import { MainLayout } from '../components/layouts/MainLayout';
+import { DashboardLayout } from '../components/layouts/DashboardLayout';
 import ClockInPage from '../features/clockin/ClockInPage';
 import DashboardPage from '../features/dashboard/DashboardPage';
+import LiveMonitorPage from '../features/dashboard/LiveMonitorPage';
+import { QrLocationsPage } from '../features/location/QrLocationsPage';
 import { EmployeeListPage } from '../features/employees/EmployeeListPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import KioskPage from '../features/kiosk/KioskPage';
@@ -27,23 +29,13 @@ function RoleBasedRedirect() {
   }, [user, loading, navigate]);
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5'
-    }}>
-      <div style={{ textAlign: 'center' }}>
-        <div className="inline-block w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
-        <p className="mt-4 text-gray-600">Chargement...</p>
+    <div className="flex justify-center items-center min-h-screen bg-surface">
+      <div className="text-center">
+        <div className="inline-block w-10 h-10 border-4 border-surface-container-low border-t-primary rounded-full animate-spin" />
+        <p className="mt-4 text-on-surface-variant font-medium">Chargement...</p>
       </div>
     </div>
   );
-}
-
-function LayoutWrapper() {
-  return <MainLayout />;
 }
 
 export function AppRoutes() {
@@ -53,25 +45,25 @@ export function AppRoutes() {
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* KIOSK MVP (Public for tablet) */}
+        {/* KIOSK MVP */}
         <Route path="/kiosk" element={<KioskPage />} />
 
-        {/* Layout Wrapper for all protected routes */}
+        {/* Layout Wrapper */}
         <Route element={
           <ProtectedRoute roles={['admin', 'manager', 'employee']}>
-            <LayoutWrapper />
+            <DashboardLayout />
           </ProtectedRoute>
         }>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/monitor" element={<LiveMonitorPage />} />
+          <Route path="/locations" element={<QrLocationsPage />} />
+          <Route path="/settings" element={<div className="p-8 text-on-surface opacity-50">Settings (Prêt pour implémentation)</div>} />
           <Route path="/clock-in" element={<ClockInPage />} />
           <Route path="/employees" element={<EmployeeListPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
 
-        {/* Redirect intelligent selon role */}
         <Route path="/" element={<RoleBasedRedirect />} />
-        
-        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

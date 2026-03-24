@@ -43,7 +43,7 @@ plugins:
   # CORS — autoriser React (localhost:5173)
   - name: cors
     config:
-      origins: ["http://localhost:5173"]
+      origins: ["*"]
       methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
       headers: ["Authorization","Content-Type","X-Company-ID"]
       credentials: true

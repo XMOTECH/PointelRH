@@ -1,27 +1,29 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet } from 'react-native';
 import Colors from '../../theme/colors';
-import { Spacing } from '../../theme/spacing';
-import { Typography } from '../../theme/typography';
-import { Radius } from '../../theme/radius';
+import Spacing from '../../theme/spacing';
+import Typography from '../../theme/typography';
+import Radius from '../../theme/radius';
 
-export default function Input({ label, error, ...props }) {
+export default function PremiumInput({ label, error, ...props }) {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <TextInput
-        style={[
-          styles.input,
-          isFocused && styles.inputFocused,
-          error && styles.inputError
-        ]}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        placeholderTextColor={Colors.on_surface_variant}
-        {...props}
-      />
+      <View style={[
+        styles.inputContainer,
+        isFocused && styles.inputFocused,
+        error && styles.inputError
+      ]}>
+        <TextInput
+          style={styles.input}
+          placeholderTextColor={Colors.on_surface_variant + '80'}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          {...props}
+        />
+      </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
@@ -30,37 +32,38 @@ export default function Input({ label, error, ...props }) {
 const styles = StyleSheet.create({
   container: {
     marginBottom: 20,
+    width: '100%',
   },
   label: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: Colors.on_surface,
+    ...Typography.label,
+    color: Colors.on_surface_variant,
     marginBottom: 8,
-    letterSpacing: -0.1,
+    marginLeft: 4,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.outline_variant, // Spec: 20% opacity
-    borderRadius: 12,
+  inputContainer: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.surface_container,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-    color: Colors.on_surface,
-    backgroundColor: Colors.surface_container_low, // Integrated look
+    height: 56,
+    justifyContent: 'center',
   },
   inputFocused: {
-    borderColor: Colors.primary,
-    borderWidth: 2,
-    backgroundColor: Colors.surface_container_lowest, // Lifted for focus
+    borderColor: Colors.primary_vibrant,
+    backgroundColor: Colors.surface_container_lowest,
   },
   inputError: {
-    borderColor: Colors.status.error,
+    borderColor: Colors.status.error.vibrant,
+  },
+  input: {
+    ...Typography.body_lg,
+    color: Colors.on_surface,
   },
   errorText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: Colors.status.error,
+    ...Typography.caption,
+    color: Colors.status.error.text,
     marginTop: 6,
+    marginLeft: 4,
   }
 });

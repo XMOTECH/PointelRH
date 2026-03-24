@@ -8,9 +8,17 @@ import {
   SpaceGrotesk_700Bold 
 } from '@expo-google-fonts/space-grotesk';
 import { View, ActivityIndicator } from 'react-native';
+import { useEffect, useState } from 'react';
 import Colors from '../src/theme/colors';
+import { initApi } from '../src/utils/api';
 
 export default function RootLayout() {
+  const [apiReady, setApiReady] = useState(false);
+  
+  useEffect(() => {
+    initApi().then(() => setApiReady(true));
+  }, []);
+
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -22,9 +30,9 @@ export default function RootLayout() {
     SpaceGrotesk_700Bold,
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !apiReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );

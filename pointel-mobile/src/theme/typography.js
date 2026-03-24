@@ -1,4 +1,4 @@
-export const Typography = {
+const Typography = {
   // Architectural Space Grotesk (Headlines)
   display:  { fontFamily: 'SpaceGrotesk_700Bold',   fontSize: 32, lineHeight: 40, letterSpacing: -0.64 },
   headline: { fontFamily: 'SpaceGrotesk_600SemiBold',fontSize: 24, lineHeight: 32, letterSpacing: -0.48 },
@@ -10,3 +10,6 @@ export const Typography = {
   caption:  { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
   label:    { fontFamily: 'Inter_600SemiBold',fontSize: 12, lineHeight: 16, textTransform: 'uppercase' },
 };
+
+export { Typography };
+export default Typography;

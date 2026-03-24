@@ -1,20 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Colors from '../../theme/colors';
-import { Spacing } from '../../theme/spacing';
-import { Typography } from '../../theme/typography';
-import { Radius } from '../../theme/radius';
+import Typography from '../../theme/typography';
+import Radius from '../../theme/radius';
 
-export default function Badge({ status }) {
-  // mapping status to our new config
+export default function PremiumBadge({ status, label: customLabel }) {
   const statusMap = {
-    present: Colors.status.success,
-    late:    Colors.status.warning,
-    absent:  Colors.status.error,
+    present: { ...Colors.status.success, label: 'Présent' },
+    late:    { ...Colors.status.warning, label: 'Retard' },
+    absent:  { ...Colors.status.error,   label: 'Absent' },
+    info:    { ...Colors.status.info,    label: 'Info' },
   };
   
-  const config = statusMap[status] || Colors.status.success;
-  const label = status === 'present' ? 'Présent' : status === 'late' ? 'Retard' : 'Absent';
+  const config = statusMap[status] || statusMap.present;
+  const label = customLabel || config.label;
 
   return (
     <View style={[styles.badge, { backgroundColor: config.bg }]}>
@@ -25,15 +24,16 @@ export default function Badge({ status }) {
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 9999, // full organic roundedness
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
     alignSelf: 'flex-start',
   },
   text: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 11,
+    ...Typography.caption,
+    fontFamily: 'Inter_700Bold',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    fontSize: 10,
   }
 });

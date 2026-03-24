@@ -105,7 +105,7 @@ export function CreateEmployeeModal({ isOpen, onClose }: CreateEmployeeModalProp
           </div>
 
           <div className="flex justify-end gap-3 mt-6">
-            <Button type="button" variant="ghost" onClick={onClose}>Annuler</Button>
+            <Button type="button" variant="tertiary" onClick={onClose}>Annuler</Button>
             <Button type="submit" isLoading={isPending}>Créer Employé & Accès</Button>
           </div>
         </form>

@@ -1,8 +1,15 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+
+const isWeb = Platform.OS === 'web';
 
 export const saveToken = async (key, value) => {
   try {
-    await SecureStore.setItemAsync(key, value);
+    if (isWeb) {
+      localStorage.setItem(key, value);
+    } else {
+      await SecureStore.setItemAsync(key, value);
+    }
   } catch (error) {
     console.error('Error saving token', error);
   }
@@ -10,7 +17,11 @@ export const saveToken = async (key, value) => {
 
 export const getToken = async (key) => {
   try {
-    return await SecureStore.getItemAsync(key);
+    if (isWeb) {
+      return localStorage.getItem(key);
+    } else {
+      return await SecureStore.getItemAsync(key);
+    }
   } catch (error) {
     console.error('Error getting token', error);
     return null;
@@ -19,7 +30,11 @@ export const getToken = async (key) => {
 
 export const deleteToken = async (key) => {
   try {
-    await SecureStore.deleteItemAsync(key);
+    if (isWeb) {
+      localStorage.removeItem(key);
+    } else {
+      await SecureStore.deleteItemAsync(key);
+    }
   } catch (error) {
     console.error('Error deleting token', error);
   }

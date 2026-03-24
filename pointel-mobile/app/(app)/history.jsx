@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+
+import PremiumCard from '../../src/components/ui/Card';
+import PremiumBadge from '../../src/components/ui/Badge';
 import Colors from '../../src/theme/colors';
-import Badge from '../../src/components/ui/Badge';
+import Typography from '../../src/theme/typography';
+import Radius from '../../src/theme/radius';
 import { formatTime, formatDate } from '../../src/utils/formatters';
 import useAuthStore from '../../src/store/authStore';
 import api from '../../src/utils/api';
@@ -30,18 +36,14 @@ export default function HistoryScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator color={Colors.primary} />
+        <ActivityIndicator color={Colors.primary_vibrant} />
       </View>
     );
   }
 
-  const renderItem = ({ item, index }) => {
-    const isEven = index % 2 === 0;
+  const renderItem = ({ item }) => {
     const dateObj = new Date(item.checked_in_at);
     
-    // Status mapping
-    // present (success), late (warning), absent (error)
-    // Assuming backend status maps: 'validated' -> present, 'late' -> late, 'rejected' -> absent
     const statusMap = {
       'validated': 'present',
       'late': 'late',
@@ -50,41 +52,51 @@ export default function HistoryScreen() {
     const badgeStatus = statusMap[item.status] || 'present';
 
     return (
-      <View style={[styles.item, { backgroundColor: isEven ? Colors.surface : Colors.surface_container_low }]}>
-        <View style={styles.timeSection}>
-          <Text style={styles.timeText}>{formatTime(dateObj)}</Text>
-          <Text style={styles.dateText}>{formatDate(dateObj)}</Text>
+      <PremiumCard style={styles.historyCard}>
+        <View style={styles.cardHeader}>
+          <View style={styles.timeInfo}>
+            <Text style={styles.timeText}>{formatTime(dateObj)}</Text>
+            <Text style={styles.dateText}>{formatDate(dateObj)}</Text>
+          </View>
+          <PremiumBadge status={badgeStatus} />
         </View>
-        <View style={styles.infoSection}>
-          <Text style={styles.typeText}>{item.channel === 'qr_location' ? 'Scan Mural' : 'Badgeuse'}</Text>
-          <Text style={styles.locationText}>{item.late_minutes > 0 ? `${item.late_minutes} min de retard` : 'À l\'heure'}</Text>
+        
+        <View style={styles.divider} />
+        
+        <View style={styles.cardFooter}>
+          <View style={styles.footerItem}>
+             <Ionicons name="location-outline" size={14} color={Colors.on_surface_variant} />
+             <Text style={styles.footerText}>{item.channel === 'qr_location' ? 'Scan Mural' : 'Badgeuse'}</Text>
+          </View>
+          <View style={styles.footerItem}>
+             <Ionicons name="timer-outline" size={14} color={Colors.on_surface_variant} />
+             <Text style={styles.footerText}>
+               {item.late_minutes > 0 ? `${item.late_minutes} min retard` : 'À l\'heure'}
+             </Text>
+          </View>
         </View>
-        <View style={styles.statusSection}>
-          <Badge status={badgeStatus} />
-        </View>
-      </View>
+      </PremiumCard>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
       <View style={styles.header}>
         <Text style={styles.title}>Historique</Text>
-        <View style={styles.asymmetricStats}>
-          <Text style={styles.statsLabel}>Pointages récents</Text>
-          <Text style={styles.statsValue}>{history.length}</Text>
-        </View>
+        <Text style={styles.subtitle}>Vos 30 derniers pointages</Text>
       </View>
 
       <FlatList
         data={history}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={{ padding: 40, alignItems: 'center' }}>
-            <Text style={{ fontFamily: 'Inter_400Regular', color: Colors.on_surface_variant }}>Aucun pointage trouvé</Text>
+          <View style={styles.emptyState}>
+            <Ionicons name="calendar-outline" size={48} color={Colors.surface_container} />
+            <Text style={styles.emptyText}>Aucun pointage trouvé</Text>
           </View>
         }
       />
@@ -99,72 +111,72 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 40,
-    marginBottom: 32,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    paddingTop: 12,
+    marginBottom: 24,
   },
   title: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    ...Typography.h1,
     fontSize: 32,
     color: Colors.on_surface,
-    letterSpacing: -1,
   },
-  asymmetricStats: {
-    alignItems: 'flex-end',
-    marginBottom: 4,
-  },
-  statsLabel: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
+  subtitle: {
+    ...Typography.body_md,
     color: Colors.on_surface_variant,
-  },
-  statsValue: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 18,
-    color: Colors.primary,
+    marginTop: 4,
   },
   listContent: {
-    paddingBottom: 100, // Space for tab bar
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 20,
     paddingHorizontal: 24,
+    paddingBottom: 120, // Tab bar space
   },
-  timeSection: {
-    width: 80,
+  historyCard: {
+    marginBottom: 16,
+    padding: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timeInfo: {
+    flex: 1,
   },
   timeText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 18,
+    ...Typography.h1,
+    fontSize: 20,
     color: Colors.on_surface,
   },
   dateText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: Colors.on_surface_variant,
-    marginTop: 2,
-  },
-  infoSection: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  typeText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 15,
-    color: Colors.on_surface,
-  },
-  locationText: {
-    fontFamily: 'Inter_400Regular',
+    ...Typography.caption,
     fontSize: 13,
     color: Colors.on_surface_variant,
     marginTop: 2,
   },
-  statusSection: {
-    width: 80,
-    alignItems: 'flex-end',
+  divider: {
+    height: 1,
+    backgroundColor: Colors.surface_container,
+    marginVertical: 12,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  footerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerText: {
+    ...Typography.caption,
+    color: Colors.on_surface_variant,
+    marginLeft: 6,
+    fontSize: 12,
+  },
+  emptyState: {
+    paddingTop: 100,
+    alignItems: 'center',
+  },
+  emptyText: {
+    ...Typography.body_md,
+    color: Colors.on_surface_variant,
+    marginTop: 16,
   }
 });

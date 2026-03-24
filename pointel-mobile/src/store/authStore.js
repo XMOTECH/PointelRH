@@ -15,15 +15,19 @@ const useAuthStore = create((set) => ({
   setEmployee: (employee) => set({ employee }),
 
   setAuth: async (user, token) => {
-    if (token) await saveToken('jwt_token', token);
-    set({ user, token, isAuthenticated: true, error: null });
+    if (token && user) {
+      await saveToken('jwt_token', token);
+      set({ user, token, isAuthenticated: true, error: null });
+    } else {
+      set({ user: null, token: null, isAuthenticated: false });
+    }
   },
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { access_token } = response.data;
+      const { access_token, user: userData } = response.data.data;
       const decoded = jwtDecode(access_token);
       
       const user = {

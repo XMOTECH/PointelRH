@@ -1,24 +1,46 @@
 const Colors = {
-  primary: '#0041c8',
-  primary_container: '#dbe1ff',
+  primary: '#0041c8', // Pointel Blue
+  primary_vibrant: '#0052ff', // Skello Accent
   on_primary: '#ffffff',
   
-  // Surface Hierarchy (Tonal Layering)
-  surface: '#faf8ff', // Level 0 (Base)
-  surface_container_low: '#f3f2ff', // Level 1 (Sections)
-  surface_container: '#ededfb', // Level 2
-  surface_container_highest: '#e2e1ec', // Active/Highest
-  surface_container_lowest: '#ffffff', // Level 3 (Floating Cards)
+  // Surface Hierarchy (Skello-Style Softness)
+  surface: '#f8f9fc', // Neutral Base
+  surface_container_lowest: '#ffffff', // Cards (Pure White)
+  surface_container_low: '#f1f3f9',    // Sections
+  surface_container: '#e9ecf5',        // Dividers Replace
+  surface_container_high: '#dde2f0',
+  surface_container_highest: '#d1d9ec',
   
-  on_surface: '#191b25', // Soft Black
-  on_surface_variant: '#44464f',
-  outline_variant: 'rgba(195, 197, 217, 0.2)', // Ghost Border (20% opacity for inputs)
+  on_surface: '#12141a', // Rich Deep Grey
+  on_surface_variant: '#4a4f5d',
   
+  // Skello Professional Palette
   status: {
-    success: { bg: '#e1f5ee', text: '#0f6e56' },
-    error:   { bg: '#fcebeb', text: '#a32d2d' },
-    warning: { bg: '#faeeda', text: '#854f0b' },
+    success: { 
+      bg: '#e8f5e9', 
+      text: '#2e7d32', 
+      vibrant: '#4caf50' 
+    },
+    error: { 
+      bg: '#ffebee', 
+      text: '#c62828', 
+      vibrant: '#f44336' 
+    },
+    warning: { 
+      bg: '#fff8e1', 
+      text: '#f57f17', 
+      vibrant: '#ffb300' 
+    },
+    info: { 
+      bg: '#e3f2fd', 
+      text: '#1565c0', 
+      vibrant: '#2196f3' 
+    },
   },
+  
+  // Glassmorphism tokens
+  glass: 'rgba(255, 255, 255, 0.7)',
+  glass_border: 'rgba(255, 255, 255, 0.3)',
 };
 
 export { Colors };

@@ -1,38 +1,79 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&family=Space+Grotesk:wght@300..700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-space: "Space Grotesk", sans-serif;
   --font-inter: "Inter", sans-serif;
 
-  --color-primary: #0052CC;
-  --color-primary-container: #DEEBFF;
+  /* Organic Monolith Color Palette */
+  --color-primary: #0041c8;
+  --color-primary-container: #d9e2ff;
+  --color-on-primary: #ffffff;
   
-  --color-surface: #F8F9FA;
-  --color-surface-container-lowest: #FFFFFF;
-  --color-surface-container-low: #F0F1F2;
-  --color-surface-container: #EDEEEF;
-  --color-surface-container-high: #E1E2E3;
-  --color-surface-container-highest: #D6D7D8;
+  --color-surface: #faf8ff; /* Level 0 Base */
+  --color-surface-container-lowest: #ffffff; /* Level 3 Floating Overlays */
+  --color-surface-container-low: #f3f2ff; /* Level 1 Sections */
+  --color-surface-container: #ededfb; /* Level 2 Active Cards */
+  --color-surface-container-high: #e4e4f5;
+  --color-surface-container-highest: #dbdbf0;
 
-  --color-on-surface: #191C1D;
-  --color-on-surface-variant: #40484B;
+  --color-on-surface: #191b25;
+  --color-on-surface-variant: #444653;
+  --color-outline-variant: rgba(195, 197, 217, 0.1); /* Ghost Border Fallback */
 
-  --shadow-ambient: 0 8px 32px 0 rgba(0, 65, 200, 0.06);
+  /* Ambient Shadows */
+  --shadow-ambient: 0 20px 40px rgba(25, 27, 37, 0.04);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 65, 200, 0.06);
 }
 
 @layer base {
   body {
-    @apply bg-surface text-on-surface font-inter antialiased;
+    @apply bg-surface text-on-surface font-inter antialiased selection:bg-primary/20;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   h1, h2, h3, h4, h5, h6, .font-display {
-    @apply font-space tracking-tight;
+    @apply font-space tracking-tight text-on-surface;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-surface-container-lowest/80 backdrop-blur-xl shadow-ambient;
+    @apply bg-surface-container-lowest/70 backdrop-blur-[20px] shadow-glass;
+  }
+
+  .no-line-card {
+    @apply bg-surface-container-lowest rounded-lg shadow-ambient relative overflow-hidden;
+    /* Level 3: Floating / Active */
+  }
+
+  .no-line-section {
+    @apply bg-surface-container-low rounded-xl;
+    /* Level 1: Grounded Section */
+  }
+
+  /* Architectural Accent Bar */
+  .accent-bar {
+    @apply before:content-[''] before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[4px] before:bg-primary before:rounded-r-full;
+  }
+
+  /* Text Gradients for "Soul" */
+  .text-gradient {
+    @apply bg-gradient-to-br from-primary to-primary-container bg-clip-text text-transparent;
+  }
+
+  /* Button Logic as per spec */
+  .btn-primary {
+    @apply bg-primary text-on-primary px-6 py-2.5 rounded-lg font-medium transition-all hover:brightness-110 active:scale-95 shadow-lg shadow-primary/20;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-container-highest text-primary px-6 py-2.5 rounded-lg font-medium transition-all hover:bg-surface-container active:scale-95;
+  }
+
+  .btn-tertiary {
+    @apply text-primary px-4 py-2 rounded-lg font-medium transition-all hover:bg-primary/20 active:scale-95;
   }
 }

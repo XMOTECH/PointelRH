@@ -1,24 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+
+import PremiumCard from '../../src/components/ui/Card';
+import PremiumButton from '../../src/components/ui/Button';
+import PremiumBadge from '../../src/components/ui/Badge';
 import Colors from '../../src/theme/colors';
-import Card from '../../src/components/ui/Card';
-import Button from '../../src/components/ui/Button';
+import Typography from '../../src/theme/typography';
+import Radius from '../../src/theme/radius';
+import Shadows from '../../src/theme/shadows';
 import useAuthStore from '../../src/store/authStore';
 import api from '../../src/utils/api';
 
 export default function ProfileScreen() {
-  const { user, setEmployee } = useAuthStore();
+  const { user, setEmployee, logout } = useAuthStore();
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await api.get(`/employees/by-user/${user.id}`);
-        setProfile(response.data);
-        setEmployee(response.data); // Persist in store
+        setProfile(response.data.data);
+        setEmployee(response.data.data);
       } catch (err) {
         console.error('Failed to fetch profile', err);
       } finally {
@@ -31,7 +38,7 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator color={Colors.primary} />
+        <ActivityIndicator color={Colors.primary_vibrant} />
       </View>
     );
   }
@@ -39,67 +46,77 @@ export default function ProfileScreen() {
   const employee = profile || {
     first_name: 'Utilisateur',
     last_name: 'Pointel',
-    job_title: 'Collaborateur',
+    position: 'Collaborateur',
     registration_number: '#N/A',
   };
 
+  const MenuItem = ({ icon, label, onPress, isLast }) => (
+    <TouchableOpacity 
+      style={[styles.menuItem, !isLast && styles.menuBorder]} 
+      onPress={onPress}
+      activeOpacity={0.6}
+    >
+      <View style={styles.menuIconContainer}>
+        <Ionicons name={icon} size={20} color={Colors.on_surface_variant} />
+      </View>
+      <Text style={styles.menuText}>{label}</Text>
+      <Ionicons name="chevron-forward" size={16} color={Colors.surface_container_highest} />
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header Asymmetric */}
+        
+        {/* Profile Card */}
         <View style={styles.header}>
-          <View style={styles.avatarPlaceholder} />
-          <View style={styles.headerInfo}>
-            <Text style={styles.name}>{employee.first_name} {employee.last_name}</Text>
-            <Text style={styles.role}>{employee.job_title}</Text>
-            <View style={styles.badgeLabel}>
-              <Text style={styles.matricule}>{employee.registration_number}</Text>
-            </View>
+          <View style={styles.avatarContainer}>
+             <View style={styles.avatarOuter}>
+               <Image 
+                 source={{ uri: `https://i.pravatar.cc/150?u=${employee.id}` }} 
+                 style={styles.avatar}
+               />
+             </View>
+          </View>
+          <Text style={styles.name}>{employee.first_name} {employee.last_name}</Text>
+          <Text style={styles.role}>{employee.position || 'Collaborateur'}</Text>
+          <View style={styles.badgeContainer}>
+             <PremiumBadge status="info" label={employee.registration_number} />
           </View>
         </View>
 
-        {/* Tonal Section: Summary */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>24</Text>
-            <Text style={styles.summaryLabel}>Missions</Text>
-          </View>
-          <View style={styles.summarySpacer} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>98%</Text>
-            <Text style={styles.summaryLabel}>Ponctualité</Text>
-          </View>
+        {/* Quick Stats Grid */}
+        <View style={styles.statsGrid}>
+           <PremiumCard style={styles.statCard}>
+              <Text style={styles.statValue}>180h</Text>
+              <Text style={styles.statLabel}>Mois cours</Text>
+           </PremiumCard>
+           <PremiumCard style={styles.statCard}>
+              <Text style={styles.statValue}>12j</Text>
+              <Text style={styles.statLabel}>Congés</Text>
+           </PremiumCard>
         </View>
 
-        {/* Info Cards */}
+        {/* Menu Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Paramètres</Text>
-          <Card style={styles.menuCard}>
-            <TouchableOpacity style={styles.menuItem}>
-              <Ionicons name="notifications-outline" size={22} color={Colors.primary} />
-              <Text style={styles.menuText}>Notifications</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.on_surface_variant} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
-              <Ionicons name="lock-closed-outline" size={22} color={Colors.primary} />
-              <Text style={styles.menuText}>Sécurité & PIN</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.on_surface_variant} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]}>
-              <Ionicons name="language-outline" size={22} color={Colors.primary} />
-              <Text style={styles.menuText}>Langue</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.on_surface_variant} />
-            </TouchableOpacity>
-          </Card>
+          <PremiumCard style={styles.menuCard}>
+            <MenuItem icon="notifications-outline" label="Notifications" />
+            <MenuItem icon="shield-checkmark-outline" label="Sécurité & Confidentialité" />
+            <MenuItem icon="language-outline" label="Langue de l'application" />
+            <MenuItem icon="help-circle-outline" label="Assistance Technique" isLast />
+          </PremiumCard>
         </View>
 
-        <View style={styles.logoutContainer}>
-          <Button 
+        <View style={styles.footer}>
+          <PremiumButton 
             title="Déconnexion" 
-            variant="secondary" 
-            onPress={() => {}} 
+            variant="outline" 
+            onPress={logout} 
+            style={styles.logoutBtn}
           />
-          <Text style={styles.version}>Pointel Go v2.4.1 • Propulsé par Pointel Group</Text>
+          <Text style={styles.version}>Pointel Go v2.5.0 Premium</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -113,113 +130,113 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 100, // Space for tab bar
+    paddingTop: 20,
+    paddingBottom: 100,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: Colors.surface_container_highest,
-    marginRight: 20,
+  avatarContainer: {
+    marginBottom: 20,
+    ...Shadows.md,
   },
-  headerInfo: {
-    flex: 1,
+  avatarOuter: {
+    padding: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.full,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.surface_container_low,
   },
   name: {
-    fontFamily: 'SpaceGrotesk_700Bold',
+    ...Typography.h1,
     fontSize: 24,
     color: Colors.on_surface,
-    letterSpacing: -0.5,
   },
   role: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 15,
+    ...Typography.body_md,
     color: Colors.on_surface_variant,
     marginTop: 4,
   },
-  badgeLabel: {
-    marginTop: 8,
-    backgroundColor: Colors.surface_container_low,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
-    alignSelf: 'flex-start',
+  badgeContainer: {
+    marginTop: 12,
   },
-  matricule: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 11,
-    color: Colors.primary,
-  },
-  summaryContainer: {
+  statsGrid: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface_container_low,
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 40,
-    alignItems: 'center',
+    gap: 16,
+    marginBottom: 32,
   },
-  summaryItem: {
+  statCard: {
     flex: 1,
     alignItems: 'center',
+    paddingVertical: 16,
   },
-  summaryValue: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 28,
-    color: Colors.on_surface,
+  statValue: {
+    ...Typography.h1,
+    fontSize: 20,
+    color: Colors.primary_vibrant,
   },
-  summaryLabel: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 13,
+  statLabel: {
+    ...Typography.caption,
+    fontSize: 11,
     color: Colors.on_surface_variant,
-    marginTop: 4,
-  },
-  summarySpacer: {
-    width: 2,
-    height: 40,
-    backgroundColor: Colors.surface_container,
-    borderRadius: 1,
+    marginTop: 2,
   },
   section: {
-    marginBottom: 40,
+    marginBottom: 32,
   },
   sectionTitle: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 18,
-    color: Colors.on_surface,
+    ...Typography.label,
+    fontSize: 14,
+    color: Colors.on_surface_variant,
     marginBottom: 16,
     marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   menuCard: {
-    padding: 0, // Let items handle padding
+    padding: 0,
+    overflow: 'hidden',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: 'transparent',
+  },
+  menuBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surface_container,
+  },
+  menuIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface_container_low,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
   },
   menuText: {
     flex: 1,
-    fontFamily: 'Inter_500Medium',
-    fontSize: 15,
+    ...Typography.body_md,
     color: Colors.on_surface,
-    marginLeft: 16,
+    fontFamily: 'Inter_500Medium',
   },
-  logoutContainer: {
+  footer: {
     alignItems: 'center',
     marginTop: 20,
   },
+  logoutBtn: {
+    width: '100%',
+  },
   version: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
+    ...Typography.caption,
     color: Colors.on_surface_variant,
     marginTop: 24,
-    opacity: 0.6,
+    opacity: 0.5,
   }
 });
