@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../theme/colors';
+import Colors from '../../theme/colors';
 import { Spacing } from '../../theme/spacing';
 import { Typography } from '../../theme/typography';
 import { Radius } from '../../theme/radius';
@@ -19,7 +19,7 @@ export default function Input({ label, error, ...props }) {
         ]}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        placeholderTextColor={Colors.neutral.medium}
+        placeholderTextColor={Colors.on_surface_variant}
         {...props}
       />
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -29,32 +29,38 @@ export default function Input({ label, error, ...props }) {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
+    marginBottom: 20,
   },
   label: {
-    ...Typography.label,
-    color: Colors.neutral.dark,
-    marginBottom: Spacing.xs,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
+    color: Colors.on_surface,
+    marginBottom: 8,
+    letterSpacing: -0.1,
   },
   input: {
     borderWidth: 1,
-    borderColor: Colors.neutral.border,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    ...Typography.body,
-    color: Colors.neutral.dark,
-    backgroundColor: Colors.neutral.white,
+    borderColor: Colors.outline_variant, // Spec: 20% opacity
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 16,
+    color: Colors.on_surface,
+    backgroundColor: Colors.surface_container_low, // Integrated look
   },
   inputFocused: {
-    borderColor: Colors.brand.primary,
+    borderColor: Colors.primary,
+    borderWidth: 2,
+    backgroundColor: Colors.surface_container_lowest, // Lifted for focus
   },
   inputError: {
-    borderColor: Colors.error,
+    borderColor: Colors.status.error,
   },
   errorText: {
-    ...Typography.caption,
-    color: Colors.error,
-    marginTop: Spacing.xs,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: Colors.status.error,
+    marginTop: 6,
   }
 });

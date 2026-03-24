@@ -16,10 +16,7 @@ Route::middleware([\App\Http\Middleware\ValidateJwtFromAuthService::class])->gro
         Route::prefix('attendances')->group(function () {
             Route::get('/today', [AttendanceController::class, 'today']);
             Route::get('/live',  [AttendanceController::class, 'live']);
+            Route::get('/employee/{id}', [AttendanceController::class, 'byEmployee']);
         });
     });
-    /*
-    Route::get('/api/attendances/employee/{id}',       [AttendanceController::class, 'byEmployee']);
-    Route::get('/api/attendances/department/{id}',     [AttendanceController::class, 'byDepartment']);
-    */
 });

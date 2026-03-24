@@ -1,28 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../../src/components/ui/Button';
 import Input from '../../src/components/ui/Input';
+import Card from '../../src/components/ui/Card';
 import useAuthStore from '../../src/store/authStore';
-import { Colors } from '../../src/theme/colors';
+import Colors from '../../src/theme/colors';
 import { Spacing } from '../../src/theme/spacing';
 import { Typography } from '../../src/theme/typography';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const { login, isLoading, error } = useAuthStore();
 
   const handleLogin = async () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setAuth({ id: 1, name: 'Demo User' }, 'fake-jwt-token-123');
+    const success = await login(email, password);
+    if (success) {
       router.replace('/(app)');
-    }, 1000);
+    }
   };
 
   return (
@@ -33,13 +31,15 @@ export default function LoginScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.title}>Bienvenue</Text>
-          <Text style={styles.subtitle}>Connectez-vous à PointelRH</Text>
+          <View style={styles.asymmetricRow}>
+            <Text style={styles.subtitle}>Connectez-vous à votre espace PointelRH</Text>
+          </View>
         </View>
 
-        <View style={styles.form}>
+        <Card style={styles.formCard}>
           <Input 
-            label="Email" 
-            placeholder="votre@email.com" 
+            label="Email professionnelle" 
+            placeholder="m.dubois@pointel.sn" 
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -52,13 +52,20 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             secureTextEntry
           />
+          
+          {error && <Text style={styles.errorText}>{error}</Text>}
+
           <Button 
             title="Se connecter" 
             onPress={handleLogin} 
             isLoading={isLoading} 
-            style={{ marginTop: Spacing.md }}
+            style={{ marginTop: 12 }}
           />
-        </View>
+        </Card>
+        
+        <TouchableOpacity style={styles.forgotPass}>
+          <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+        </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -67,26 +74,52 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.neutral.white,
+    backgroundColor: Colors.surface,
   },
   keyboardView: {
     flex: 1,
     justifyContent: 'center',
-    padding: Spacing.xl,
+    padding: 24,
   },
   header: {
-    marginBottom: Spacing.xxl,
+    marginBottom: 48,
   },
   title: {
-    ...Typography.display,
-    color: Colors.neutral.dark,
-    marginBottom: Spacing.xs,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 40,
+    color: Colors.on_surface,
+    letterSpacing: -1.5,
+  },
+  asymmetricRow: {
+    marginLeft: 32,
+    marginTop: 4,
   },
   subtitle: {
-    ...Typography.body,
-    color: Colors.neutral.medium,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 16,
+    color: Colors.on_surface_variant,
+    lineHeight: 24,
   },
-  form: {
-    width: '100%',
+  formCard: {
+    padding: 24,
+  },
+  errorText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    color: Colors.status.error.text,
+    backgroundColor: Colors.status.error.bg,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  forgotPass: {
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  forgotText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
+    color: Colors.primary,
   }
 });

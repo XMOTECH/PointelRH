@@ -1,23 +1,25 @@
-export const Colors = {
-  brand: {
-    primary: '#7F77DD',
-    dark:    '#534AB7',
-    light:   '#EEEDFE',
-    deep:    '#3C3489',
-  },
-  neutral: {
-    dark:   '#1A1A2E',
-    medium: '#5F5E5A',
-    light:  '#F1EFE8',
-    white:  '#FFFFFF',
-    border: '#E0E0E0',
-  },
-  success: '#1D9E75',
-  error:   '#E24B4A',
-  warning: '#BA7517',
+const Colors = {
+  primary: '#0041c8',
+  primary_container: '#dbe1ff',
+  on_primary: '#ffffff',
+  
+  // Surface Hierarchy (Tonal Layering)
+  surface: '#faf8ff', // Level 0 (Base)
+  surface_container_low: '#f3f2ff', // Level 1 (Sections)
+  surface_container: '#ededfb', // Level 2
+  surface_container_highest: '#e2e1ec', // Active/Highest
+  surface_container_lowest: '#ffffff', // Level 3 (Floating Cards)
+  
+  on_surface: '#191b25', // Soft Black
+  on_surface_variant: '#44464f',
+  outline_variant: 'rgba(195, 197, 217, 0.2)', // Ghost Border (20% opacity for inputs)
+  
   status: {
-    present: { bg: '#E1F5EE', text: '#0F6E56' },
-    late:    { bg: '#FAEEDA', text: '#854F0B' },
-    absent:  { bg: '#FCEBEB', text: '#A32D2D' },
+    success: { bg: '#e1f5ee', text: '#0f6e56' },
+    error:   { bg: '#fcebeb', text: '#a32d2d' },
+    warning: { bg: '#faeeda', text: '#854f0b' },
   },
 };
+
+export { Colors };
+export default Colors;

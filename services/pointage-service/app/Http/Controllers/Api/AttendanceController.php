@@ -39,4 +39,24 @@ class AttendanceController extends BaseApiController
     {
         return $this->today($request);
     }
+
+    /**
+     * Récupérer l'historique d'un employé spécifique
+     */
+    public function byEmployee(Request $request, $id)
+    {
+        try {
+            $attendances = Attendance::where('employee_id', $id)
+                ->orderBy('checked_in_at', 'desc')
+                ->limit(20)
+                ->get();
+
+            return $this->respondSuccess(
+                AttendanceResource::collection($attendances)
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve employee history', $e);
+            return $this->respondServerError("Impossible de récupérer l'historique");
+        }
+    }
 }

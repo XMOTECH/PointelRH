@@ -3,7 +3,7 @@ import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import useAuthStore from '../src/store/authStore';
 import { getToken } from '../src/utils/storage';
-import { Colors } from '../src/theme/colors';
+import Colors from '../src/theme/colors';
 
 export default function Index() {
   const [isReady, setIsReady] = useState(false);
@@ -23,7 +23,7 @@ export default function Index() {
   if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={Colors.brand.primary} />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
