@@ -20,16 +20,22 @@ jobs:
 
       - name: Setup PHP 8.3
         uses: shivammathur/setup-php@v2
-        with: { php-version: "8.3", extensions: "pdo_mysql redis" }
+        with: { php-version: "8.3", extensions: "pdo pdo_mysql pdo_sqlite redis" }
 
       - name: Install dependencies
-        run: cd services/${{ matrix.service }} && composer install --no-interaction
+        run: cd services/${{ matrix.service }} && composer install --no-interaction --no-scripts
 
       - name: Copy .env.testing
         run: cd services/${{ matrix.service }} && cp .env.example .env
 
+      - name: Generate app key
+        run: cd services/${{ matrix.service }} && php artisan key:generate --force || true
+
       - name: Run tests
         run: cd services/${{ matrix.service }} && php artisan test --parallel
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
 
   # ─── Tests React ──────────────────────────────────────────────────
   react-tests:

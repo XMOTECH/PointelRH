@@ -5,6 +5,7 @@ import type { User } from '../types';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: (idToken: string) => Promise<User>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -52,6 +53,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return responseData.user;
   }, []);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const response = await api.post('/api/auth/google', { id_token: idToken });
+    const responseData = response.data?.data || response.data;
+
+    if (!responseData.access_token || !responseData.user) {
+      throw new Error('Réponse API invalide');
+    }
+
+    sessionStorage.setItem('access_token', responseData.access_token);
+    if (responseData.refresh_token) {
+      sessionStorage.setItem('refresh_token', responseData.refresh_token);
+    }
+
+    setUser(responseData.user);
+    return responseData.user;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post('/api/auth/logout');
@@ -64,8 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, login, logout, loading }),
-    [user, login, logout, loading]
+    () => ({ user, login, loginWithGoogle, logout, loading }),
+    [user, login, loginWithGoogle, logout, loading]
   );
 
   return (

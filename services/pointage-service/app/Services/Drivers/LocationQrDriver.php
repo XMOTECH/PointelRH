@@ -71,7 +71,8 @@ class LocationQrDriver implements ClockInDriver
             'company_id'    => $empData['company_id'],
             'department_id' => $empData['department_id'],
             'schedule'      => $empData['schedule'],
-            'location_id'   => $location['id'], // Métadonnée utile
+            'location_id'   => $location['id'],
+            'location_name' => $location['name'],
         ]);
     }
 

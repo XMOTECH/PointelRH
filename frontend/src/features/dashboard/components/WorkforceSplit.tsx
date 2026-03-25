@@ -1,16 +1,26 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
+import { useDashboard } from '../hooks/useDashboard';
 
-const data = [
-  { name: 'Engineering', value: 400, color: '#0041c8' },
-  { name: 'Sales', value: 250, color: '#0052CC' },
-  { name: 'Design', value: 150, color: '#3b82f6' },
-  { name: 'Support', value: 200, color: '#93c5fd' },
-];
+const COLORS = ['#0041c8', '#0052CC', '#3b82f6', '#93c5fd', '#60a5fa', '#1e40af', '#2563eb', '#7c3aed'];
 
 export function WorkforceSplit() {
-  const total = data.reduce((acc, curr) => acc + curr.value, 0);
+  const { data: dashboard, isLoading } = useDashboard();
+
+  const departments: { name: string; value: number; color: string }[] = (dashboard?.departments || []).map(
+    (dept: any, index: number) => ({
+      name: dept.department_name || dept.department_id?.slice(0, 8) || `Dept ${index + 1}`,
+      value: dept.total_employees || 0,
+      color: COLORS[index % COLORS.length],
+    })
+  );
+
+  const data = departments.length > 0
+    ? departments
+    : [{ name: 'Aucune donnée', value: 1, color: '#d1d5db' }];
+
+  const total = departments.reduce((acc, curr) => acc + curr.value, 0);
 
   return (
     <Card className="w-full lg:w-[400px] bg-surface-container-lowest border-none p-8">
@@ -51,7 +61,7 @@ export function WorkforceSplit() {
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
             <div className="flex flex-col">
               <span className="text-xs font-bold text-on-surface leading-none">{item.name}</span>
-              <span className="text-[10px] font-medium text-on-surface-variant opacity-50 tracking-tight">({Math.round(item.value / total * 100)}%)</span>
+              <span className="text-[10px] font-medium text-on-surface-variant opacity-50 tracking-tight">({total > 0 ? Math.round(item.value / total * 100) : 0}%)</span>
             </div>
           </div>
         ))}

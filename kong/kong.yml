@@ -14,7 +14,7 @@ services:
     url: http://employee-service:80
     routes:
       - name: employee-routes
-        paths: ["/api/employees", "/api/departments", "/api/schedules"]
+        paths: ["/api/employees", "/api/departments", "/api/schedules", "/api/locations"]
         strip_path: false
 
   - name: pointage-service

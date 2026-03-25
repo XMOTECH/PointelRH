@@ -3,10 +3,11 @@ import api from '../../../lib/axios';
 export const dashboardApi = {
   getDashboard: async () => {
     const response = await api.get('/api/analytics/dashboard');
-    return response.data?.data || response.data || [];
+    // Le backend renvoie { success: true, data: { totals, health_status, ... } }
+    return response.data?.data || response.data;
   },
   getPresenceTrend: async (period = '7d') => {
-    const response = await api.get(`/api/analytics/presence?period=${period}`);
+    const response = await api.get(`/api/analytics/presence-trend?period=${period}`);
     return response.data?.data || response.data || [];
   },
   getAttendancesToday: async () => {

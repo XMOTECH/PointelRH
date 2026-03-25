@@ -1,7 +1,7 @@
 import axios, { type InternalAxiosRequestConfig, type AxiosResponse } from 'axios';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000', // Kong proxy port
+  baseURL: import.meta.env.VITE_API_URL || '', // In dev, Vite proxy handles /api → Kong
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -26,7 +26,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/refresh`,
+          `${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`,
           {},
           { withCredentials: true } // refresh token dans httpOnly cookie
         );

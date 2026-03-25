@@ -43,7 +43,7 @@ export function AppRoutes() {
     <BrowserRouter>
       <Routes>
         {/* Public */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login/*" element={<LoginPage />} />
 
         {/* KIOSK MVP */}
         <Route path="/kiosk" element={<KioskPage />} />

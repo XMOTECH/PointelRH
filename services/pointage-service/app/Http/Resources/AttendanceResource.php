@@ -16,6 +16,7 @@ class AttendanceResource extends JsonResource
             'company_id' => $this->company_id,
             'department_id' => $this->department_id,
             'location_id' => $this->location_id,
+            'location_name' => $this->location_name,
             'channel' => $this->channel,
             'checked_in_at' => $this->checked_in_at?->toIso8601String(),
             'checked_out_at' => $this->checked_out_at?->toIso8601String(),

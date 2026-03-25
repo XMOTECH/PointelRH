@@ -31,9 +31,11 @@ export function RecentAttendanceFailures({ attendances, loading }: RecentAttenda
       </CardHeader>
 
       <div className="flex flex-col">
-        <div className="grid grid-cols-4 px-4 py-3 mb-2 text-[10px] font-bold text-on-surface-variant opacity-40 uppercase tracking-[0.2em]">
+        <div className="grid grid-cols-6 px-4 py-3 mb-2 text-[10px] font-bold text-on-surface-variant opacity-40 uppercase tracking-[0.2em]">
           <span>Employé</span>
           <span>Heure</span>
+          <span>Retard</span>
+          <span>Lieu</span>
           <span>Type d'Erreur</span>
           <span className="text-right">Action</span>
         </div>
@@ -46,10 +48,10 @@ export function RecentAttendanceFailures({ attendances, loading }: RecentAttenda
             failures.map((item, idx) => {
               const type = String(item.status).toLowerCase() === 'late' ? 'warning' : 'danger';
               return (
-                <div 
-                  key={item.id || idx} 
+                <div
+                  key={item.id || idx}
                   className={cn(
-                    "grid grid-cols-4 items-center px-4 py-4 rounded-xl transition-all duration-200 hover:scale-[1.01]",
+                    "grid grid-cols-6 items-center px-4 py-4 rounded-xl transition-all duration-200 hover:scale-[1.01]",
                     idx % 2 === 0 ? "bg-surface" : "bg-surface-container-low"
                   )}
                 >
@@ -63,6 +65,12 @@ export function RecentAttendanceFailures({ attendances, loading }: RecentAttenda
                   </div>
                   <span className="text-xs font-medium text-on-surface-variant opacity-70">
                     {formatTimeSafe(item.clock_in)}
+                  </span>
+                  <span className="text-xs font-bold text-amber-600">
+                    {item.late_minutes ? `+${item.late_minutes} min` : '—'}
+                  </span>
+                  <span className="text-xs font-medium text-on-surface-variant opacity-70 truncate" title={item.location_name}>
+                    {item.location_name || '—'}
                   </span>
                   <div>
                     <span className={cn(

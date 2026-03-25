@@ -6,23 +6,25 @@ import { Numpad } from '../../components/ui/Numpad';
 import { useRealTimeClock } from '../clockin/hooks/hooks';
 import { useClockIn } from '../clockin/hooks/useClockIn';
 import { cn } from '../../lib/utils';
+import { useAuth } from '../../context/AuthContext';
 
 export default function KioskPage() {
   const [pin, setPin] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  
+
   const currentTime = useRealTimeClock();
   const { mutate: clockIn, isPending, isError, isSuccess, data } = useClockIn();
+  const { user } = useAuth();
 
-  // Identifiant de l'entreprise (à rendre dynamique plus tard via config ou URL)
-  const COMPANY_ID = '3a655ab3-1c07-404c-8201-a9226aeda728';
+  const companyId = user?.company_id;
 
   useEffect(() => {
     if (pin.length === 4) {
-      clockIn({ 
-        channel: 'pin', 
-        company_id: COMPANY_ID,
-        payload: { pin_code: pin } 
+      if (!companyId) return;
+      clockIn({
+        channel: 'pin',
+        company_id: companyId,
+        payload: { pin_code: pin }
       } as any);
     }
   }, [pin, clockIn]);

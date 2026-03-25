@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where:* ✔ Container kong              Running                                                                                                0.0s \nroot@NABIYOU:/mnt/c/Users/bmd tech/Documents/PointelRH# docker compose restart kong 2>&1\n[+] restart 0/1\n ⠼ Container kong Restarting                                                                                                          2.4s \nroot@NABIYOU:/mnt/c/Users/bmd tech/Documents/PointelRH#)"
+    ]
+  }
+}

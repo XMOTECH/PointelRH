@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\ScheduleController;
+use App\Http\Controllers\Api\LocationController;
 
 /* |-------------------------------------------------------------------------- | API Routes |-------------------------------------------------------------------------- | | Here is where you can register API routes for your application. These | routes are loaded by the RouteServiceProvider within a group which | is assigned the "api" middleware group. Enjoy building your API! | */
 
@@ -24,10 +25,15 @@ Route::middleware(['auth.jwt'])->group(function () {
         Route::apiResource('employees', EmployeeController::class);
         Route::get('/employees/{id}/schedule', [EmployeeController::class , 'schedule']);
         Route::patch('/employees/{id}/status', [EmployeeController::class , 'updateStatus']);
+        Route::post('/employees/{id}/generate-pin', [EmployeeController::class , 'generatePin']);
     });
 
     // ── Departments ────────────────────────────────────────
     Route::apiResource('departments', DepartmentController::class);
+
+    // ── Locations ──────────────────────────────────────────
+    Route::apiResource('locations', LocationController::class);
+    Route::get('/locations/{id}/qr', [LocationController::class, 'generateQr']);
 
     // ── Schedules ──────────────────────────────────────────
     Route::apiResource('schedules', ScheduleController::class);

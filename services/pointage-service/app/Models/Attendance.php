@@ -23,6 +23,7 @@ class Attendance extends Model
         'company_id',
         'department_id',
         'location_id',
+        'location_name',
         'channel',
         'checked_in_at',
         'checked_out_at',

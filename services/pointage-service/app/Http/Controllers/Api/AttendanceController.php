@@ -17,11 +17,16 @@ class AttendanceController extends BaseApiController
     {
         try {
             $companyId = $request->auth_company_id;
+            $locationId = $request->query('location_id');
 
-            $attendances = Attendance::where('company_id', $companyId)
-                ->where('work_date', Carbon::today())
-                ->orderBy('checked_in_at', 'desc')
-                ->get();
+            $query = Attendance::where('company_id', $companyId)
+                ->where('work_date', Carbon::today());
+
+            if ($locationId) {
+                $query->where('location_id', $locationId);
+            }
+
+            $attendances = $query->orderBy('checked_in_at', 'desc')->get();
 
             return $this->respondSuccess(
                 AttendanceResource::collection($attendances)

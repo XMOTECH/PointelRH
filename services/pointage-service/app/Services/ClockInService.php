@@ -54,6 +54,7 @@ class ClockInService
             'company_id'    => $employee->company_id, // Utiliser la company_id renvoyée par l'employé
             'department_id' => $employee->department_id,
             'location_id'   => $employee->location_id,
+            'location_name' => $employee->location_name,
             'channel'       => $data->channel,
             'checked_in_at' => now(),
             'work_date'     => today(),

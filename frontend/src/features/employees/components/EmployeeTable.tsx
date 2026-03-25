@@ -1,7 +1,8 @@
-import { Users, MoreHorizontal, Mail, Building2, ShieldCheck } from 'lucide-react';
+import { Users, MoreHorizontal, Mail, Building2, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
 import type { Employee } from '../types';
 import { Badge } from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
+import { useGeneratePin } from '../hooks/useGeneratePin';
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -9,6 +10,8 @@ interface EmployeeTableProps {
 }
 
 export function EmployeeTable({ employees, isLoading }: EmployeeTableProps) {
+  const generatePin = useGeneratePin();
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
@@ -84,7 +87,15 @@ export function EmployeeTable({ employees, isLoading }: EmployeeTableProps) {
             {getStatusBadge(emp.status)}
           </div>
 
-          <div className="col-span-1 text-right">
+          <div className="col-span-1 flex justify-end gap-1">
+            <button
+              onClick={() => generatePin.mutate(emp.id)}
+              disabled={generatePin.isPending}
+              title="Envoyer PIN par SMS"
+              className="p-2 hover:bg-primary/10 rounded-xl transition-colors text-primary opacity-60 hover:opacity-100 disabled:opacity-30"
+            >
+              {generatePin.isPending ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
+            </button>
             <button className="p-2 hover:bg-surface-container-highest rounded-xl transition-colors text-on-surface-variant opacity-40 hover:opacity-100">
               <MoreHorizontal size={20} />
             </button>

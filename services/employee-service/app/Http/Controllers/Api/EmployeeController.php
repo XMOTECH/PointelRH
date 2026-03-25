@@ -11,6 +11,7 @@ use App\Services\LoggingService;
 use App\Exceptions\ResourceNotFoundException;
 use App\Exceptions\InvalidDataException;
 use App\Models\Employee;
+use App\Services\RabbitMQService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -309,6 +310,45 @@ class EmployeeController extends BaseApiController
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve self profile', $e);
             return $this->respondServerError('Impossible de récupérer votre profil');
+        }
+    }
+
+    /**
+     * Générer et envoyer un code PIN par SMS
+     * POST /api/employees/{id}/generate-pin
+     */
+    public function generatePin(Request $request, string $id): JsonResponse
+    {
+        try {
+            $employee = Employee::where('company_id', $request->auth_company_id)
+                ->findOrFail($id);
+
+            if (!$employee->phone) {
+                return $this->respondError('Cet employé n\'a pas de numéro de téléphone', 422);
+            }
+
+            $pin = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+
+            $employee->pin = $pin; // Uses setPinAttribute mutator to hash
+            $employee->save();
+
+            $rabbitMQ = new RabbitMQService();
+            $rabbitMQ->publishEvent('PinGenerated', [
+                'employee_id' => $employee->id,
+                'employee_name' => "{$employee->first_name} {$employee->last_name}",
+                'phone' => $employee->phone,
+                'pin' => $pin,
+                'company_id' => $employee->company_id,
+            ]);
+
+            LoggingService::info('PIN generated for employee', ['employee_id' => $id]);
+
+            return $this->respondSuccess(null, 'Code PIN généré et envoyé par SMS');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->respondNotFound('Employé non trouvé');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to generate PIN', $e);
+            return $this->respondServerError('Impossible de générer le code PIN');
         }
     }
 

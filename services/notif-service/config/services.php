@@ -41,6 +41,12 @@ return [
         'phone_id' => env('WHATSAPP_PHONE_ID'),
     ],
 
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'token' => env('TWILIO_AUTH_TOKEN'),
+        'from' => env('TWILIO_FROM_NUMBER'),
+    ],
+
     'employee_service' => [
         'url' => env('EMPLOYEE_SERVICE_URL', 'http://employee-service/api'),
     ],

@@ -56,6 +56,9 @@ export const employeesApi = {
       throw error;
     }
   },
+  generatePin: (id: string) =>
+    api.post(`/api/employees/${id}/generate-pin`),
+
   getMyQrToken: (employeeId: string) =>
     api.get(`/api/employees/${employeeId}`).then(res => {
       const d = res.data?.data || res.data;

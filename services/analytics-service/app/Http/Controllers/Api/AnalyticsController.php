@@ -82,11 +82,44 @@ class AnalyticsController extends BaseApiController
                 'avg_presence_rate' => round($c->avg('presence_rate'), 1),
             ]);
 
+            // Intelligence Logic: Predictive Health Status
+            $healthStatus = [
+                'status'  => 'healthy',
+                'level'   => 'success',
+                'message' => 'Toutes les opérations sont nominales.',
+            ];
+
+            $currentHour = (int) now()->format('H');
+            $isToday = $date === now()->toDateString();
+
+            if ($isToday && $currentHour < 10 && $totals['avg_presence_rate'] < 60) {
+                $healthStatus = [
+                    'status'  => 'warning',
+                    'level'   => 'warning',
+                    'message' => 'Alerte : Faible taux de présence pour cette heure matinale.',
+                ];
+            } elseif ($totals['avg_presence_rate'] < 75) {
+                $healthStatus = [
+                    'status'  => 'warning',
+                    'level'   => 'warning',
+                    'message' => 'Le taux de présence global est inférieur à l\'objectif.',
+                ];
+            }
+
+            if ($totals['total_late'] > ($totals['total_present'] * 0.20)) {
+                $healthStatus = [
+                    'status'  => 'critical',
+                    'level'   => 'danger',
+                    'message' => 'Volume critique de retards détecté aujourd\'hui.',
+                ];
+            }
+
             return $this->respondSuccess([
-                'date'        => $date,
-                'totals'      => $totals,
-                'departments' => $kpis,
-                'generated_at'=> now()->toIso8601String(),
+                'date'          => $date,
+                'totals'        => $totals,
+                'health_status' => $healthStatus, // Predictive UX support
+                'departments'   => $kpis,
+                'generated_at'  => now()->toIso8601String(),
             ]);
         } catch (ValidationException $e) {
             LoggingService::warning('Validation failed when retrieving dashboard', ['errors' => $e->errors()]);

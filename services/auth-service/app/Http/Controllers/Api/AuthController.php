@@ -6,9 +6,11 @@ use Illuminate\Http\Request;
 use App\Http\Requests\LoginRequest;
 use Illuminate\Http\JsonResponse;
 use App\Models\RefreshToken;
+use App\Models\User;
 use App\Http\Resources\UserResource;
 use App\Services\LoggingService;
 use Illuminate\Support\Str;
+use Google_Client;
 
 class AuthController extends BaseApiController
 {
@@ -56,6 +58,64 @@ class AuthController extends BaseApiController
         ], 'Connexion réussie', 200);
     }
 
+
+    public function googleLogin(Request $request): JsonResponse
+    {
+        $request->validate(['id_token' => 'required|string']);
+
+        $client = new Google_Client(['client_id' => config('services.google.client_id')]);
+
+        $payload = $client->verifyIdToken($request->id_token);
+
+        if (!$payload) {
+            return $this->respondUnauthorized('Token Google invalide');
+        }
+
+        $googleId = $payload['sub'];
+        $email = $payload['email'] ?? null;
+
+        $user = User::where('google_id', $googleId)->first();
+
+        if (!$user && $email) {
+            $user = User::where('email', $email)->first();
+        }
+
+        if (!$user) {
+            return $this->respondNotFound('Aucun compte associé à cet email Google');
+        }
+
+        if (!$user->is_active) {
+            return $this->respondForbidden('Compte désactivé');
+        }
+
+        if (!$user->google_id) {
+            $user->update(['google_id' => $googleId]);
+        }
+
+        $token = auth('api')->login($user);
+
+        $rawToken = Str::random(64);
+
+        RefreshToken::create([
+            'id'         => Str::uuid(),
+            'user_id'    => $user->id,
+            'token'      => hash('sha256', $rawToken),
+            'device'     => $request->header('User-Agent'),
+            'expires_at' => now()->addDays(30),
+        ]);
+
+        $user->update(['last_login_at' => now()]);
+
+        LoggingService::info('User logged in via Google', ['user_id' => $user->id]);
+
+        return $this->respondSuccess([
+            'access_token'  => $token,
+            'token_type'    => 'bearer',
+            'expires_in'    => config('jwt.ttl') * 60,
+            'refresh_token' => $rawToken,
+            'user'          => new UserResource($user),
+        ], 'Connexion Google réussie', 200);
+    }
 
     public function me(): JsonResponse
     {
