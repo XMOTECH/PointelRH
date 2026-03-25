@@ -31,7 +31,7 @@ export function CreateEmployeeModal({ isOpen, onClose }: CreateEmployeeModalProp
     createEmployee(formData as CreateEmployeePayload, {
       onSuccess: (data: any) => {
         if (data._temp_password) {
-          alert(` Employé créé avec succès !\n\nEmail : ${formData.email}\nMot de passe temporaire : ${data._temp_password}\n\nVeuillez le transmettre à l'employé.`);
+          alert(`Employé créé avec succès !\n\nLes identifiants de connexion ont été envoyés par email à :\n${formData.email}`);
         }
         onClose();
       },

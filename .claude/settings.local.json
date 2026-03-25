@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(where:* ✔ Container kong              Running                                                                                                0.0s \nroot@NABIYOU:/mnt/c/Users/bmd tech/Documents/PointelRH# docker compose restart kong 2>&1\n[+] restart 0/1\n ⠼ Container kong Restarting                                                                                                          2.4s \nroot@NABIYOU:/mnt/c/Users/bmd tech/Documents/PointelRH#)"
+      "Bash(docker exec:*root@NABIYOU:/mnt/c/Users/bmd tech/Documents/PointelRH# docker exec employee-service php artisan migrate --force 2>&1\n\n   INFO  Running migrations.\n\n  2026_03_25_100000_extend_pin_column_on_employees_table ............. 1s DONE\n\nroot@NABIYOU:/mnt/c/Users/bmd tech/Documents/PointelRH#)"
     ]
   }
 }

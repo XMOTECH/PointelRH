@@ -16,7 +16,7 @@ export default function KioskPage() {
   const { mutate: clockIn, isPending, isError, isSuccess, data } = useClockIn();
   const { user } = useAuth();
 
-  const companyId = user?.company_id;
+  const companyId = user?.company_id || new URLSearchParams(window.location.search).get('company_id');
 
   useEffect(() => {
     if (pin.length === 4) {

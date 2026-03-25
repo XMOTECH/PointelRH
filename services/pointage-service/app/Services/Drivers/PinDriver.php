@@ -17,7 +17,7 @@ class PinDriver implements ClockInDriver
     {
         $response = Http::timeout(5)
             ->post("{$this->employeeServiceUrl}/employees/resolve-pin", [
-                'pin'        => $payload['pin'],
+                'pin'        => $payload['pin_code'] ?? $payload['pin'] ?? null,
                 'company_id' => $companyId,
             ]);
 
@@ -51,7 +51,8 @@ class PinDriver implements ClockInDriver
 
     public function validate(array $payload): bool
     {
-        return isset($payload['pin']) && is_string($payload['pin']);
+        return (isset($payload['pin']) || isset($payload['pin_code'])) && 
+               (is_string($payload['pin'] ?? '') || is_string($payload['pin_code'] ?? ''));
     }
 
     public function channelName(): string

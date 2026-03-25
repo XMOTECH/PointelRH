@@ -5,13 +5,15 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
-use App\Services\Channels\SmsChannel;
+use App\Services\Channels\EmailChannel;
 use App\Dto\NotificationData;
+use App\Mail\EmployeeCredentialsMail;
+use Illuminate\Support\Facades\Mail;
 
 class ConsumeEmployeePinEvents extends Command
 {
     protected $signature = 'rabbitmq:consume-pin';
-    protected $description = 'Consume employee PIN events and send SMS notifications';
+    protected $description = 'Consume employee PIN/password events and send email notifications';
 
     public function handle()
     {
@@ -29,42 +31,22 @@ class ConsumeEmployeePinEvents extends Command
             list($queue_name, ,) = $channel->queue_declare('', false, false, true, false);
             $channel->queue_bind($queue_name, $exchange);
 
-            $this->info(" [*] PIN Worker waiting for employee events.");
+            $this->info(" [*] PIN/Password Worker waiting for employee events.");
 
-            $smsChannel = new SmsChannel();
-
-            $callback = function (AMQPMessage $msg) use ($smsChannel) {
+            $callback = function (AMQPMessage $msg) {
                 $payload = json_decode($msg->body, true);
-                if (!$payload) return;
+                if (!$payload) {
+                    $msg->ack();
+                    return;
+                }
 
                 $event = $payload['event'] ?? '';
                 $data = $payload['data'] ?? [];
 
                 if ($event === 'PinGenerated') {
-                    $phone = $data['phone'] ?? null;
-                    $pin = $data['pin'] ?? null;
-                    $employeeName = $data['employee_name'] ?? 'Employé';
-                    $employeeId = $data['employee_id'] ?? '';
-                    $companyId = $data['company_id'] ?? '';
-
-                    if ($phone && $pin) {
-                        $notificationData = new NotificationData(
-                            type: 'pin_generated',
-                            recipientId: $employeeId,
-                            companyId: $companyId,
-                            title: 'Code PIN',
-                            body: "PointelRH - Votre code PIN est : {$pin}. Ne le partagez avec personne.",
-                            recipientPhone: $phone,
-                            metadata: [
-                                'employee_name' => $employeeName,
-                            ]
-                        );
-
-                        $smsChannel->send($notificationData);
-                        $this->info(" [v] SMS PIN sent to {$phone} for employee: {$employeeId}");
-                    } else {
-                        $this->warn(" [!] PinGenerated event missing phone or pin data");
-                    }
+                    $this->handlePinGenerated($data);
+                } elseif ($event === 'UserCreated') {
+                    $this->handleUserCreated($data);
                 }
 
                 $msg->ack();
@@ -85,5 +67,86 @@ class ConsumeEmployeePinEvents extends Command
         }
 
         return 0;
+    }
+
+    private function handlePinGenerated(array $data): void
+    {
+        $email = $data['email'] ?? null;
+        $pin = $data['pin'] ?? null;
+        $password = $data['password'] ?? null;
+        $employeeName = $data['employee_name'] ?? 'Employé';
+        $employeeId = $data['employee_id'] ?? '';
+        $companyId = $data['company_id'] ?? '';
+
+        if (!$email || !$pin) {
+            $this->warn(" [!] PinGenerated event missing email or pin data");
+            return;
+        }
+
+        try {
+            // Persist notification record
+            \App\Models\Notification::create([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'recipient_id' => $employeeId,
+                'company_id' => $companyId,
+                'type' => 'pin_generated',
+                'channel' => 'email',
+                'title' => 'Code PIN',
+                'body' => "Code PIN envoyé par email",
+                'status' => 'pending',
+                'metadata' => ['employee_name' => $employeeName],
+            ]);
+
+            Mail::to($email)->send(new EmployeeCredentialsMail(
+                employeeName: $employeeName,
+                credentialType: 'pin',
+                credentialValue: $pin,
+                password: $password,
+                email: $email,
+            ));
+
+            $this->info(" [v] PIN email sent to {$email} for employee: {$employeeId}");
+        } catch (\Exception $e) {
+            $this->error(" [x] Failed to send PIN email to {$email}: " . $e->getMessage());
+        }
+    }
+
+    private function handleUserCreated(array $data): void
+    {
+        $email = $data['email'] ?? null;
+        $tempPassword = $data['temp_password'] ?? null;
+        $employeeName = $data['employee_name'] ?? 'Employé';
+        $employeeId = $data['employee_id'] ?? '';
+        $companyId = $data['company_id'] ?? '';
+
+        if (!$email || !$tempPassword) {
+            $this->warn(" [!] UserCreated event missing email or temp_password");
+            return;
+        }
+
+        try {
+            \App\Models\Notification::create([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'recipient_id' => $employeeId,
+                'company_id' => $companyId,
+                'type' => 'user_created',
+                'channel' => 'email',
+                'title' => 'Identifiants de connexion',
+                'body' => "Identifiants envoyés par email",
+                'status' => 'pending',
+                'metadata' => ['employee_name' => $employeeName],
+            ]);
+
+            Mail::to($email)->send(new EmployeeCredentialsMail(
+                employeeName: $employeeName,
+                credentialType: 'password',
+                credentialValue: $tempPassword,
+                email: $email,
+            ));
+
+            $this->info(" [v] Credentials email sent to {$email} for employee: {$employeeId}");
+        } catch (\Exception $e) {
+            $this->error(" [x] Failed to send credentials email to {$email}: " . $e->getMessage());
+        }
     }
 }

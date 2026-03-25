@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\RabbitMQService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -43,14 +44,29 @@ class UserController extends Controller
             // Ignore if role doesn't exist, though it should be seeded
         }
 
+        // Publish event to send credentials by email
+        try {
+            $rabbitMQ = new RabbitMQService();
+            $rabbitMQ->publishEvent('UserCreated', [
+                'employee_id' => $validated['employee_id'],
+                'employee_name' => $validated['name'],
+                'email' => $validated['email'],
+                'temp_password' => $password,
+                'company_id' => $validated['company_id'],
+            ]);
+        } catch (\Exception $e) {
+            // Non-blocking: credentials email failure shouldn't fail user creation
+            \Illuminate\Support\Facades\Log::warning('Failed to publish UserCreated event: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'User created successfully',
             'data'    => [
-                'id'          => $user->id,
-                'email'       => $user->email,
+                'id'            => $user->id,
+                'email'         => $user->email,
                 'employee_id'   => $user->employee_id,
-                'temp_password' => $password 
+                'temp_password' => $password,
             ]
         ], 201);
     }

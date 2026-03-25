@@ -6,7 +6,7 @@ export function useGeneratePin() {
   return useMutation({
     mutationFn: (employeeId: string) => employeesApi.generatePin(employeeId),
     onSuccess: () => {
-      toast.success('Code PIN généré et envoyé par SMS');
+      toast.success('Code PIN généré et envoyé par email');
     },
     onError: () => {
       toast.error('Impossible de générer le code PIN');

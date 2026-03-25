@@ -11,9 +11,11 @@ use App\Services\LoggingService;
 use App\Exceptions\ResourceNotFoundException;
 use App\Exceptions\InvalidDataException;
 use App\Models\Employee;
+use App\Models\User;
 use App\Services\RabbitMQService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
 
 /**
  * EmployeeController
@@ -209,7 +211,7 @@ class EmployeeController extends BaseApiController
 
             if (!$employee) {
                 LoggingService::warning('Invalid PIN or employee resolution failed', [
-                    'pin' => '***', 
+                    'pin' => $pin, 
                     'company_id' => $companyId
                 ]);
                 return $this->respondNotFound('Code PIN invalide ou employé inactif');
@@ -314,7 +316,7 @@ class EmployeeController extends BaseApiController
     }
 
     /**
-     * Générer et envoyer un code PIN par SMS
+     * Générer et envoyer un code PIN par email
      * POST /api/employees/{id}/generate-pin
      */
     public function generatePin(Request $request, string $id): JsonResponse
@@ -323,8 +325,8 @@ class EmployeeController extends BaseApiController
             $employee = Employee::where('company_id', $request->auth_company_id)
                 ->findOrFail($id);
 
-            if (!$employee->phone) {
-                return $this->respondError('Cet employé n\'a pas de numéro de téléphone', 422);
+            if (!$employee->email) {
+                return $this->respondError('Cet employé n\'a pas d\'adresse email', 422);
             }
 
             $pin = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
@@ -332,18 +334,47 @@ class EmployeeController extends BaseApiController
             $employee->pin = $pin; // Uses setPinAttribute mutator to hash
             $employee->save();
 
+            // Password handling: find or create linked user
+            $password = Str::random(10);
+            $user = null;
+
+            if ($employee->user_id) {
+                $user = User::find($employee->user_id);
+            }
+
+            if (!$user) {
+                // Try finding by email
+                $user = User::where('email', $employee->email)->first();
+            }
+
+            if (!$user) {
+                // Create a new user
+                $user = User::create([
+                    'name' => "{$employee->first_name} {$employee->last_name}",
+                    'email' => $employee->email,
+                    'password' => $password, // Casts to hashed
+                ]);
+                $employee->user_id = $user->id;
+                $employee->save();
+            } else {
+                // Update existing user password
+                $user->password = $password;
+                $user->save();
+            }
+
             $rabbitMQ = new RabbitMQService();
             $rabbitMQ->publishEvent('PinGenerated', [
                 'employee_id' => $employee->id,
                 'employee_name' => "{$employee->first_name} {$employee->last_name}",
-                'phone' => $employee->phone,
+                'email' => $employee->email,
                 'pin' => $pin,
+                'password' => $password,
                 'company_id' => $employee->company_id,
             ]);
 
-            LoggingService::info('PIN generated for employee', ['employee_id' => $id]);
+            LoggingService::info('PIN generated for employee', ['employee_id' => $id, 'with_password' => !!$password]);
 
-            return $this->respondSuccess(null, 'Code PIN généré et envoyé par SMS');
+            return $this->respondSuccess(null, 'Code PIN généré et envoyé par email');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->respondNotFound('Employé non trouvé');
         } catch (\Exception $e) {
