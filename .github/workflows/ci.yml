@@ -8,53 +8,120 @@ on:
     branches: [main]
 
 jobs:
+  # ─── Détection des changements ─────────────────────────────────────
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      auth-service: ${{ steps.filter.outputs.auth }}
+      employee-service: ${{ steps.filter.outputs.employee }}
+      pointage-service: ${{ steps.filter.outputs.pointage }}
+      notif-service: ${{ steps.filter.outputs.notif }}
+      analytics-service: ${{ steps.filter.outputs.analytics }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            auth: 'services/auth-service/**'
+            employee: 'services/employee-service/**'
+            pointage: 'services/pointage-service/**'
+            notif: 'services/notif-service/**'
+            analytics: 'services/analytics-service/**'
+            frontend: 'frontend/**'
 
-  # ─── Tests Laravel (Auth + Employee + Pointage + Notif + Analytics) ───
+  # ─── Tests Laravel ────────────────────────────────────────────────
   laravel-tests:
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       matrix:
         service: [auth-service, employee-service, pointage-service, notif-service, analytics-service]
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs[matrix.service] == 'true'
 
       - name: Setup PHP 8.3
+        if: needs.changes.outputs[matrix.service] == 'true'
         uses: shivammathur/setup-php@v2
-        with: { php-version: "8.3", extensions: "pdo pdo_mysql pdo_sqlite redis" }
+        with: { php-version: "8.3", extensions: "pdo pdo_mysql pdo_sqlite redis", tools: "composer:v2" }
+
+      - name: Cache Composer dependencies
+        if: needs.changes.outputs[matrix.service] == 'true'
+        uses: actions/cache@v4
+        with:
+          path: services/${{ matrix.service }}/vendor
+          key: ${{ runner.os }}-composer-${{ matrix.service }}-${{ hashFiles(format('services/{0}/composer.lock', matrix.service)) }}
+          restore-keys: ${{ runner.os }}-composer-${{ matrix.service }}-
 
       - name: Install dependencies
-        run: cd services/${{ matrix.service }} && composer install --no-interaction --no-scripts
+        if: needs.changes.outputs[matrix.service] == 'true'
+        run: cd services/${{ matrix.service }} && composer install --no-interaction --no-scripts --prefer-dist
+
+      - name: Lint PHP (Pint)
+        if: needs.changes.outputs[matrix.service] == 'true'
+        run: cd services/${{ matrix.service }} && ./vendor/bin/pint --test
+
+      - name: Security Audit (Composer)
+        if: needs.changes.outputs[matrix.service] == 'true'
+        run: cd services/${{ matrix.service }} && composer audit
 
       - name: Copy .env.testing
+        if: needs.changes.outputs[matrix.service] == 'true'
         run: cd services/${{ matrix.service }} && cp .env.example .env
 
       - name: Generate app key
+        if: needs.changes.outputs[matrix.service] == 'true'
         run: cd services/${{ matrix.service }} && php artisan key:generate --force || true
 
       - name: Run tests
-        run: cd services/${{ matrix.service }} && php artisan test --parallel
+        if: needs.changes.outputs[matrix.service] == 'true'
+        run: cd services/${{ matrix.service }} && php artisan test
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: ":memory:"
 
   # ─── Tests React ──────────────────────────────────────────────────
   react-tests:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-frontend-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-frontend-
+
       - name: Install dependencies
         run: cd frontend && npm ci
-      - name: Run tests
-        run: cd frontend && npm test -- --run
 
-  # ─── Build Docker (seulement si tests passent) ────────────────────
+      - name: Lint JS/TS (ESLint)
+        run: cd frontend && npm run lint
+
+      - name: Security Audit (NPM)
+        run: cd frontend && npm audit --audit-level=high
+
+      - name: Run tests
+        run: cd frontend && npm test -- --run --passWithNoTests
+
+  # ─── Build Docker ─────────────────────────────────────────────────
   docker-build:
     needs: [laravel-tests, react-tests]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: |
+      always() && 
+      github.ref == 'refs/heads/main' &&
+      (needs.laravel-tests.result == 'success' || needs.laravel-tests.result == 'skipped') &&
+      (needs.react-tests.result == 'success' || needs.react-tests.result == 'skipped')
     steps:
       - uses: actions/checkout@v4
       - name: Build all images
         run: docker compose build
+        env:
+          JWT_SECRET: "ci_secret_placeholder"
