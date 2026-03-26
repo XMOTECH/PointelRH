@@ -18,7 +18,7 @@ export default function DashboardPage() {
 
   const presenceTrend = Array.isArray(rawPresenceTrend)
     ? rawPresenceTrend
-    : [];
+    : (rawPresenceTrend as any)?.data || [];
 
   const totals = (dashboardData as { totals?: Record<string, number> })?.totals || {};
   const presentCount = todayAttendances.length;

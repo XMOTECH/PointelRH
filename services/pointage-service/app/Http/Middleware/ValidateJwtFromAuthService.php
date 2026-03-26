@@ -13,7 +13,7 @@ class ValidateJwtFromAuthService
         $token = $request->bearerToken();
 
         if (!$token) {
-            return response()->json(['error' => 'Token manquant'], 401);
+            return $next($request);
         }
 
         try {

@@ -6,7 +6,7 @@ namespace App\Services\DTOs;
  * EmployeeData DTO
  * Transfert de données typé pour la création/mise à jour des employés
  */
-readonly class EmployeeData
+class EmployeeData
 {
     public function __construct(
         public string $firstName,

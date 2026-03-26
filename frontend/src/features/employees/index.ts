@@ -1,4 +1,12 @@
 export { EmployeeListPage } from './EmployeeListPage';
 export { EmployeeTable } from './components/EmployeeTable';
+export { EmployeeFormModal } from './components/EmployeeFormModal';
+export { DeleteEmployeeDialog } from './components/DeleteEmployeeDialog';
+export { EmployeeDetailModal } from './components/EmployeeDetailModal';
 export { useEmployees } from './hooks/useEmployees';
-export type { Employee } from './types';
+export { useEmployee } from './hooks/useEmployee';
+export { useCreateEmployee } from './hooks/useCreateEmployee';
+export { useUpdateEmployee } from './hooks/useUpdateEmployee';
+export { useDeleteEmployee } from './hooks/useDeleteEmployee';
+export { useUpdateEmployeeStatus } from './hooks/useUpdateEmployeeStatus';
+export type { Employee, CreateEmployeePayload, UpdateEmployeePayload } from './types';

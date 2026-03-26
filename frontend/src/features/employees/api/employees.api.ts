@@ -1,19 +1,22 @@
 import api from '../../../lib/axios';
-import type { Employee, CreateEmployeePayload } from '../types';
+import type { Employee, CreateEmployeePayload, UpdateEmployeePayload } from '../types';
 
 export const employeesApi = {
-  getEmployees: () => 
+  getEmployees: () =>
     api.get('/api/employees').then(res => {
       const d = res.data.data || res.data;
       return Array.isArray(d) ? d : (d.data || []);
     }),
-    
+
+  getEmployee: (id: string): Promise<Employee> =>
+    api.get(`/api/employees/${id}`).then(res => res.data?.data ?? res.data),
+
   getDepartments: () =>
     api.get('/api/departments').then(res => {
       const d = res.data.data || res.data;
       return Array.isArray(d) ? d : (d.data || []);
     }),
-    
+
   getSchedules: () =>
     api.get('/api/schedules').then(res => {
       const d = res.data.data || res.data;
@@ -56,6 +59,16 @@ export const employeesApi = {
       throw error;
     }
   },
+
+  updateEmployee: (id: string, data: UpdateEmployeePayload): Promise<Employee> =>
+    api.patch(`/api/employees/${id}`, data).then(res => res.data?.data ?? res.data),
+
+  deleteEmployee: (id: string): Promise<void> =>
+    api.delete(`/api/employees/${id}`).then(() => undefined),
+
+  updateEmployeeStatus: (id: string, status: Employee['status']): Promise<Employee> =>
+    api.patch(`/api/employees/${id}/status`, { status }).then(res => res.data?.data ?? res.data),
+
   generatePin: (id: string) =>
     api.post(`/api/employees/${id}/generate-pin`),
 

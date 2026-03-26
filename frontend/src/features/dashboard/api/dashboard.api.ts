@@ -7,7 +7,7 @@ export const dashboardApi = {
     return response.data?.data || response.data;
   },
   getPresenceTrend: async (period = '7d') => {
-    const response = await api.get(`/api/analytics/presence-trend?period=${period}`);
+    const response = await api.get(`/api/analytics/presence?period=${period}`);
     return response.data?.data || response.data || [];
   },
   getAttendancesToday: async () => {

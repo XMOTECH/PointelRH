@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { employeesApi } from '../api/employees.api';
 import type { CreateEmployeePayload } from '../types';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 export function useCreateEmployee() {
   const queryClient = useQueryClient();
@@ -9,7 +10,6 @@ export function useCreateEmployee() {
 
   return useMutation({
     mutationFn: (payload: CreateEmployeePayload) => {
-      // S'assurer que le user courant a bien une company_id (normalement géré par le AuthContext)
       if (!user?.company_id) {
         throw new Error('Company ID missing for current user');
       }
@@ -17,6 +17,10 @@ export function useCreateEmployee() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success('Employé créé avec succès');
+    },
+    onError: () => {
+      toast.error('Erreur lors de la création de l\'employé');
     },
   });
 }

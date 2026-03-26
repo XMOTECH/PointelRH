@@ -1,15 +1,97 @@
-import { Users, MoreHorizontal, Mail, Building2, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Users, MoreHorizontal, Mail, Building2, ShieldCheck, KeyRound, Loader2, Eye, Pencil, Trash2, UserCheck, UserX, UserMinus } from 'lucide-react';
 import type { Employee } from '../types';
 import { Badge } from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
 import { useGeneratePin } from '../hooks/useGeneratePin';
+import { useClickOutside } from '../../../hooks/useClickOutside';
 
 interface EmployeeTableProps {
   employees: Employee[];
   isLoading: boolean;
+  onView: (employee: Employee) => void;
+  onEdit: (employee: Employee) => void;
+  onDelete: (employee: Employee) => void;
+  onStatusChange: (employee: Employee, status: Employee['status']) => void;
 }
 
-export function EmployeeTable({ employees, isLoading }: EmployeeTableProps) {
+function getDeptName(department: Employee['department']): string {
+  if (!department) return 'Non assigné';
+  if (typeof department === 'string') return department;
+  return department.name;
+}
+
+function ActionDropdown({ employee, onView, onEdit, onDelete, onStatusChange }: {
+  employee: Employee;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onStatusChange: (status: Employee['status']) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useClickOutside(ref, useCallback(() => setOpen(false), []));
+
+  const statuses: { value: Employee['status']; label: string; icon: typeof UserCheck }[] = [
+    { value: 'active', label: 'Actif', icon: UserCheck },
+    { value: 'inactive', label: 'Inactif', icon: UserX },
+    { value: 'suspended', label: 'Suspendu', icon: UserMinus },
+  ];
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="p-2 hover:bg-surface-container-highest rounded-xl transition-colors text-on-surface-variant opacity-40 hover:opacity-100"
+      >
+        <MoreHorizontal size={20} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-48 bg-surface rounded-xl shadow-2xl border border-on-surface/10 py-1 z-50">
+          <button
+            onClick={() => { onView(); setOpen(false); }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+          >
+            <Eye size={14} /> Détails
+          </button>
+          <button
+            onClick={() => { onEdit(); setOpen(false); }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+          >
+            <Pencil size={14} /> Modifier
+          </button>
+
+          <div className="border-t border-on-surface/5 my-1" />
+
+          {statuses
+            .filter(s => s.value !== employee.status)
+            .map(s => (
+              <button
+                key={s.value}
+                onClick={() => { onStatusChange(s.value); setOpen(false); }}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+              >
+                <s.icon size={14} /> {s.label}
+              </button>
+            ))}
+
+          <div className="border-t border-on-surface/5 my-1" />
+
+          <button
+            onClick={() => { onDelete(); setOpen(false); }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 size={14} /> Supprimer
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function EmployeeTable({ employees, isLoading, onView, onEdit, onDelete, onStatusChange }: EmployeeTableProps) {
   const generatePin = useGeneratePin();
 
   if (isLoading) {
@@ -34,7 +116,7 @@ export function EmployeeTable({ employees, isLoading }: EmployeeTableProps) {
   const getStatusBadge = (status: Employee['status']) => {
     switch (status) {
       case 'active': return <Badge variant="success" className="uppercase tracking-tighter text-[9px]">Actif</Badge>;
-      case 'on_leave': return <Badge variant="warning" className="uppercase tracking-tighter text-[9px]">En Congé</Badge>;
+      case 'suspended': return <Badge variant="warning" className="uppercase tracking-tighter text-[9px]">Suspendu</Badge>;
       case 'inactive': return <Badge variant="error" className="uppercase tracking-tighter text-[9px]">Inactif</Badge>;
       default: return <Badge variant="default" className="uppercase tracking-tighter text-[9px]">{status}</Badge>;
     }
@@ -52,7 +134,7 @@ export function EmployeeTable({ employees, isLoading }: EmployeeTableProps) {
       </div>
 
       {employees.map((emp, idx) => (
-        <div 
+        <div
           key={emp.id}
           className={cn(
             "grid grid-cols-12 items-center px-6 py-5 rounded-2xl transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:shadow-primary/5 group",
@@ -80,7 +162,7 @@ export function EmployeeTable({ employees, isLoading }: EmployeeTableProps) {
 
           <div className="col-span-2 flex items-center gap-2 text-on-surface-variant opacity-70">
             <Building2 size={14} />
-            <span className="text-sm font-medium">{emp.department || 'Non assigné'}</span>
+            <span className="text-sm font-medium">{getDeptName(emp.department)}</span>
           </div>
 
           <div className="col-span-2">
@@ -96,9 +178,13 @@ export function EmployeeTable({ employees, isLoading }: EmployeeTableProps) {
             >
               {generatePin.isPending ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
             </button>
-            <button className="p-2 hover:bg-surface-container-highest rounded-xl transition-colors text-on-surface-variant opacity-40 hover:opacity-100">
-              <MoreHorizontal size={20} />
-            </button>
+            <ActionDropdown
+              employee={emp}
+              onView={() => onView(emp)}
+              onEdit={() => onEdit(emp)}
+              onDelete={() => onDelete(emp)}
+              onStatusChange={(status) => onStatusChange(emp, status)}
+            />
           </div>
         </div>
       ))}

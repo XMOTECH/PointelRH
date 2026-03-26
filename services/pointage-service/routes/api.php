@@ -5,7 +5,10 @@ use App\Http\Controllers\Api\ClockInController;
 use App\Http\Controllers\Api\ClockOutController;
 use App\Http\Controllers\Api\AttendanceController;
 
-Route::group(['prefix' => 'pointage'], function () {
+Route::group([
+    'prefix' => 'pointage',
+    'middleware' => [\App\Http\Middleware\ValidateJwtFromAuthService::class]
+], function () {
     Route::post('/clock-in',  [ClockInController::class,  'store']);
     Route::post('/clock-out', [ClockOutController::class, 'store']);
 });

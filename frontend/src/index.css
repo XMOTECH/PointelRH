@@ -27,11 +27,18 @@
 }
 
 @layer base {
-  body {
+html, body {
     @apply bg-surface text-on-surface font-inter antialiased selection:bg-primary/20;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Hide scrollbar but allow scrolling */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  html::-webkit-scrollbar, body::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
   }
   
   h1, h2, h3, h4, h5, h6, .font-display {

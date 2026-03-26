@@ -1,7 +1,16 @@
-import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, createContext, type ReactNode } from 'react';
 import api from '../lib/axios';
 import type { User } from '../types';
-import { AuthContext } from './AuthContext';
+
+export interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: (idToken: string) => Promise<User>;
+  logout: () => Promise<void>;
+  loading: boolean;
+}
+
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

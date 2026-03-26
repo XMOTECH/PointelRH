@@ -45,10 +45,12 @@ class KpiCacheService
                 ->get()
                 ->groupBy('snapshot_date')
                 ->map(fn($day) => [
-                    'date'         => $day->first()->snapshot_date,
-                    'presence_rate'=> round($day->avg('presence_rate'), 1),
-                    'late_count'   => $day->sum('late_count'),
-                    'absent_count' => $day->sum('absent_count'),
+                    'date'            => $day->first()->snapshot_date,
+                    'presence_rate'   => round($day->avg('presence_rate'), 1),
+                    'total_employees' => (int) $day->sum('total_employees'),
+                    'present_count'   => (int) $day->sum('present_count'),
+                    'late_count'      => (int) $day->sum('late_count'),
+                    'absent_count'    => (int) $day->sum('absent_count'),
                 ])->values()->toArray();
         });
     }

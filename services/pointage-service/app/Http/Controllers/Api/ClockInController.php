@@ -21,6 +21,12 @@ class ClockInController extends BaseApiController
     public function store(ClockInRequest $request): JsonResponse
     {
         try {
+            $companyId = $request->auth_company_id ?? $request->input('company_id');
+
+            if (!$companyId) {
+                return $this->respondError('ID de l\'entreprise manquant pour le pointage', 400);
+            }
+
             $attendance = $this->clockInService->clockIn(
                 new ClockInData(
                     channel:   $request->validated('channel', 'qr'),
@@ -28,7 +34,7 @@ class ClockInController extends BaseApiController
                         $request->validated('payload', []),
                         ['auth_user_id' => $request->auth_user_id]
                     ),
-                    companyId: $request->auth_company_id ?? $request->input('company_id'),
+                    companyId: $companyId,
                 )
             );
  
