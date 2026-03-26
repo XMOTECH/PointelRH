@@ -1,4 +1,3 @@
-import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { useDashboard } from '../hooks/useDashboard';
@@ -6,10 +5,10 @@ import { useDashboard } from '../hooks/useDashboard';
 const COLORS = ['#0041c8', '#0052CC', '#3b82f6', '#93c5fd', '#60a5fa', '#1e40af', '#2563eb', '#7c3aed'];
 
 export function WorkforceSplit() {
-  const { data: dashboard, isLoading } = useDashboard();
+  const { data: dashboard } = useDashboard();
 
-  const departments: { name: string; value: number; color: string }[] = (dashboard?.departments || []).map(
-    (dept: any, index: number) => ({
+  const departments: { name: string; value: number; color: string }[] = ((dashboard as { departments?: { department_name?: string; department_id?: string; total_employees?: number }[] })?.departments || []).map(
+    (dept, index: number) => ({
       name: dept.department_name || dept.department_id?.slice(0, 8) || `Dept ${index + 1}`,
       value: dept.total_employees || 0,
       color: COLORS[index % COLORS.length],

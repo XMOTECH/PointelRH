@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useAuth } from '../features/auth/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { LoginPage } from '../features/auth/LoginPage';
 import { ProtectedRoute } from '../components/layouts/ProtectedRoute';
 import { DashboardLayout } from '../components/layouts/DashboardLayout';

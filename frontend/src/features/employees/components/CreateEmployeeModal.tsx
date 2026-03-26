@@ -5,7 +5,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { useCreateEmployee } from '../hooks/useCreateEmployee';
 import { employeesApi } from '../api/employees.api';
-import type { CreateEmployeePayload } from '../types';
+import type { CreateEmployeePayload, Employee } from '../types';
 
 interface CreateEmployeeModalProps {
   isOpen: boolean;
@@ -21,21 +21,20 @@ export function CreateEmployeeModal({ isOpen, onClose }: CreateEmployeeModalProp
   const [formData, setFormData] = useState<Partial<CreateEmployeePayload>>({
     role: 'employee',
     contract_type: 'cdi',
-    status: 'active',
-  } as any);
+  });
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createEmployee(formData as CreateEmployeePayload, {
-      onSuccess: (data: any) => {
+      onSuccess: (data: Employee & { _temp_password?: string }) => {
         if (data._temp_password) {
           alert(`Employé créé avec succès !\n\nLes identifiants de connexion ont été envoyés par email à :\n${formData.email}`);
         }
         onClose();
       },
-      onError: (err: any) => {
+      onError: (err: { response?: { data?: { message?: string } }; message: string }) => {
         alert("Erreur lors de la création : " + (err.response?.data?.message || err.message));
       }
     });
@@ -87,7 +86,7 @@ export function CreateEmployeeModal({ isOpen, onClose }: CreateEmployeeModalProp
               <label className="block text-sm font-medium text-gray-700">Département</label>
               <select name="department_id" required className="w-full rounded-md border border-gray-300 p-2" onChange={handleChange} defaultValue="">
                 <option value="" disabled>Sélectionner...</option>
-                {departments.map((dept: any) => (
+                {departments.map((dept: { id: string; name: string }) => (
                   <option key={dept.id} value={dept.id}>{dept.name}</option>
                 ))}
               </select>
@@ -97,7 +96,7 @@ export function CreateEmployeeModal({ isOpen, onClose }: CreateEmployeeModalProp
               <label className="block text-sm font-medium text-gray-700">Horaire</label>
               <select name="schedule_id" required className="w-full rounded-md border border-gray-300 p-2" onChange={handleChange} defaultValue="">
                 <option value="" disabled>Sélectionner...</option>
-                {schedules.map((sch: any) => (
+                {schedules.map((sch: { id: string; name: string; start_time: string }) => (
                   <option key={sch.id} value={sch.id}>{sch.name} ({sch.start_time})</option>
                 ))}
               </select>

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { EmployeeLogin } from './components/EmployeeLogin';
 import { AdminLogin } from './components/AdminLogin';
 import { ManagerLogin } from './components/ManagerLogin';
@@ -19,8 +19,9 @@ export function LoginPage() {
       const user = await login(email, pass);
       if (user.role === 'employee') navigate('/clock-in');
       else navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Identifiants invalides. Veuillez réessayer.');
+    } catch (err) {
+      const errorMsg = (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Identifiants invalides. Veuillez réessayer.';
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -33,8 +34,10 @@ export function LoginPage() {
       const user = await loginWithGoogle(idToken);
       if (user.role === 'employee') navigate('/clock-in');
       else navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Échec de la connexion Google.');
+    } catch (err) {
+      const errorMsg = (err as { response?: { data?: { error?: string; message?: string } } }).response?.data?.error || 
+                       (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Échec de la connexion Google.';
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }

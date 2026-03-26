@@ -8,7 +8,7 @@
  * - Afficher les messages de statut
  */
 
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useClockIn } from './hooks/useClockIn';
 import { useRealTimeClock, useQRCodeData } from './hooks/hooks';
 import { ClockCard, QRCodeCard, SuccessMessage, ErrorMessage } from './components';
@@ -21,7 +21,7 @@ export default function ClockInPage() {
   const { qrToken, isLoading: qrLoading } = useQRCodeData(user?.employee_id);
 
   // Extraire le message d'erreur de manière sûre
-  const errorMessage = (error as any)?.response?.data?.error || 'Une erreur est survenue.';
+  const errorMessage = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Une erreur est survenue.';
 
   return (
     <div className="clock-in-container" style={{ maxWidth: LAYOUT.containerMaxWidth, margin: '0 auto' }}>

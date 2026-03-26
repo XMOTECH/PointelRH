@@ -1,8 +1,6 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Users, Clock, AlertCircle, Calendar } from 'lucide-react';
+import { Users, Clock, AlertCircle } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
-import { cn } from '../../../lib/utils';
 
 interface KpiData {
   label: string;
@@ -14,7 +12,7 @@ interface KpiData {
   badge?: string;
 }
 
-export function ExecutiveKpiCards({ totals, loading }: { totals: any; loading: boolean }) {
+export function ExecutiveKpiCards({ totals, loading }: { totals: Record<string, number | undefined>; loading: boolean }) {
   const cards: KpiData[] = [
     { 
         label: 'EFFECTIF TOTAL', 

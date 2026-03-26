@@ -1,0 +1,192 @@
+﻿
+> frontend@0.0.0 lint
+> eslint .
+
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\cypress.config.ts
+  6:21  error  'on' is defined but never used      @typescript-eslint/no-unused-vars
+  6:25  error  'config' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\cypress\support\commands.ts
+  17:3  error  ES2015 module syntax is preferred over namespaces  @typescript-eslint/no-namespace
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\context\AuthContext.tsx
+  13:14  error  Fast refresh only works when a file only exports components. Move your React context(s) to a separate file  react-refresh/only-export-components
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\auth\LoginPage.tsx
+  22:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\auth\components\LoginForm.tsx
+  26:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\clockin\ClockInPage.tsx
+  24:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\clockin\api\clockin.api.ts
+  25:5  error  Unnecessary try/catch wrapper  no-useless-catch
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\dashboard\LiveMonitorPage.tsx
+  11:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  11:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\dashboard\components\AlertMap.tsx
+   9:1   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  23:17  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  24:14  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\dashboard\components\GeofencingAlerts.tsx
+  5:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  9:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\dashboard\components\KpiCards.tsx
+  11:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\dashboard\components\PresenceChart.tsx
+  18:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\dashboard\components\RealTimeFeed.tsx
+  8:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\dashboard\components\WorkforceSplit.tsx
+  10:104  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\employees\components\CreateEmployeeModal.tsx
+   25:8   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   38:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   90:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\kiosk\KioskPage.tsx
+  54:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\kiosk\KioskPage.tsx:54:7
+  52 |     
+  53 |     if (isError) {
+> 54 |       setPin('');
+     |       ^^^^^^ Avoid calling setState() directly within an effect
+  55 |     }
+  56 |   }, [isSuccess, isError, data]);
+  57 |  react-hooks/set-state-in-effect
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx
+  18:1   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/ban-ts-comment
+  63:36  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setFormOpen`, but the source dependencies were [createMutation]. Inferred different dependency than source.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx:63:36
+  61 |   const inactiveSites = sites.length - activeSites;
+  62 |
+> 63 |   const handleCreate = useCallback((data: SitePayload) => {
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^
+> 64 |     createMutation.mutate(data, { onSuccess: () => setFormOpen(false) });
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 65 |   }, [createMutation]);
+     | ^^^^ Could not preserve existing manual memoization
+  66 |
+  67 |   const handleUpdate = useCallback((data: SitePayload) => {
+  68 |     if (!editingSite) return;                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/preserve-manual-memoization
+  67:36  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setEditingSite`, but the source dependencies were [updateMutation, editingSite]. Inferred different dependency than source.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx:67:36
+  65 |   }, [createMutation]);
+  66 |
+> 67 |   const handleUpdate = useCallback((data: SitePayload) => {
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^
+> 68 |     if (!editingSite) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 69 |     updateMutation.mutate({ id: editingSite.id, data }, { onSuccess: () => { setEditingSite(null); } });
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 70 |   }, [updateMutation, editingSite]);
+     | ^^^^ Could not preserve existing manual memoization
+  71 |
+  72 |   const handleDelete = useCallback(() => {
+  73 |     if (!deletingSite) return;                                                                                                                                                                                                                                                                                                                                                         react-hooks/preserve-manual-memoization
+  72:36  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setDeletingSite`, but the source dependencies were [deleteMutation, deletingSite, selectedSite]. Inferred different dependency than source.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx:72:36
+  70 |   }, [updateMutation, editingSite]);
+  71 |
+> 72 |   const handleDelete = useCallback(() => {
+     |                                    ^^^^^^^
+> 73 |     if (!deletingSite) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 74 |     deleteMutation.mutate(deletingSite.id, {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 75 |       onSuccess: () => {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 76 |         if (selectedSite?.id === deletingSite.id) setSelectedSite(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 77 |         setDeletingSite(null);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 78 |       },
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 79 |     });
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |   }, [deleteMutation, deletingSite, selectedSite]);
+     | ^^^^ Could not preserve existing manual memoization
+  81 |
+  82 |   const handleExportPdf = useCallback(() => {
+  83 |     if (!activeSite || !qrRef.current) return;  react-hooks/preserve-manual-memoization
+  82:39  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx:82:39
+  80 |   }, [deleteMutation, deletingSite, selectedSite]);
+  81 |
+> 82 |   const handleExportPdf = useCallback(() => {
+     |                                       ^^^^^^^
+> 83 |     if (!activeSite || !qrRef.current) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 84 |     exportQrPdf(activeSite, qrRef.current);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 85 |   }, [activeSite]);
+     | ^^^^ Could not preserve existing memoization
+  86 |
+  87 |   if (isLoading) {
+  88 |     return (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/preserve-manual-memoization
+  85:7   error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx:85:7
+  83 |     if (!activeSite || !qrRef.current) return;
+  84 |     exportQrPdf(activeSite, qrRef.current);
+> 85 |   }, [activeSite]);
+     |       ^^^^^^^^^^ This dependency may be modified later
+  86 |
+  87 |   if (isLoading) {
+  88 |     return (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/preserve-manual-memoization
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\api\locations.api.ts
+  23:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\components\SiteFormModal.tsx
+  63:15  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\components\SiteFormModal.tsx:63:15
+  61 |   }, [site, reset, open]);
+  62 |
+> 63 |   const lat = watch('latitude');
+     |               ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  64 |   const lng = watch('longitude');
+  65 |
+  66 |   if (!open) return null;  react-hooks/incompatible-library
+
+Ô£û 34 problems (33 errors, 1 warning)
+

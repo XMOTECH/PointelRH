@@ -6,24 +6,34 @@ import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { useAttendancesToday } from '../hooks/useDashboard';
 
 // Leaflet icon fix
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - Leaflet internal icon configuration needs careful override
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+interface AttendanceWithLocation {
+  id: string;
+  status: string;
+  latitude?: string;
+  longitude?: string;
+  employee_name?: string;
+}
+
 const defaultCenter: [number, number] = [14.7167, -17.4677];
 
 export function AlertMap() {
-  const { data: attendances = [] } = useAttendancesToday();
+  const { data: rawAttendances = [] } = useAttendancesToday();
+  const attendances = (rawAttendances as unknown as AttendanceWithLocation[]);
 
   const alertLocations = attendances
-    .filter((a: any) => a.status === 'late' && a.latitude && a.longitude)
-    .map((a: any) => ({
+    .filter((a) => a.status === 'late' && a.latitude && a.longitude)
+    .map((a) => ({
       id: a.id,
-      pos: [parseFloat(a.latitude), parseFloat(a.longitude)] as [number, number],
+      pos: [parseFloat(a.latitude!), parseFloat(a.longitude!)] as [number, number],
       name: a.employee_name || 'Employé',
     }));
 

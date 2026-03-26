@@ -1,12 +1,18 @@
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { ShieldAlert } from 'lucide-react';
 
+interface AttendanceAnomaly {
+  id: string;
+  status: string;
+  employee_name?: string;
+}
+
 interface GeofencingAlertsProps {
-  attendances: any[];
+  attendances: AttendanceAnomaly[];
 }
 
 export function GeofencingAlerts({ attendances }: GeofencingAlertsProps) {
-  const anomalies = (attendances || []).filter((a: any) => 
+  const anomalies = (attendances || []).filter((a: AttendanceAnomaly) => 
     String(a.status).toLowerCase() === 'late' || 
     String(a.status).toLowerCase() === 'absent'
   ).slice(0, 5);

@@ -8,7 +8,14 @@ interface Kpi {
   color: string;
 }
 
-export function KpiCards({ totals, loading }: { totals: any; loading: boolean }) {
+interface DashboardTotals {
+  total_present: number;
+  total_late: number;
+  total_absent: number;
+  total_employees: number;
+}
+
+export function KpiCards({ totals, loading }: { totals: DashboardTotals | undefined; loading: boolean }) {
   const cards: Kpi[] = [
     { label: 'Présences', value: totals?.total_present ?? 0, icon: <Users size={20} />, color: '#10b981' }, // emerald-500
     { label: 'Retards', value: totals?.total_late ?? 0, icon: <Clock size={20} />, color: '#f59e0b' }, // amber-500

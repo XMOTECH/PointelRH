@@ -1,0 +1,66 @@
+﻿
+> frontend@0.0.0 lint
+> eslint .
+
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\cypress.config.ts
+  6:21  error  '_on' is defined but never used      @typescript-eslint/no-unused-vars
+  6:26  error  '_config' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\cypress\support\commands.ts
+  17:3  error  ES2015 module syntax is preferred over namespaces  @typescript-eslint/no-namespace
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\auth\components\LoginForm.tsx
+  26:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\clockin\ClockInPage.tsx
+  24:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx
+  83:39  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx:83:39
+  81 |   }, [deleteMutation, deletingSite, selectedSite, setSelectedSite, setDeletingSite]);
+  82 |
+> 83 |   const handleExportPdf = useCallback(() => {
+     |                                       ^^^^^^^
+> 84 |     if (!activeSite || !qrRef.current) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 85 |     exportQrPdf(activeSite, qrRef.current);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 86 |   }, [activeSite]);
+     | ^^^^ Could not preserve existing memoization
+  87 |
+  88 |   if (isLoading) {
+  89 |     return (  react-hooks/preserve-manual-memoization
+  86:7   error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\QrLocationsPage.tsx:86:7
+  84 |     if (!activeSite || !qrRef.current) return;
+  85 |     exportQrPdf(activeSite, qrRef.current);
+> 86 |   }, [activeSite]);
+     |       ^^^^^^^^^^ This dependency may be modified later
+  87 |
+  88 |   if (isLoading) {
+  89 |     return (                                                                                                                                                                                                                                                                                          react-hooks/preserve-manual-memoization
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\components\SiteFormModal.tsx
+  63:15  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\Users\bmd tech\Documents\PointelRH\frontend\src\features\location\components\SiteFormModal.tsx:63:15
+  61 |   }, [site, reset, open]);
+  62 |
+> 63 |   const lat = watch('latitude');
+     |               ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  64 |   const lng = watch('longitude');
+  65 |
+  66 |   if (!open) return null;  react-hooks/incompatible-library
+
+Ô£û 8 problems (7 errors, 1 warning)
+

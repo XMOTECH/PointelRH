@@ -20,9 +20,9 @@ export interface SitePayload {
   is_active?: boolean;
 }
 
-const unwrap = (res: any) => {
+const unwrap = (res: { data?: { data?: unknown } }): Site[] => {
   const d = res.data?.data ?? res.data;
-  return Array.isArray(d) ? d : (d?.data ?? []);
+  return Array.isArray(d) ? (d as Site[]) : (((d as { data?: unknown })?.data as Site[]) ?? []);
 };
 
 export const locationsApi = {

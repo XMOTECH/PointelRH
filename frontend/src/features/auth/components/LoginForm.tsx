@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 interface LoginFormProps {
   onSuccess: (role: string) => void;
@@ -23,8 +23,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     try {
       const user = await login(email, password);
       onSuccess(user.role);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Identifiants invalides. Veuillez réessayer.');
+    } catch (err) {
+      const errorMsg = (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Identifiants invalides. Veuillez réessayer.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

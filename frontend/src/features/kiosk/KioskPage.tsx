@@ -6,7 +6,7 @@ import { Numpad } from '../../components/ui/Numpad';
 import { useRealTimeClock } from '../clockin/hooks/hooks';
 import { useClockIn } from '../clockin/hooks/useClockIn';
 import { cn } from '../../lib/utils';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function KioskPage() {
   const [pin, setPin] = useState('');
@@ -25,25 +25,36 @@ export default function KioskPage() {
         channel: 'pin',
         company_id: companyId,
         payload: { pin_code: pin }
-      } as any);
+      });
     }
-  }, [pin, clockIn]);
+  }, [pin, clockIn, companyId]);
 
   useEffect(() => {
-    if (isSuccess) {
-      const firstName = (data as any)?.employee?.first_name || 'Employé';
+    if (isSuccess && data) {
+      const firstName = data.employee?.first_name || 'Employé';
       const timeStr = format(new Date(), 'HH:mm');
-      setSuccessMsg(`Bonjour ${firstName}, pointage enregistré à ${timeStr}`);
       
-      const timer = setTimeout(() => {
+      // Utilisation d'un timer pour eviter le setState synchrone qui bloque le render
+      const successTimer = setTimeout(() => {
+        setSuccessMsg(`Bonjour ${firstName}, pointage enregistré à ${timeStr}`);
+      }, 0);
+      
+      const resetTimer = setTimeout(() => {
         setPin('');
         setSuccessMsg('');
       }, 4000);
-      return () => clearTimeout(timer);
+
+      return () => {
+        clearTimeout(successTimer);
+        clearTimeout(resetTimer);
+      };
     }
     
     if (isError) {
-      setPin('');
+      const errorTimer = setTimeout(() => {
+        setPin('');
+      }, 0);
+      return () => clearTimeout(errorTimer);
     }
   }, [isSuccess, isError, data]);
 

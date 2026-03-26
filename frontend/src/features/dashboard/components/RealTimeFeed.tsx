@@ -4,8 +4,15 @@ import { Monitor, ChevronRight } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { format } from 'date-fns';
 
+interface RealTimeAttendance {
+  id: string;
+  employee_name: string;
+  clock_in: string;
+  status: 'present' | 'late' | 'absent';
+}
+
 interface RealTimeFeedProps {
-  attendances: any[];
+  attendances: RealTimeAttendance[];
   loading: boolean;
 }
 

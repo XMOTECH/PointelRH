@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { employeesApi } from '../api/employees.api';
 import type { CreateEmployeePayload } from '../types';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export function useCreateEmployee() {
   const queryClient = useQueryClient();

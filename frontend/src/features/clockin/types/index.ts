@@ -18,10 +18,15 @@ export interface AttendanceResponse {
   time: string;
   channel: string;
   late_minutes?: number;
+  employee?: {
+    first_name: string;
+    last_name: string;
+  };
 }
 
 export interface ClockInRequestPayload {
   channel: string;
+  company_id?: string;
   payload: {
     qr_token?: string;
     pin_code?: string;

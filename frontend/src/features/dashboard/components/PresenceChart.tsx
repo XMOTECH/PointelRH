@@ -11,11 +11,16 @@ import { format } from 'date-fns';
 // import removed
 import { usePresenceTrend } from '../hooks/useDashboard';
 
+interface PresenceTrendItem {
+  date: string;
+  count: number;
+}
+
 export function PresenceChart({ period }: { period: string }) {
   const { data: rawData, isLoading, error } = usePresenceTrend(period);
   
   // Valider et transformer les données correctement
-  let data: any[] = [];
+  let data: PresenceTrendItem[] = [];
   
   if (Array.isArray(rawData)) {
     data = rawData;
@@ -27,7 +32,7 @@ export function PresenceChart({ period }: { period: string }) {
   }
   
   // Valider que chaque item a les bonnes clés pour recharts
-  const chartData = Array.isArray(data) ? data.filter(item => item && typeof item === 'object') : [];
+  const chartData = (Array.isArray(data) ? data.filter(item => item && typeof item === 'object') : []) as PresenceTrendItem[];
   
   if (isLoading) return <div className="card" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Chargement...</div>;
 

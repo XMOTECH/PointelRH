@@ -15,8 +15,9 @@ import { exportQrPdf } from './components/QrPdfExport';
 import type { Site, SitePayload } from './api/locations.api';
 
 // Leaflet icon fix
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - Leaflet internal icon configuration needs careful override
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -62,12 +63,12 @@ export function QrLocationsPage() {
 
   const handleCreate = useCallback((data: SitePayload) => {
     createMutation.mutate(data, { onSuccess: () => setFormOpen(false) });
-  }, [createMutation]);
+  }, [createMutation, setFormOpen]);
 
   const handleUpdate = useCallback((data: SitePayload) => {
     if (!editingSite) return;
     updateMutation.mutate({ id: editingSite.id, data }, { onSuccess: () => { setEditingSite(null); } });
-  }, [updateMutation, editingSite]);
+  }, [updateMutation, editingSite, setEditingSite]);
 
   const handleDelete = useCallback(() => {
     if (!deletingSite) return;
@@ -77,12 +78,12 @@ export function QrLocationsPage() {
         setDeletingSite(null);
       },
     });
-  }, [deleteMutation, deletingSite, selectedSite]);
+  }, [deleteMutation, deletingSite, selectedSite, setSelectedSite, setDeletingSite]);
 
-  const handleExportPdf = useCallback(() => {
+  const handleExportPdf = () => {
     if (!activeSite || !qrRef.current) return;
     exportQrPdf(activeSite, qrRef.current);
-  }, [activeSite]);
+  };
 
   if (isLoading) {
     return (

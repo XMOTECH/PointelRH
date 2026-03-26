@@ -1,8 +1,14 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 
+interface ChartDataPoint {
+  name: string;
+  expected: number;
+  actual: number;
+}
+
 interface AttendanceChartProps {
-  data: any[];
+  data: ChartDataPoint[];
   loading: boolean;
 }
 

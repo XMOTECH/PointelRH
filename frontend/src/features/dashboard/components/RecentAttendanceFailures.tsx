@@ -1,15 +1,23 @@
-import React from 'react';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { cn } from '../../../lib/utils';
 import { format } from 'date-fns';
 
+interface AttendanceItem {
+  id?: string;
+  status: string;
+  employee_name?: string;
+  clock_in?: string;
+  late_minutes?: number;
+  location_name?: string;
+}
+
 interface RecentAttendanceFailuresProps {
-  attendances: any[];
+  attendances: AttendanceItem[];
   loading: boolean;
 }
 
 export function RecentAttendanceFailures({ attendances, loading }: RecentAttendanceFailuresProps) {
-  const failures = (attendances || []).filter((a: any) => 
+  const failures = (attendances || []).filter((a: AttendanceItem) => 
     String(a.status).toLowerCase() === 'late' || 
     String(a.status).toLowerCase() === 'absent'
   ).slice(0, 5);

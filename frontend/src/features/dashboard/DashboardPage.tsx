@@ -11,20 +11,22 @@ export default function DashboardPage() {
   const { data: rawPresenceTrend, isLoading: trendLoading } = usePresenceTrend('7d');
 
   // Data processing
-  const dashboardData = (rawDashboardData as any)?.data || rawDashboardData || {};
+  const dashboardData = rawDashboardData || {};
   const todayAttendances = Array.isArray(rawAttendances)
     ? rawAttendances
-    : (Array.isArray((rawAttendances as any)?.data) ? (rawAttendances as any).data : []);
+    : [];
 
   const presenceTrend = Array.isArray(rawPresenceTrend)
     ? rawPresenceTrend
-    : (Array.isArray((rawPresenceTrend as any)?.data) ? (rawPresenceTrend as any).data : []);
+    : [];
 
-  const totals = dashboardData?.totals || {};
+  const totals = (dashboardData as { totals?: Record<string, number> })?.totals || {};
   const presentCount = todayAttendances.length;
   const totalEmployees = totals?.total_employees ?? 0;
   const attendanceRate = totalEmployees > 0 ? Math.round((presentCount / totalEmployees) * 100) : 0;
-  const lateCount = todayAttendances.filter((a: any) => String(a.status).toLowerCase() === 'late').length;
+  const lateCount = todayAttendances.filter((a: { status?: string }) => 
+    String(a.status || '').toLowerCase() === 'late'
+  ).length;
 
   const enrichedTotals = {
     ...totals,

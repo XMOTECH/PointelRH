@@ -8,7 +8,7 @@ export default function LiveMonitorPage() {
   const { data: rawAttendances, isLoading } = useAttendancesToday();
   const attendances = Array.isArray(rawAttendances)
     ? rawAttendances
-    : (Array.isArray((rawAttendances as any)?.data) ? (rawAttendances as any).data : []);
+    : [];
 
   return (
     <motion.div 

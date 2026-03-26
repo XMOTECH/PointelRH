@@ -22,14 +22,9 @@ export const clockInApi = {
    * @throws Erreur si la requête échoue
    */
   clockIn: async (data: ClockInRequestPayload): Promise<AttendanceResponse> => {
-    try {
-      // pointage-service expose POST /api/pointage/clock-in (via routes/api.php + prefix('pointage'))
-      const response = await api.post('/api/pointage/clock-in', data);
-      return response.data.data || response.data;
-    } catch (error) {
-      // Relancer l'erreur pour que React Query la gère
-      throw error;
-    }
+    // pointage-service expose POST /api/pointage/clock-in (via routes/api.php + prefix('pointage'))
+    const response = await api.post('/api/pointage/clock-in', data);
+    return response.data.data || response.data;
   },
 } as const;
 

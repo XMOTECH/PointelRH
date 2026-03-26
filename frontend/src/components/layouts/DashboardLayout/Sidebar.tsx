@@ -8,7 +8,7 @@ import {
   Settings,
   ChevronRight
 } from 'lucide-react';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 export const Sidebar: React.FC = () => {
