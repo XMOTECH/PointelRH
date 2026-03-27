@@ -30,7 +30,7 @@ class UserController extends Controller
         $user = User::create([
             'name'        => $validated['name'],
             'email'       => $validated['email'],
-            'password'    => Hash::make($password),
+            'password'    => $password,
             'role'        => $validated['role'],
             'company_id'  => $validated['company_id'],
             'employee_id' => $validated['employee_id'],

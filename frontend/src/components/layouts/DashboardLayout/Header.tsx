@@ -74,7 +74,10 @@ export const Header: React.FC = () => {
               <div className="px-4 py-2 border-b border-surface-container/50 mb-1">
                 <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest opacity-50">Compte Admin</p>
               </div>
-              <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-on-surface hover:bg-surface-container transition-colors text-left font-medium">
+              <button
+                onClick={() => { setIsProfileOpen(false); navigate('/my-profile'); }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-on-surface hover:bg-surface-container transition-colors text-left font-medium"
+              >
                 <User size={18} className="opacity-60" />
                 Mon Profil
               </button>

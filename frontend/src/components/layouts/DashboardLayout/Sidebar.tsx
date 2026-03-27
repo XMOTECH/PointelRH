@@ -6,7 +6,11 @@ import {
   Bell,
   Map as MapIcon,
   Settings,
-  ChevronRight
+  ChevronRight,
+  Clock,
+  User,
+  History,
+  CalendarDays
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -21,6 +25,10 @@ export const Sidebar: React.FC = () => {
     { icon: <Users size={20} />, label: 'Employés', path: '/employees', roles: ['admin'] },
     { icon: <Bell size={20} />, label: 'Live Monitor', path: '/monitor', roles: ['admin', 'manager'] },
     { icon: <Settings size={20} />, label: 'Paramètres', path: '/settings', roles: ['admin'] },
+    { icon: <Clock size={20} />, label: 'Pointage', path: '/clock-in', roles: ['employee'] },
+    { icon: <User size={20} />, label: 'Mon Profil', path: '/my-profile', roles: ['employee'] },
+    { icon: <History size={20} />, label: 'Historique', path: '/my-attendance', roles: ['employee'] },
+    { icon: <CalendarDays size={20} />, label: 'Mon Planning', path: '/my-schedule', roles: ['employee'] },
   ];
 
   const filteredNavItems = navItems.filter(item => 

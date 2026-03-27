@@ -1,5 +1,5 @@
 import { Plus, Users, Search, Filter } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '../../components/ui/Button';
 import { useEmployees } from './hooks/useEmployees';
 import { useCreateEmployee } from './hooks/useCreateEmployee';
@@ -18,6 +18,8 @@ export function EmployeeListPage() {
 
   // Modal / dialog state
   const [formOpen, setFormOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDept, setSelectedDept] = useState<string>('all');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
@@ -27,6 +29,35 @@ export function EmployeeListPage() {
   const updateMutation = useUpdateEmployee();
   const deleteMutation = useDeleteEmployee();
   const statusMutation = useUpdateEmployeeStatus();
+
+  // client-side filtering
+  const filteredEmployees = employees.filter((emp: Employee) => {
+    const searchLower = searchQuery.toLowerCase();
+    const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+    const deptObj = emp.department;
+    const deptName = typeof deptObj === 'string' ? deptObj : (deptObj?.name || '');
+    const deptId = typeof deptObj === 'string' ? '' : (deptObj?.id || '');
+
+    const matchesSearch = fullName.includes(searchLower) || 
+                          emp.email.toLowerCase().includes(searchLower) ||
+                          deptName.toLowerCase().includes(searchLower);
+    
+    const matchesDept = selectedDept === 'all' || deptId === selectedDept || deptName === selectedDept;
+
+    return matchesSearch && matchesDept;
+  });
+
+  // Extract unique departments for the filter
+  const departments = useMemo(() => {
+    const depts = new Map<string, string>();
+    employees.forEach(emp => {
+      const dept = emp.department;
+      if (dept && typeof dept !== 'string') {
+        depts.set(dept.id, dept.name);
+      }
+    });
+    return Array.from(depts.entries()).map(([id, name]) => ({ id, name }));
+  }, [employees]);
 
   // --- Handlers ---
   const handleOpenCreate = () => {
@@ -84,13 +115,25 @@ export function EmployeeListPage() {
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-40" size={16} />
              <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher..."
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-container-low border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
              />
           </div>
-          <Button variant="secondary" className="!p-2.5">
-             <Filter size={18} />
-          </Button>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-40" size={16} />
+            <select
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="pl-10 pr-4 py-2.5 bg-surface-container-low border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none appearance-none cursor-pointer min-w-[160px]"
+            >
+              <option value="all">Tous les services</option>
+              {departments.map(dept => (
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
+              ))}
+            </select>
+          </div>
           <Button className="flex items-center gap-2 whitespace-nowrap" onClick={handleOpenCreate}>
             <Plus size={18} />
             Ajouter un Employé
@@ -108,7 +151,7 @@ export function EmployeeListPage() {
 
       {/* Table Section */}
       <EmployeeTable
-        employees={employees}
+        employees={filteredEmployees}
         isLoading={isLoading}
         onView={(emp) => setViewingEmployee(emp)}
         onEdit={handleOpenEdit}

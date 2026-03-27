@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, Image, Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 
@@ -14,109 +18,200 @@ import Shadows from '../../src/theme/shadows';
 import useAuthStore from '../../src/store/authStore';
 import api from '../../src/utils/api';
 
+function InfoRow({ icon, label, value }) {
+  return (
+    <View style={styles.infoRow}>
+      <View style={styles.infoIconWrap}>
+        <Ionicons name={icon} size={16} color={Colors.on_surface_muted} />
+      </View>
+      <View style={styles.infoContent}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value || '--'}</Text>
+      </View>
+    </View>
+  );
+}
+
+function MenuItem({ icon, label, subtitle, onPress, isLast, color }) {
+  return (
+    <TouchableOpacity
+      style={[styles.menuItem, !isLast && styles.menuBorder]}
+      onPress={onPress}
+      activeOpacity={0.6}
+    >
+      <View style={[styles.menuIconWrap, color && { backgroundColor: color + '15' }]}>
+        <Ionicons name={icon} size={18} color={color || Colors.on_surface_variant} />
+      </View>
+      <View style={styles.menuContent}>
+        <Text style={styles.menuText}>{label}</Text>
+        {subtitle && <Text style={styles.menuSub}>{subtitle}</Text>}
+      </View>
+      <Ionicons name="chevron-forward" size={14} color={Colors.surface_container_highest} />
+    </TouchableOpacity>
+  );
+}
+
 export default function ProfileScreen() {
-  const { user, setEmployee, logout } = useAuthStore();
-  const [profile, setProfile] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { user, employee, setEmployee, logout, fetchEmployee } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(!employee);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await api.get(`/employees/by-user/${user.id}`);
-        setProfile(response.data.data);
-        setEmployee(response.data.data);
-      } catch (err) {
-        console.error('Failed to fetch profile', err);
-      } finally {
+    const loadProfile = async () => {
+      if (employee) {
         setIsLoading(false);
+        return;
       }
+      const emp = await fetchEmployee();
+      setIsLoading(false);
     };
-    if (user?.id) fetchProfile();
-  }, [user?.id]);
+    loadProfile();
+  }, []);
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Deconnexion',
+      'Voulez-vous vraiment vous deconnecter ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Se deconnecter',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          },
+        },
+      ]
+    );
+  };
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator color={Colors.primary_vibrant} />
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator color={Colors.primary_vibrant} size="large" />
       </View>
     );
   }
 
-  const employee = profile || {
-    first_name: 'Utilisateur',
-    last_name: 'Pointel',
-    position: 'Collaborateur',
-    registration_number: '#N/A',
-  };
-
-  const MenuItem = ({ icon, label, onPress, isLast }) => (
-    <TouchableOpacity 
-      style={[styles.menuItem, !isLast && styles.menuBorder]} 
-      onPress={onPress}
-      activeOpacity={0.6}
-    >
-      <View style={styles.menuIconContainer}>
-        <Ionicons name={icon} size={20} color={Colors.on_surface_variant} />
-      </View>
-      <Text style={styles.menuText}>{label}</Text>
-      <Ionicons name="chevron-forward" size={16} color={Colors.surface_container_highest} />
-    </TouchableOpacity>
-  );
+  const emp = employee || {};
+  const fullName = emp.first_name
+    ? `${emp.first_name} ${emp.last_name || ''}`
+    : user?.name || 'Collaborateur';
+  const initials = fullName
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Profile Card */}
-        <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-             <View style={styles.avatarOuter}>
-               <Image 
-                 source={{ uri: `https://i.pravatar.cc/150?u=${employee.id}` }} 
-                 style={styles.avatar}
-               />
-             </View>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarOuter}>
+            {emp.id ? (
+              <Image
+                source={{ uri: `https://i.pravatar.cc/200?u=${emp.id}` }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.name}>{employee.first_name} {employee.last_name}</Text>
-          <Text style={styles.role}>{employee.position || 'Collaborateur'}</Text>
-          <View style={styles.badgeContainer}>
-             <PremiumBadge status="info" label={employee.registration_number} />
+          <Text style={styles.profileName}>{fullName}</Text>
+          <Text style={styles.profileRole}>{emp.position || 'Collaborateur'}</Text>
+          <View style={styles.badgeRow}>
+            {emp.registration_number && (
+              <PremiumBadge status="info" label={emp.registration_number} />
+            )}
+            {emp.status === 'active' && (
+              <PremiumBadge status="present" label="Actif" />
+            )}
           </View>
         </View>
 
-        {/* Quick Stats Grid */}
-        <View style={styles.statsGrid}>
-           <PremiumCard style={styles.statCard}>
-              <Text style={styles.statValue}>180h</Text>
-              <Text style={styles.statLabel}>Mois cours</Text>
-           </PremiumCard>
-           <PremiumCard style={styles.statCard}>
-              <Text style={styles.statValue}>12j</Text>
-              <Text style={styles.statLabel}>Congés</Text>
-           </PremiumCard>
-        </View>
-
-        {/* Menu Section */}
+        {/* Info Card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Paramètres</Text>
-          <PremiumCard style={styles.menuCard}>
-            <MenuItem icon="notifications-outline" label="Notifications" />
-            <MenuItem icon="shield-checkmark-outline" label="Sécurité & Confidentialité" />
-            <MenuItem icon="language-outline" label="Langue de l'application" />
-            <MenuItem icon="help-circle-outline" label="Assistance Technique" isLast />
+          <Text style={styles.sectionTitle}>Informations</Text>
+          <PremiumCard style={styles.infoCard}>
+            <InfoRow icon="mail-outline" label="Email" value={emp.email || user?.email} />
+            <InfoRow icon="call-outline" label="Telephone" value={emp.phone} />
+            <InfoRow icon="business-outline" label="Departement" value={emp.department?.name} />
+            <InfoRow icon="document-text-outline" label="Contrat" value={emp.contract_type} />
+            <InfoRow icon="calendar-outline" label="Embauche" value={emp.hire_date} />
           </PremiumCard>
         </View>
 
-        <View style={styles.footer}>
-          <PremiumButton 
-            title="Déconnexion" 
-            variant="outline" 
-            onPress={logout} 
+        {/* Schedule Card */}
+        {emp.schedule && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Planning</Text>
+            <PremiumCard style={styles.scheduleCard}>
+              <View style={styles.scheduleRow}>
+                <View style={styles.scheduleIcon}>
+                  <Ionicons name="time-outline" size={20} color={Colors.primary_vibrant} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.scheduleName}>{emp.schedule.name}</Text>
+                  <Text style={styles.scheduleTime}>
+                    {emp.schedule.start_time} — {emp.schedule.end_time}
+                  </Text>
+                </View>
+              </View>
+            </PremiumCard>
+          </View>
+        )}
+
+        {/* Settings Menu */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Reglages</Text>
+          <PremiumCard style={styles.menuCard}>
+            <MenuItem
+              icon="notifications-outline"
+              label="Notifications"
+              subtitle="Push et rappels"
+              color={Colors.primary_vibrant}
+            />
+            <MenuItem
+              icon="shield-checkmark-outline"
+              label="Securite"
+              subtitle="Mot de passe et biometrie"
+              color={Colors.status.success.vibrant}
+            />
+            <MenuItem
+              icon="language-outline"
+              label="Langue"
+              subtitle="Francais"
+              color={Colors.status.info.vibrant}
+            />
+            <MenuItem
+              icon="help-circle-outline"
+              label="Aide"
+              subtitle="Support et FAQ"
+              color={Colors.status.warning.vibrant}
+              isLast
+            />
+          </PremiumCard>
+        </View>
+
+        {/* Logout */}
+        <View style={styles.logoutSection}>
+          <PremiumButton
+            title="Se deconnecter"
+            variant="outline"
+            onPress={handleLogout}
             style={styles.logoutBtn}
+            icon={<Ionicons name="log-out-outline" size={20} color={Colors.primary} />}
           />
-          <Text style={styles.version}>Pointel Go v2.5.0 Premium</Text>
+          <Text style={styles.version}>Pointel Go v2.5.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -128,76 +223,139 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.surface,
   },
-  scrollContent: {
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scroll: {
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
-  header: {
+
+  // Profile Header
+  profileHeader: {
     alignItems: 'center',
     marginBottom: 32,
   },
-  avatarContainer: {
-    marginBottom: 20,
-    ...Shadows.md,
-  },
   avatarOuter: {
     padding: 4,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.surface_container_lowest,
     borderRadius: Radius.full,
+    marginBottom: 16,
+    ...Shadows.md,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: Radius.full,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: Colors.surface_container_low,
   },
-  name: {
+  avatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary_light,
+  },
+  avatarInitials: {
+    ...Typography.h1,
+    fontSize: 32,
+    color: Colors.primary_vibrant,
+  },
+  profileName: {
     ...Typography.h1,
     fontSize: 24,
     color: Colors.on_surface,
+    textAlign: 'center',
   },
-  role: {
+  profileRole: {
     ...Typography.body_md,
     color: Colors.on_surface_variant,
     marginTop: 4,
   },
-  badgeContainer: {
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 12,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 32,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  statValue: {
-    ...Typography.h1,
-    fontSize: 20,
-    color: Colors.primary_vibrant,
-  },
-  statLabel: {
-    ...Typography.caption,
-    fontSize: 11,
-    color: Colors.on_surface_variant,
-    marginTop: 2,
-  },
+
+  // Sections
   section: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionTitle: {
     ...Typography.label,
-    fontSize: 14,
-    color: Colors.on_surface_variant,
-    marginBottom: 16,
+    fontSize: 11,
+    color: Colors.on_surface_muted,
+    marginBottom: 12,
     marginLeft: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
+
+  // Info Card
+  infoCard: {
+    padding: 0,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surface_container_low,
+  },
+  infoIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface_container_low,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    ...Typography.caption,
+    color: Colors.on_surface_muted,
+    fontSize: 11,
+  },
+  infoValue: {
+    ...Typography.body_md,
+    fontFamily: 'Inter_500Medium',
+    color: Colors.on_surface,
+    marginTop: 1,
+  },
+
+  // Schedule Card
+  scheduleCard: {
+    padding: 16,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scheduleIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primary_light,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  scheduleName: {
+    ...Typography.body_lg,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.on_surface,
+  },
+  scheduleTime: {
+    ...Typography.body_md,
+    color: Colors.on_surface_variant,
+    marginTop: 2,
+  },
+
+  // Menu Card
   menuCard: {
     padding: 0,
     overflow: 'hidden',
@@ -205,38 +363,49 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   menuBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.surface_container,
+    borderBottomColor: Colors.surface_container_low,
   },
-  menuIconContainer: {
+  menuIconWrap: {
     width: 36,
     height: 36,
     borderRadius: Radius.md,
     backgroundColor: Colors.surface_container_low,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 14,
+  },
+  menuContent: {
+    flex: 1,
   },
   menuText: {
-    flex: 1,
     ...Typography.body_md,
-    color: Colors.on_surface,
     fontFamily: 'Inter_500Medium',
+    color: Colors.on_surface,
   },
-  footer: {
+  menuSub: {
+    ...Typography.caption,
+    color: Colors.on_surface_muted,
+    marginTop: 1,
+    fontSize: 11,
+  },
+
+  // Logout
+  logoutSection: {
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 8,
   },
   logoutBtn: {
     width: '100%',
   },
   version: {
     ...Typography.caption,
-    color: Colors.on_surface_variant,
-    marginTop: 24,
+    color: Colors.on_surface_muted,
+    marginTop: 20,
     opacity: 0.5,
-  }
+  },
 });

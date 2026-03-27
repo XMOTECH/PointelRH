@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../api/dashboard.api';
 
-export function useDashboard() {
+export function useDashboard(date?: string, period = 'day') {
   return useQuery({
-    queryKey: ['dashboard'],
-    queryFn: dashboardApi.getDashboard,
-    refetchInterval: 30_000, // refresh toutes les 30 secondes
+    queryKey: ['dashboard', date, period],
+    queryFn: () => dashboardApi.getDashboard(date, period),
+    refetchInterval: (date || period !== 'day') ? false : 30_000, 
     staleTime: 20_000,
   });
 }
@@ -18,10 +18,10 @@ export function usePresenceTrend(period = '7d') {
   });
 }
 
-export function useAttendancesToday() {
+export function useAttendancesToday(date?: string, period = 'day') {
   return useQuery({
-    queryKey: ['attendances', 'today'],
-    queryFn: dashboardApi.getAttendancesToday,
-    refetchInterval: 15_000,
+    queryKey: ['attendances', 'today', date, period],
+    queryFn: () => dashboardApi.getAttendancesToday(date, period),
+    refetchInterval: (date || period !== 'day') ? false : 15_000,
   });
 }

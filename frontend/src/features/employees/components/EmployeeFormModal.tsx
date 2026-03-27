@@ -58,7 +58,7 @@ export function EmployeeFormModal({ open, onClose, onSubmit, isLoading, employee
         phone: employee.phone || '',
         role: employee.role,
         contract_type: employee.contract_type || 'cdi',
-        hire_date: employee.hire_date || '',
+        hire_date: employee.hire_date ? employee.hire_date.split('T')[0].split(' ')[0] : '',
         department_id: employee.department_id || '',
         schedule_id: employee.schedule_id || '',
       });

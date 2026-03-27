@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Dimensions,
+  ActivityIndicator, Alert, Animated,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
 
 import PremiumButton from '../../src/components/ui/Button';
 import PremiumCard from '../../src/components/ui/Card';
@@ -19,22 +21,66 @@ import api from '../../src/utils/api';
 import useAuthStore from '../../src/store/authStore';
 
 const { width } = Dimensions.get('window');
+const SCANNER_SIZE = width * 0.65;
 
 export default function ClockInScreen() {
-  const router = useRouter();
-  const { employee } = useAuthStore();
-  const [status, setStatus] = useState('idle'); // idle | scanning | loading | confirmed
+  const { user, employee } = useAuthStore();
+  const [status, setStatus] = useState('idle'); // idle | scanning | loading | confirmed | error
   const [clockedAt, setClockedAt] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [permission, requestPermission] = useCameraPermissions();
-  const [locationPermission, setLocationPermission] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Pulse animation for scanner
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Success scale animation
+  const successScale = useRef(new Animated.Value(0)).current;
+
+  // Update clock every minute
   useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === 'granted');
-    })();
+    const interval = setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  // Scanner pulse animation
+  useEffect(() => {
+    if (status === 'scanning') {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.06, duration: 1200, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    }
+  }, [status]);
+
+  // Success animation
+  useEffect(() => {
+    if (status === 'confirmed') {
+      Animated.spring(successScale, {
+        toValue: 1,
+        tension: 60,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      successScale.setValue(0);
+    }
+  }, [status]);
+
+  const handleStartScan = async () => {
+    if (!permission?.granted) {
+      const result = await requestPermission();
+      if (!result.granted) {
+        Alert.alert('Permission requise', 'Activez la camera pour scanner le QR code.');
+        return;
+      }
+    }
+    setErrorMsg(null);
+    setStatus('scanning');
+  };
 
   const handleClockIn = async (locationToken = 'manual-default') => {
     if (status === 'loading') return;
@@ -42,30 +88,34 @@ export default function ClockInScreen() {
     setErrorMsg(null);
 
     try {
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
+      const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
+      let latitude = 0, longitude = 0;
+      if (locStatus === 'granted') {
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        latitude = location.coords.latitude;
+        longitude = location.coords.longitude;
+      }
 
       const response = await api.post('/pointage/clock-in', {
         channel: 'qr_location',
-        payload: {
-          location_token: locationToken,
-          latitude,
-          longitude,
-        }
+        payload: { location_token: locationToken, latitude, longitude },
       });
 
-      if (response.data.success) {
+      if (response.data?.success !== false) {
         setClockedAt(new Date());
         setStatus('confirmed');
       } else {
-        setErrorMsg(response.data.error || 'Erreur lors du pointage');
+        setErrorMsg(response.data?.error || 'Erreur lors du pointage');
         setStatus('idle');
       }
     } catch (err) {
-      const msg = err.response?.data?.error || 'Erreur réseau ou localisation';
+      const msg = err.response?.data?.error
+        || err.response?.data?.message
+        || 'Erreur reseau ou localisation';
       setErrorMsg(msg);
       setStatus('idle');
-      Alert.alert('Erreur', msg);
     }
   };
 
@@ -80,143 +130,162 @@ export default function ClockInScreen() {
     setErrorMsg(null);
   };
 
-  // Profile Data (with fallback)
-  const userProfile = employee || {
-    first_name: 'Collaborateur',
-    last_name: 'Pointel',
-    position: 'Chargement...',
-  };
+  const userName = employee?.first_name || user?.name?.split(' ')[0] || 'Collaborateur';
+  const greeting = currentTime.getHours() < 12 ? 'Bonjour' : currentTime.getHours() < 18 ? 'Bon apres-midi' : 'Bonsoir';
 
+  // ── CONFIRMED STATE ──
   if (status === 'confirmed') {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
-        <View style={styles.content}>
-          <View style={styles.confirmationHeader}>
-            <View style={styles.successIconOuter}>
-              <View style={styles.successIconInner}>
-                <Ionicons name="checkmark" size={40} color={Colors.on_primary} />
-              </View>
+        <View style={styles.confirmedContainer}>
+          <Animated.View style={[styles.successCircleOuter, { transform: [{ scale: successScale }] }]}>
+            <View style={styles.successCircleInner}>
+              <Ionicons name="checkmark" size={44} color={Colors.on_primary} />
             </View>
-            <Text style={styles.confirmTitle}>Pointage Réussi</Text>
-            <Text style={styles.confirmSubtitle}>Bonne journée de travail !</Text>
-          </View>
+          </Animated.View>
 
-          <PremiumCard style={styles.confirmCard}>
-            <Text style={styles.confirmTime}>{formatTime(clockedAt)}</Text>
-            <Text style={styles.confirmDate}>{formatDate(clockedAt)}</Text>
-            <View style={styles.confirmBadgeRow}>
+          <Text style={styles.confirmedTitle}>Pointage enregistre !</Text>
+          <Text style={styles.confirmedSub}>Bonne journee de travail</Text>
+
+          <PremiumCard style={styles.confirmedCard}>
+            <Text style={styles.confirmedTime}>{formatTime(clockedAt)}</Text>
+            <Text style={styles.confirmedDate}>{formatDate(clockedAt)}</Text>
+            <View style={styles.confirmedBadge}>
               <PremiumBadge status="present" label="En poste" />
             </View>
           </PremiumCard>
 
-          <View style={styles.footer}>
-            <PremiumButton
-              title="C'est noté"
-              onPress={handleReset}
-              size="lg"
-            />
+          <View style={styles.confirmedFooter}>
+            <PremiumButton title="Compris" onPress={handleReset} size="lg" />
           </View>
         </View>
       </SafeAreaView>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style={status === 'scanning' ? 'light' : 'dark'} />
-      
-      {/* Custom Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.brandTitle}>Pointel<Text style={{color: Colors.primary_vibrant}}>RH</Text></Text>
+  // ── SCANNER STATE ──
+  if (status === 'scanning') {
+    return (
+      <View style={styles.scannerFull}>
+        <StatusBar style="light" />
+        <CameraView
+          style={StyleSheet.absoluteFillObject}
+          facing="back"
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          onBarcodeScanned={handleBarcodeScanned}
+        />
+
+        {/* Dark overlay with cutout */}
+        <View style={styles.scanOverlay}>
+          {/* Top dark section */}
+          <View style={styles.scanDarkSection}>
+            <SafeAreaView>
+              <View style={styles.scanHeader}>
+                <TouchableOpacity
+                  style={styles.scanBackBtn}
+                  onPress={() => setStatus('idle')}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.scanTitle}>Scanner le QR</Text>
+                <View style={{ width: 44 }} />
+              </View>
+            </SafeAreaView>
+          </View>
+
+          {/* Middle: dark | transparent | dark */}
+          <View style={styles.scanMiddle}>
+            <View style={styles.scanDarkSide} />
+            <Animated.View style={[styles.scanFrame, { transform: [{ scale: pulseAnim }] }]}>
+              {/* Corner markers */}
+              <View style={[styles.corner, styles.cTL]} />
+              <View style={[styles.corner, styles.cTR]} />
+              <View style={[styles.corner, styles.cBL]} />
+              <View style={[styles.corner, styles.cBR]} />
+              {/* Scan line */}
+              <View style={styles.scanLine} />
+            </Animated.View>
+            <View style={styles.scanDarkSide} />
+          </View>
+
+          {/* Bottom dark section */}
+          <View style={[styles.scanDarkSection, styles.scanBottom]}>
+            <Text style={styles.scanInstruction}>
+              Placez le QR Code du site dans le cadre
+            </Text>
+            <TouchableOpacity style={styles.scanCancelBtn} onPress={() => setStatus('idle')}>
+              <Text style={styles.scanCancelText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <TouchableOpacity 
-          style={styles.profileButton}
-          onPress={() => router.push('/profile')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.avatarMini}>
-            <Ionicons name="person" size={20} color={Colors.primary_vibrant} />
-          </View>
-        </TouchableOpacity>
-      </View>
 
-      <View style={styles.mainContent}>
-        {status === 'scanning' ? (
-          <View style={styles.fullScanner}>
-            <CameraView
-              style={StyleSheet.absoluteFillObject}
-              facing="back"
-              barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-              onBarcodeScanned={handleBarcodeScanned}
-            />
-            {/* World-class Viewfinder Overlay */}
-            <View style={styles.overlay}>
-              <View style={styles.unfocusedContainer}></View>
-              <View style={styles.middleRow}>
-                <View style={styles.unfocusedContainer}></View>
-                <View style={styles.focusedContainer}>
-                  {/* Corner markers */}
-                  <View style={[styles.corner, styles.topLeft]} />
-                  <View style={[styles.corner, styles.topRight]} />
-                  <View style={[styles.corner, styles.bottomLeft]} />
-                  <View style={[styles.corner, styles.bottomRight]} />
-                </View>
-                <View style={styles.unfocusedContainer}></View>
-              </View>
-              <View style={styles.unfocusedContainer}>
-                 <Text style={styles.scanInstruction}>Placez le QR Code dans le cadre</Text>
-                 <TouchableOpacity 
-                   style={styles.cancelScan}
-                   onPress={() => setStatus('idle')}
-                 >
-                   <Text style={styles.cancelScanText}>Annuler</Text>
-                 </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.idleView}>
-            <View style={styles.greetingSection}>
-              <Text style={styles.greetingHeader}>Bonjour, {userProfile.first_name}</Text>
-              <Text style={styles.greetingSub}>Il est {formatTime(new Date())}</Text>
-            </View>
-
-            {/* Central Status Illustration/Card */}
-            <View style={styles.centerIllustration}>
-               <View style={styles.outerCircle}>
-                  <View style={styles.innerCircle}>
-                     <Ionicons name="time-outline" size={64} color={Colors.primary_vibrant} />
-                  </View>
-               </View>
-               <Text style={styles.statusLabel}>Vous n'avez pas encore pointé</Text>
-            </View>
-
-            {/* Centered Actions */}
-            <View style={styles.actionContainer}>
-              <PremiumButton 
-                title={status === 'loading' ? 'Connexion...' : 'Pointer mon arrivée'} 
-                onPress={() => setStatus('scanning')}
-                isLoading={status === 'loading'}
-                size="lg"
-                style={styles.mainAction}
-                icon={<Ionicons name="qr-code-outline" size={24} color={Colors.on_primary} />}
-              />
-              
-              <Text style={styles.locationInfo}>
-                <Ionicons name="location-outline" size={12} /> Proche du site de production
-              </Text>
-            </View>
+        {/* Loading overlay */}
+        {status === 'loading' && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#fff" />
+            <Text style={styles.loadingText}>Pointage en cours...</Text>
           </View>
         )}
       </View>
+    );
+  }
 
-      {errorMsg && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{errorMsg}</Text>
+  // ── IDLE STATE ──
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerGreeting}>{greeting},</Text>
+          <Text style={styles.headerName}>{userName}</Text>
         </View>
-      )}
+        <View style={styles.headerRight}>
+          <View style={styles.liveDot} />
+          <Text style={styles.liveTime}>{formatTime(currentTime)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.body}>
+        {/* Status Illustration */}
+        <View style={styles.statusSection}>
+          <View style={styles.outerRing}>
+            <View style={styles.middleRing}>
+              <View style={styles.innerCircle}>
+                <Ionicons name="finger-print-outline" size={52} color={Colors.primary_vibrant} />
+              </View>
+            </View>
+          </View>
+          <Text style={styles.statusText}>Vous n'avez pas encore pointe</Text>
+          <Text style={styles.statusHint}>Scannez le QR code sur site pour pointer</Text>
+        </View>
+
+        {/* Action Area */}
+        <View style={styles.actionArea}>
+          {errorMsg && (
+            <View style={styles.errorBanner}>
+              <Ionicons name="warning-outline" size={16} color={Colors.status.error.text} />
+              <Text style={styles.errorText}>{errorMsg}</Text>
+            </View>
+          )}
+
+          <PremiumButton
+            title="Scanner le QR Code"
+            onPress={handleStartScan}
+            size="lg"
+            style={styles.mainBtn}
+            icon={<Ionicons name="qr-code-outline" size={22} color={Colors.on_primary} />}
+          />
+
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={14} color={Colors.on_surface_muted} />
+            <Text style={styles.locationText}>Localisation active</Text>
+          </View>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -226,213 +295,296 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.surface,
   },
+
+  // ── HEADER ──
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  brandTitle: {
-    ...Typography.h1,
-    fontSize: 22,
-    color: Colors.on_surface,
-  },
-  profileButton: {
-    ...Shadows.sm,
-  },
-  avatarMini: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.surface_container_lowest,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.surface_container,
-  },
-  mainContent: {
-    flex: 1,
-  },
-  idleView: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
-    paddingBottom: 100, // Above tab bar
-  },
-  greetingSection: {
-    marginTop: 20,
-  },
-  greetingHeader: {
-    ...Typography.h1,
-    fontSize: 32,
-    color: Colors.on_surface,
-  },
-  greetingSub: {
+  headerGreeting: {
     ...Typography.body_lg,
     color: Colors.on_surface_variant,
-    marginTop: 4,
   },
-  centerIllustration: {
+  headerName: {
+    ...Typography.h1,
+    fontSize: 28,
+    color: Colors.on_surface,
+    marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface_container_lowest,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+    ...Shadows.sm,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.status.success.vibrant,
+    marginRight: 8,
+  },
+  liveTime: {
+    ...Typography.body_md,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.on_surface,
+  },
+
+  // ── BODY ──
+  body: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingBottom: 100,
+  },
+
+  // ── STATUS SECTION ──
+  statusSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  outerRing: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: Colors.primary_light,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  outerCircle: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+  middleRing: {
+    width: 170,
+    height: 170,
+    borderRadius: 85,
     backgroundColor: Colors.surface_container_low,
     alignItems: 'center',
     justifyContent: 'center',
   },
   innerCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: Colors.surface_container_lowest,
-    ...Shadows.md,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Shadows.md,
   },
-  statusLabel: {
-    ...Typography.body_md,
-    color: Colors.on_surface_variant,
-    marginTop: 32,
+  statusText: {
+    ...Typography.body_lg,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.on_surface,
+    marginTop: 28,
     textAlign: 'center',
   },
-  actionContainer: {
-    width: '100%',
+  statusHint: {
+    ...Typography.body_md,
+    color: Colors.on_surface_muted,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+
+  // ── ACTION AREA ──
+  actionArea: {
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
-  mainAction: {
+  mainBtn: {
     width: '100%',
     ...Shadows.lg,
   },
-  locationInfo: {
-    ...Typography.caption,
-    color: Colors.on_surface_variant,
-    marginTop: 16,
-    opacity: 0.7,
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
   },
-  fullScanner: {
+  locationText: {
+    ...Typography.caption,
+    color: Colors.on_surface_muted,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.status.error.bg,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: Radius.lg,
+    marginBottom: 16,
+    width: '100%',
+  },
+  errorText: {
+    ...Typography.caption,
+    color: Colors.status.error.text,
+    fontFamily: 'Inter_500Medium',
+    flex: 1,
+  },
+
+  // ── SCANNER ──
+  scannerFull: {
     flex: 1,
     backgroundColor: '#000',
   },
-  overlay: {
-    flex: 1,
+  scanOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
-  unfocusedContainer: {
+  scanDarkSection: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  scanBottom: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 40,
+  },
+  scanHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  scanBackBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  middleRow: {
-    flexDirection: 'row',
-    height: 250,
+  scanTitle: {
+    ...Typography.title,
+    color: '#fff',
   },
-  focusedContainer: {
-    width: 250,
-    height: 250,
-    backgroundColor: 'transparent',
+  scanMiddle: {
+    flexDirection: 'row',
+    height: SCANNER_SIZE,
+  },
+  scanDarkSide: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  scanFrame: {
+    width: SCANNER_SIZE,
+    height: SCANNER_SIZE,
     position: 'relative',
   },
   corner: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderColor: Colors.on_primary,
+    width: 36,
+    height: 36,
+    borderColor: Colors.primary_vibrant,
     borderWidth: 4,
   },
-  topLeft: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 24 },
-  topRight: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 24 },
-  bottomLeft: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 24 },
-  bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 24 },
+  cTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 20 },
+  cTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 20 },
+  cBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 20 },
+  cBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 20 },
+  scanLine: {
+    position: 'absolute',
+    top: '48%',
+    left: 12,
+    right: 12,
+    height: 2,
+    backgroundColor: Colors.primary_vibrant,
+    borderRadius: 1,
+    opacity: 0.6,
+  },
   scanInstruction: {
     ...Typography.body_md,
-    color: Colors.on_primary,
-    marginBottom: 40,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 40,
   },
-  cancelScan: {
-    padding: 16,
+  scanCancelBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  cancelScanText: {
+  scanCancelText: {
     ...Typography.body_md,
-    color: Colors.on_primary,
-    textDecorationLine: 'underline',
+    fontFamily: 'Inter_600SemiBold',
+    color: '#fff',
   },
-  confirmationHeader: {
-    alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 40,
-  },
-  successIconOuter: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.status.success.bg,
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
   },
-  successIconInner: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  loadingText: {
+    ...Typography.body_lg,
+    color: '#fff',
+    marginTop: 16,
+  },
+
+  // ── CONFIRMED ──
+  confirmedContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  successCircleOuter: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: Colors.status.success.light,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
+  successCircleInner: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: Colors.status.success.vibrant,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadows.md,
   },
-  confirmTitle: {
+  confirmedTitle: {
     ...Typography.h1,
-    fontSize: 28,
+    fontSize: 26,
     color: Colors.on_surface,
+    textAlign: 'center',
   },
-  confirmSubtitle: {
+  confirmedSub: {
     ...Typography.body_lg,
     color: Colors.on_surface_variant,
-    marginTop: 4,
+    marginTop: 6,
   },
-  confirmCard: {
+  confirmedCard: {
     alignItems: 'center',
-    marginHorizontal: 16,
-    paddingVertical: 40,
+    marginTop: 32,
+    paddingVertical: 32,
+    width: '100%',
   },
-  confirmTime: {
-    ...Typography.h1,
-    fontSize: 64,
+  confirmedTime: {
+    ...Typography.display,
+    fontSize: 56,
     color: Colors.primary_vibrant,
     letterSpacing: -2,
   },
-  confirmDate: {
+  confirmedDate: {
     ...Typography.body_lg,
     color: Colors.on_surface_variant,
     marginTop: 4,
   },
-  confirmBadgeRow: {
-    marginTop: 32,
+  confirmedBadge: {
+    marginTop: 24,
   },
-  footer: {
-    padding: 24,
-    marginBottom: 40,
+  confirmedFooter: {
+    width: '100%',
+    marginTop: 40,
   },
-  errorBanner: {
-    position: 'absolute',
-    bottom: 120,
-    left: 24,
-    right: 24,
-    backgroundColor: Colors.status.error.bg,
-    padding: 16,
-    borderRadius: Radius.lg,
-    ...Shadows.md,
-  },
-  errorText: {
-    ...Typography.caption,
-    color: Colors.status.error.text,
-    textAlign: 'center',
-    fontFamily: 'Inter_600SemiBold',
-  }
 });
-

@@ -1,46 +1,46 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, View } from 'react-native';
 import Colors from '../../theme/colors';
-import Spacing from '../../theme/spacing';
 import Typography from '../../theme/typography';
 import Radius from '../../theme/radius';
 import Shadows from '../../theme/shadows';
 
-export default function PremiumButton({ 
-  title, 
-  onPress, 
-  variant = 'primary', 
-  isLoading = false, 
+export default function PremiumButton({
+  title,
+  onPress,
+  variant = 'primary',
+  isLoading = false,
   disabled = false,
   style,
   icon,
-  size = 'md'
+  size = 'md',
 }) {
-  const isVibrant = variant === 'primary' || variant === 'success';
+  const isOutline = variant === 'outline';
+  const isDisabled = disabled || isLoading;
 
   return (
-    <TouchableOpacity 
-      onPress={onPress} 
-      disabled={disabled || isLoading}
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={isDisabled}
       activeOpacity={0.8}
       style={[
         styles.button,
-        styles[variant],
-        isVibrant && Shadows.sm,
+        styles[variant] || styles.primary,
+        !isOutline && Shadows.sm,
         size === 'lg' && styles.buttonLg,
-        disabled && styles.disabled,
-        style
+        isDisabled && styles.disabled,
+        style,
       ]}
     >
       {isLoading ? (
-        <ActivityIndicator color={variant === 'outline' ? Colors.primary : Colors.on_primary} />
+        <ActivityIndicator color={isOutline ? Colors.primary : Colors.on_primary} />
       ) : (
         <View style={styles.content}>
           {icon && <View style={styles.iconContainer}>{icon}</View>}
           <Text style={[
             styles.text,
             size === 'lg' && styles.textLg,
-            variant === 'outline' ? styles.textOutline : styles.textPrimary
+            isOutline ? styles.textOutline : styles.textPrimary,
           ]}>
             {title}
           </Text>
@@ -73,6 +73,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.surface_container,
   },
+  ghost: {
+    backgroundColor: 'transparent',
+  },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -88,13 +91,12 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   textLg: {
-    fontSize: 18,
+    fontSize: 17,
   },
   iconContainer: {
-    marginRight: 8,
+    marginRight: 10,
   },
   disabled: {
-    opacity: 0.5,
-    backgroundColor: Colors.surface_container_high,
-  }
+    opacity: 0.45,
+  },
 });

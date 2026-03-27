@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet } from 'react-native';
 import Colors from '../../theme/colors';
-import Spacing from '../../theme/spacing';
 import Typography from '../../theme/typography';
 import Radius from '../../theme/radius';
 
-export default function PremiumInput({ label, error, ...props }) {
+export default function PremiumInput({ label, error, style, ...props }) {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={[
         styles.inputContainer,
         isFocused && styles.inputFocused,
-        error && styles.inputError
+        error && styles.inputError,
       ]}>
         <TextInput
           style={styles.input}
-          placeholderTextColor={Colors.on_surface_variant + '80'}
+          placeholderTextColor={Colors.on_surface_muted}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           {...props}
@@ -36,9 +35,11 @@ const styles = StyleSheet.create({
   },
   label: {
     ...Typography.label,
+    fontSize: 11,
     color: Colors.on_surface_variant,
     marginBottom: 8,
     marginLeft: 4,
+    letterSpacing: 0.8,
   },
   inputContainer: {
     backgroundColor: Colors.surface,
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.surface_container,
     paddingHorizontal: 16,
-    height: 56,
+    height: 52,
     justifyContent: 'center',
   },
   inputFocused: {
@@ -57,7 +58,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.status.error.vibrant,
   },
   input: {
-    ...Typography.body_lg,
+    ...Typography.body_md,
+    fontFamily: 'Inter_500Medium',
     color: Colors.on_surface,
   },
   errorText: {
@@ -65,5 +67,5 @@ const styles = StyleSheet.create({
     color: Colors.status.error.text,
     marginTop: 6,
     marginLeft: 4,
-  }
+  },
 });

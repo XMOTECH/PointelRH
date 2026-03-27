@@ -7,8 +7,10 @@ import Shadows from '../../theme/shadows';
 export default function PremiumCard({ children, style, variant = 'elevated' }) {
   return (
     <View style={[
-      styles.card, 
-      variant === 'elevated' ? Shadows.md : styles.outlined,
+      styles.card,
+      variant === 'elevated' && Shadows.sm,
+      variant === 'outlined' && styles.outlined,
+      variant === 'flat' && styles.flat,
       style
     ]}>
       {children}
@@ -25,5 +27,12 @@ const styles = StyleSheet.create({
   outlined: {
     borderWidth: 1,
     borderColor: Colors.surface_container,
-  }
+    shadowColor: 'transparent',
+    elevation: 0,
+  },
+  flat: {
+    backgroundColor: Colors.surface_container_low,
+    shadowColor: 'transparent',
+    elevation: 0,
+  },
 });

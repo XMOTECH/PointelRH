@@ -1,28 +1,28 @@
 import Colors from './colors';
 
 const Shadows = {
-  // Soft Ambient
+  // Subtle ambient — cards, inputs
   sm: {
     shadowColor: Colors.on_surface,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 2,
   },
-  // High Focal
+  // Medium focal — elevated cards, modals
   md: {
     shadowColor: Colors.on_surface,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 20,
     elevation: 5,
   },
-  // Floating Premium
+  // Premium floating — FAB, CTAs
   lg: {
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.12,
-    shadowRadius: 40,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.15,
+    shadowRadius: 32,
     elevation: 10,
   },
 };

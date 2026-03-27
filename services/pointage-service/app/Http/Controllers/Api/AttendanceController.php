@@ -19,8 +19,24 @@ class AttendanceController extends BaseApiController
             $companyId = $request->auth_company_id;
             $locationId = $request->query('location_id');
 
+            $date = $request->query('date') ?? Carbon::today()->toDateString();
+            $period = $request->query('period') ?? 'day';
+
+            $startDate = $date;
+            $endDate = $date;
+
+            if ($period === 'week') {
+                $carbonDate = Carbon::parse($date);
+                $startDate = $carbonDate->copy()->startOfWeek()->toDateString();
+                $endDate = $carbonDate->copy()->endOfWeek()->toDateString();
+            } elseif ($period === 'month') {
+                $carbonDate = Carbon::parse($date);
+                $startDate = $carbonDate->copy()->startOfMonth()->toDateString();
+                $endDate = $carbonDate->copy()->endOfMonth()->toDateString();
+            }
+
             $query = Attendance::where('company_id', $companyId)
-                ->where('work_date', Carbon::today());
+                ->whereBetween('work_date', [$startDate, $endDate]);
 
             if ($locationId) {
                 $query->where('location_id', $locationId);

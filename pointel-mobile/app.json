@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Pointel a besoin de la caméra pour scanner les QR codes de pointage.",
+        "NSLocationWhenInUseUsageDescription": "Pointel utilise votre position pour valider le pointage sur site."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,14 +25,30 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-barcode-scanner",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Pointel a besoin de la caméra pour scanner les QR codes."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Pointel utilise votre position pour valider le pointage."
+        }
+      ],
       "expo-secure-store"
     ]
   }

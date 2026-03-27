@@ -11,6 +11,9 @@ import { QrLocationsPage } from '../features/location/QrLocationsPage';
 import { EmployeeListPage } from '../features/employees/EmployeeListPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import KioskPage from '../features/kiosk/KioskPage';
+import MyProfilePage from '../features/my-profile/MyProfilePage';
+import MyAttendancePage from '../features/my-attendance/MyAttendancePage';
+import MySchedulePage from '../features/my-schedule/MySchedulePage';
 
 function RoleBasedRedirect() {
   const { user, loading } = useAuth();
@@ -61,6 +64,9 @@ export function AppRoutes() {
           <Route path="/clock-in" element={<ClockInPage />} />
           <Route path="/employees" element={<EmployeeListPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/my-profile" element={<MyProfilePage />} />
+          <Route path="/my-attendance" element={<MyAttendancePage />} />
+          <Route path="/my-schedule" element={<MySchedulePage />} />
         </Route>
 
         <Route path="/" element={<RoleBasedRedirect />} />

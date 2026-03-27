@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import {
+  View, Text, StyleSheet, KeyboardAvoidingView, Platform,
+  TouchableOpacity, Modal, TextInput, Alert, ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Modal, TextInput, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import PremiumButton from '../../src/components/ui/Button';
 import PremiumInput from '../../src/components/ui/Input';
@@ -12,17 +15,20 @@ import useAuthStore from '../../src/store/authStore';
 import Colors from '../../src/theme/colors';
 import Typography from '../../src/theme/typography';
 import Radius from '../../src/theme/radius';
+import Shadows from '../../src/theme/shadows';
 import { setManualBaseURL, getApiUrl } from '../../src/utils/api';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSettingsVisible, setSettingsVisible] = useState(false);
   const [manualUrl, setManualUrl] = useState(getApiUrl());
   const router = useRouter();
-  const { login, isLoading, error } = useAuthStore();
+  const { login, isLoading, error, clearError } = useAuthStore();
 
   const handleLogin = async () => {
+    clearError();
     const success = await login(email, password);
     if (success) {
       router.replace('/(app)');
@@ -32,102 +38,133 @@ export default function LoginScreen() {
   const handleSaveSettings = async () => {
     await setManualBaseURL(manualUrl);
     setSettingsVisible(false);
-    Alert.alert('Succès', 'Configuration réseau mise à jour. Relancez l\'app si nécessaire.');
+    Alert.alert('OK', 'Configuration mise a jour.');
   };
- 
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={styles.header}>
-          <Text style={styles.brandTitle}>Pointel<Text style={{color: Colors.primary_vibrant}}>RH</Text></Text>
-          <Text style={styles.welcomeText}>Bienvenue,</Text>
-          <Text style={styles.subtitle}>Connectez-vous pour commencer votre journée</Text>
-        </View>
-
-        <PremiumCard style={styles.formCard}>
-          <PremiumInput 
-            label="Email professionnelle" 
-            placeholder="votre@email.sn" 
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <PremiumInput 
-            label="Mot de passe" 
-            placeholder="••••••••" 
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Hero */}
+          <View style={styles.hero}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoDot} />
+              <Text style={styles.brandTitle}>
+                Pointel<Text style={styles.brandAccent}>RH</Text>
+              </Text>
             </View>
-          )}
+            <Text style={styles.heroTitle}>Bienvenue</Text>
+            <Text style={styles.heroSubtitle}>
+              Connectez-vous pour commencer votre journee
+            </Text>
+          </View>
 
-          <PremiumButton 
-            title="Se connecter" 
-            onPress={handleLogin} 
-            isLoading={isLoading} 
-            size="lg"
-            style={{ marginTop: 8 }}
-          />
-        </PremiumCard>
-        
-        <TouchableOpacity style={styles.forgotPass}>
-          <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.settingsToggle}
-          onPress={() => {
-            setManualUrl(getApiUrl());
-            setSettingsVisible(true);
-          }}
-        >
-          <Text style={styles.settingsText}>Paramètres réseau (Dev)</Text>
-        </TouchableOpacity>
-
-        <Modal
-          visible={isSettingsVisible}
-          animationType="slide"
-          transparent={true}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Configuration API</Text>
-              <Text style={styles.modalLabel}>URL de base (Kong Gateway)</Text>
-              <TextInput 
-                style={styles.modalInput}
-                value={manualUrl}
-                onChangeText={setManualUrl}
-                placeholder="http://192.168.x.x:8000/api"
-                autoCapitalize="none"
+          {/* Form */}
+          <PremiumCard style={styles.formCard}>
+            <PremiumInput
+              label="Email professionnel"
+              placeholder="votre@email.com"
+              value={email}
+              onChangeText={(t) => { setEmail(t); clearError(); }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View style={styles.passwordWrap}>
+              <PremiumInput
+                label="Mot de passe"
+                placeholder="Votre mot de passe"
+                value={password}
+                onChangeText={(t) => { setPassword(t); clearError(); }}
+                secureTextEntry={!showPassword}
               />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalBtn, { backgroundColor: Colors.surface_variant }]}
-                  onPress={() => setSettingsVisible(false)}
-                >
-                  <Text style={styles.modalBtnText}>Annuler</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalBtn, { backgroundColor: Colors.primary }]}
-                  onPress={handleSaveSettings}
-                >
-                  <Text style={[styles.modalBtnText, { color: 'white' }]}>Appliquer</Text>
-                </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.eyeBtn}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={Colors.on_surface_muted}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={16} color={Colors.status.error.text} />
+                <Text style={styles.errorText}>{error}</Text>
               </View>
+            )}
+
+            <PremiumButton
+              title="Se connecter"
+              onPress={handleLogin}
+              isLoading={isLoading}
+              disabled={!email || !password}
+              size="lg"
+              style={{ marginTop: 4 }}
+            />
+          </PremiumCard>
+
+          <TouchableOpacity style={styles.forgotBtn}>
+            <Text style={styles.forgotText}>Mot de passe oublie ?</Text>
+          </TouchableOpacity>
+
+          {/* Dev Settings */}
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.devBtn}
+              onPress={() => { setManualUrl(getApiUrl()); setSettingsVisible(true); }}
+            >
+              <Ionicons name="settings-outline" size={14} color={Colors.on_surface_muted} />
+              <Text style={styles.devBtnText}>Config reseau</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Settings Modal */}
+      <Modal visible={isSettingsVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Configuration API</Text>
+            <Text style={styles.modalLabel}>URL de base (Kong Gateway)</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={manualUrl}
+              onChangeText={setManualUrl}
+              placeholder="http://172.26.32.102:8000/api"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnCancel]}
+                onPress={() => setSettingsVisible(false)}
+              >
+                <Text style={styles.modalBtnTextCancel}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnSave]}
+                onPress={handleSaveSettings}
+              >
+                <Text style={styles.modalBtnTextSave}>Appliquer</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-      </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -139,25 +176,40 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
   },
-  header: {
+  hero: {
+    marginBottom: 32,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 40,
   },
+  logoDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.primary_vibrant,
+    marginRight: 8,
+  },
   brandTitle: {
-    ...Typography.h1,
-    fontSize: 28,
-    marginBottom: 32,
+    ...Typography.h2,
     color: Colors.on_surface,
   },
-  welcomeText: {
-    ...Typography.h1,
-    fontSize: 34,
-    color: Colors.on_surface,
-    letterSpacing: -1,
+  brandAccent: {
+    color: Colors.primary_vibrant,
   },
-  subtitle: {
+  heroTitle: {
+    ...Typography.display,
+    fontSize: 36,
+    color: Colors.on_surface,
+  },
+  heroSubtitle: {
     ...Typography.body_lg,
     color: Colors.on_surface_variant,
     marginTop: 8,
@@ -166,82 +218,120 @@ const styles = StyleSheet.create({
   formCard: {
     padding: 24,
   },
-  errorContainer: {
+  passwordWrap: {
+    position: 'relative',
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: 16,
+    top: 34,
+    zIndex: 1,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: Colors.status.error.bg,
     padding: 12,
     borderRadius: Radius.md,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   errorText: {
     ...Typography.caption,
     color: Colors.status.error.text,
-    textAlign: 'center',
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Inter_500Medium',
+    flex: 1,
   },
-  forgotPass: {
+  forgotBtn: {
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 28,
   },
   forgotText: {
     ...Typography.body_md,
     color: Colors.primary_vibrant,
     fontFamily: 'Inter_600SemiBold',
   },
-  settingsToggle: {
+  devBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 24,
-    opacity: 0.6,
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 20,
+    opacity: 0.5,
   },
-  settingsText: {
+  devBtnText: {
     ...Typography.caption,
-    color: Colors.on_surface_variant,
+    color: Colors.on_surface_muted,
     textDecorationLine: 'underline',
   },
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 24,
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface_container_lowest,
+    borderTopLeftRadius: Radius.xxl,
+    borderTopRightRadius: Radius.xxl,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+    paddingBottom: 40,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.surface_container_high,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   modalTitle: {
     ...Typography.h2,
-    marginBottom: 20,
-    textAlign: 'center',
+    color: Colors.on_surface,
+    marginBottom: 16,
   },
   modalLabel: {
     ...Typography.caption,
     color: Colors.on_surface_variant,
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   modalInput: {
-    backgroundColor: Colors.surface_variant,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.md,
-    padding: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.surface_container,
+    padding: 14,
     ...Typography.body_md,
+    color: Colors.on_surface,
     marginBottom: 24,
   },
-  modalButtons: {
+  modalBtns: {
     flexDirection: 'row',
     gap: 12,
   },
   modalBtn: {
     flex: 1,
     padding: 14,
-    borderRadius: Radius.md,
+    borderRadius: Radius.full,
     alignItems: 'center',
   },
-  modalBtnText: {
+  modalBtnCancel: {
+    backgroundColor: Colors.surface_container_low,
+  },
+  modalBtnSave: {
+    backgroundColor: Colors.primary_vibrant,
+    ...Shadows.sm,
+  },
+  modalBtnTextCancel: {
     ...Typography.body_md,
     fontFamily: 'Inter_600SemiBold',
-  }
+    color: Colors.on_surface_variant,
+  },
+  modalBtnTextSave: {
+    ...Typography.body_md,
+    fontFamily: 'Inter_600SemiBold',
+    color: Colors.on_primary,
+  },
 });
