@@ -5,82 +5,74 @@
   --font-space: "Space Grotesk", sans-serif;
   --font-inter: "Inter", sans-serif;
 
-  /* Organic Monolith Color Palette */
-  --color-primary: #0041c8;
-  --color-primary-container: #d9e2ff;
-  --color-on-primary: #ffffff;
+  /* Professional Premium HSL Palette */
+  --color-primary: hsl(230, 85%, 55%);
+  --color-primary-container: hsl(230, 90%, 94%);
+  --color-on-primary: hsl(0, 0%, 100%);
   
-  --color-surface: #faf8ff; /* Level 0 Base */
-  --color-surface-container-lowest: #ffffff; /* Level 3 Floating Overlays */
-  --color-surface-container-low: #f3f2ff; /* Level 1 Sections */
-  --color-surface-container: #ededfb; /* Level 2 Active Cards */
-  --color-surface-container-high: #e4e4f5;
-  --color-surface-container-highest: #dbdbf0;
+  --color-surface: hsl(220, 30%, 98%); /* Level 0 Base */
+  --color-surface-container-lowest: hsl(0, 0%, 100%); /* Level 3 Floating Overlays */
+  --color-surface-container-low: hsl(220, 25%, 96%); /* Level 1 Sections */
+  --color-surface-container: hsl(220, 20%, 94%); /* Level 2 Active Cards */
+  --color-surface-container-high: hsl(220, 15%, 90%);
+  --color-surface-container-highest: hsl(220, 15%, 86%);
 
-  --color-on-surface: #191b25;
-  --color-on-surface-variant: #444653;
-  --color-outline-variant: rgba(195, 197, 217, 0.1); /* Ghost Border Fallback */
+  --color-on-surface: hsl(224, 71%, 4%);
+  --color-on-surface-variant: hsl(220, 15%, 45%);
+  --color-outline-variant: hsla(220, 15%, 45%, 0.1);
 
-  /* Ambient Shadows */
-  --shadow-ambient: 0 20px 40px rgba(25, 27, 37, 0.04);
-  --shadow-glass: 0 8px 32px 0 rgba(0, 65, 200, 0.06);
+  /* Refined Shadows */
+  --shadow-ambient: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-glass: 0 0 0 1px rgba(255, 255, 255, 0.4) inset, 0 8px 32px 0 rgba(0, 0, 0, 0.04);
 }
 
 @layer base {
-html, body {
+  html, body {
     @apply bg-surface text-on-surface font-inter antialiased selection:bg-primary/20;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Hide scrollbar but allow scrolling */
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-  
-  html::-webkit-scrollbar, body::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-surface-container-highest) transparent;
   }
   
   h1, h2, h3, h4, h5, h6, .font-display {
-    @apply font-space tracking-tight text-on-surface;
+    @apply font-space tracking-tight text-on-surface font-semibold;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-surface-container-lowest/70 backdrop-blur-[20px] shadow-glass;
+    @apply bg-surface-container-lowest/80 backdrop-blur-[12px] shadow-glass border border-white/20;
   }
 
-  .no-line-card {
-    @apply bg-surface-container-lowest rounded-lg shadow-ambient relative overflow-hidden;
-    /* Level 3: Floating / Active */
+  .premium-card {
+    @apply bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient transition-all duration-300 hover:shadow-premium;
   }
 
-  .no-line-section {
-    @apply bg-surface-container-low rounded-xl;
-    /* Level 1: Grounded Section */
+  .card-header {
+    @apply px-6 py-4 border-b border-outline-variant flex items-center justify-between;
   }
 
-  /* Architectural Accent Bar */
   .accent-bar {
-    @apply before:content-[''] before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[4px] before:bg-primary before:rounded-r-full;
+    @apply before:content-[''] before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[3px] before:bg-primary before:rounded-r-full;
   }
 
-  /* Text Gradients for "Soul" */
-  .text-gradient {
-    @apply bg-gradient-to-br from-primary to-primary-container bg-clip-text text-transparent;
-  }
-
-  /* Button Logic as per spec */
   .btn-primary {
-    @apply bg-primary text-on-primary px-6 py-2.5 rounded-lg font-medium transition-all hover:brightness-110 active:scale-95 shadow-lg shadow-primary/20;
+    @apply bg-primary text-on-primary px-5 py-2.5 rounded-lg font-semibold transition-all hover:brightness-110 active:scale-[0.98] shadow-sm flex items-center justify-center gap-2;
   }
 
   .btn-secondary {
-    @apply bg-surface-container-highest text-primary px-6 py-2.5 rounded-lg font-medium transition-all hover:bg-surface-container active:scale-95;
+    @apply bg-surface-container-highest text-on-surface px-5 py-2.5 rounded-lg font-medium transition-all hover:bg-surface-container active:scale-[0.98] flex items-center justify-center gap-2;
   }
 
-  .btn-tertiary {
-    @apply text-primary px-4 py-2 rounded-lg font-medium transition-all hover:bg-primary/20 active:scale-95;
+  .btn-ghost {
+    @apply text-on-surface-variant hover:bg-surface-container hover:text-on-surface px-4 py-2 rounded-lg font-medium transition-all active:scale-[0.98] flex items-center justify-center gap-2;
+  }
+
+  .status-badge {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5;
   }
 }
+

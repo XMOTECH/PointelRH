@@ -14,6 +14,24 @@ class LeaveRequestService
         return LeaveRequest::create($data);
     }
 
+    public function index(string $companyId, ?string $departmentId = null): Collection
+    {
+        $query = LeaveRequest::with('employee')
+            ->where('company_id', $companyId);
+
+        if ($departmentId) {
+            $query->where('department_id', $departmentId);
+        }
+
+        return $query->latest()->get();
+    }
+
+    public function update(LeaveRequest $leaveRequest, array $data): LeaveRequest
+    {
+        $leaveRequest->update($data);
+        return $leaveRequest;
+    }
+
     public function getPendingEscalatable(): Collection
     {
         return LeaveRequest::where('status', 'pending')

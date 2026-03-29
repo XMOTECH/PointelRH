@@ -4,7 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, MapPin } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import { useMemo, useRef } from 'react';
 import type { Site } from '../api/locations.api';
 
 const schema = z.object({
@@ -25,18 +27,48 @@ interface Props {
   site?: Site | null;
 }
 
-function LocationPicker({ lat, lng, onChange }: { lat: number; lng: number; onChange: (lat: number, lng: number) => void }) {
+function LocationPicker({ lat, lng, radius, onChange }: { lat: number; lng: number; radius: number; onChange: (lat: number, lng: number) => void }) {
+  const markerRef = useRef<L.Marker>(null);
+  
+  const eventHandlers = useMemo(
+    () => ({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker != null) {
+          const { lat, lng } = marker.getLatLng();
+          onChange(lat, lng);
+        }
+      },
+    }),
+    [onChange],
+  );
+
   useMapEvents({
     click(e) {
       onChange(e.latlng.lat, e.latlng.lng);
     },
   });
-  return <Marker position={[lat, lng]} />;
+
+  return (
+    <>
+      <Marker 
+        draggable={true}
+        eventHandlers={eventHandlers}
+        position={[lat, lng]} 
+        ref={markerRef}
+      />
+      <Circle 
+        center={[lat, lng]} 
+        radius={radius} 
+        pathOptions={{ color: '#0041c8', fillColor: '#0041c8', fillOpacity: 0.15, weight: 1 }} 
+      />
+    </>
+  );
 }
 
 export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Props) {
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     defaultValues: {
       name: '',
       latitude: 33.5731,
@@ -78,7 +110,7 @@ export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Prop
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 flex flex-col gap-5">
+        <form onSubmit={handleSubmit(onSubmit as any)} className="p-6 flex flex-col gap-5">
           {/* Name */}
           <div>
             <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Nom du site</label>
@@ -101,6 +133,7 @@ export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Prop
                 <LocationPicker
                   lat={lat}
                   lng={lng}
+                  radius={watch('radius_meters')}
                   onChange={(newLat, newLng) => {
                     setValue('latitude', parseFloat(newLat.toFixed(6)));
                     setValue('longitude', parseFloat(newLng.toFixed(6)));

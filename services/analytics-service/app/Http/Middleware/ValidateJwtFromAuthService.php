@@ -34,6 +34,7 @@ class ValidateJwtFromAuthService
             $request->merge([
                 'auth_user_id'     => $user['id'],
                 'auth_company_id'  => $user['company_id'],
+                'auth_department_id' => $user['department_id'] ?? null,
                 'auth_role'        => $user['role'],
             ]);
 

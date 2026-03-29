@@ -2,8 +2,8 @@ import api from '../../../lib/axios';
 import type { Employee, CreateEmployeePayload, UpdateEmployeePayload } from '../types';
 
 export const employeesApi = {
-  getEmployees: () =>
-    api.get('/api/employees').then(res => {
+  getEmployees: (params?: any) =>
+    api.get('/api/employees', { params }).then(res => {
       const d = res.data.data || res.data;
       return Array.isArray(d) ? d : (d.data || []);
     }),
@@ -41,6 +41,7 @@ export const employeesApi = {
         role: payload.role || 'employee',
         company_id: companyId,
         employee_id: employeeId,
+        department_id: payload.department_id,
       });
 
       return {

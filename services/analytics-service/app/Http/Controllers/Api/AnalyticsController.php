@@ -73,11 +73,21 @@ class AnalyticsController extends BaseApiController
 
             if ($period === 'day') {
                 $kpis = $this->kpiCache->getDashboard($companyId, $date);
+                
+                // Scoping for managers
+                if ($request->has('filter_department_id')) {
+                    $kpis = collect($kpis)->where('department_id', $request->filter_department_id)->values()->toArray();
+                }
             } else {
                 // For week/month, we query the DB directly and sum up
-                $kpis = \App\Models\DailySnapshot::where('company_id', $companyId)
-                    ->whereBetween('snapshot_date', [$startDate, $endDate])
-                    ->get()
+                $query = \App\Models\DailySnapshot::where('company_id', $companyId)
+                    ->whereBetween('snapshot_date', [$startDate, $endDate]);
+
+                if ($request->has('filter_department_id')) {
+                    $query->where('department_id', $request->filter_department_id);
+                }
+
+                $kpis = $query->get()
                     ->groupBy('department_id')
                     ->map(fn($group) => [
                         'department_id'   => $group->first()->department_id,

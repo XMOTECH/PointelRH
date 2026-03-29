@@ -124,7 +124,6 @@ export function EmployeeFormModal({ open, onClose, onSubmit, isLoading, employee
                 <select {...register('role')} className={selectClass}>
                   <option value="employee">Employé</option>
                   <option value="manager">Manager</option>
-                  <option value="admin">Administrateur</option>
                 </select>
               </div>
             )}

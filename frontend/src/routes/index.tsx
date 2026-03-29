@@ -9,11 +9,17 @@ import DashboardPage from '../features/dashboard/DashboardPage';
 import LiveMonitorPage from '../features/dashboard/LiveMonitorPage';
 import { QrLocationsPage } from '../features/location/QrLocationsPage';
 import { EmployeeListPage } from '../features/employees/EmployeeListPage';
+import { ManagerListPage } from '../features/managers/ManagerListPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import KioskPage from '../features/kiosk/KioskPage';
 import MyProfilePage from '../features/my-profile/MyProfilePage';
 import MyAttendancePage from '../features/my-attendance/MyAttendancePage';
 import MySchedulePage from '../features/my-schedule/MySchedulePage';
+import { DepartmentListPage } from '../features/departments';
+import { ScheduleListPage, WeeklyPlanningPage } from '../features/schedules';
+import { AdminLeaveRequestsPage } from '../features/leaves';
+import { SettingsPage } from '../features/settings/SettingsPage';
+import { MissionsPage } from '../features/missions/MissionsPage';
 
 function RoleBasedRedirect() {
   const { user, loading } = useAuth();
@@ -60,9 +66,18 @@ export function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/monitor" element={<LiveMonitorPage />} />
           <Route path="/locations" element={<QrLocationsPage />} />
-          <Route path="/settings" element={<div className="p-8 text-on-surface opacity-50">Settings (Prêt pour implémentation)</div>} />
-          <Route path="/clock-in" element={<ClockInPage />} />
           <Route path="/employees" element={<EmployeeListPage />} />
+          <Route path="/managers" element={<ManagerListPage />} />
+          
+          <Route path="/departments" element={<DepartmentListPage />} />
+          <Route path="/schedules" element={<ScheduleListPage />} />
+          <Route path="/schedules/planning" element={<WeeklyPlanningPage />} />
+          <Route path="/leaves" element={<AdminLeaveRequestsPage />} />
+          <Route path="/missions" element={<MissionsPage />} />
+          <Route path="/admin/users" element={<div className="p-8"><h1 className="text-2xl font-bold mb-4">Gestion des Utilisateurs</h1><p className="text-on-surface-variant">Chargement du module...</p></div>} />
+          
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/clock-in" element={<ClockInPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/my-profile" element={<MyProfilePage />} />
           <Route path="/my-attendance" element={<MyAttendancePage />} />

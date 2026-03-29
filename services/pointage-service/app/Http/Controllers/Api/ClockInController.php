@@ -35,6 +35,8 @@ class ClockInController extends BaseApiController
                         ['auth_user_id' => $request->auth_user_id]
                     ),
                     companyId: $companyId,
+                    latitude:  $request->validated('latitude'),
+                    longitude: $request->validated('longitude'),
                 )
             );
  
@@ -55,9 +57,11 @@ class ClockInController extends BaseApiController
  
             return $this->respondSuccess(
                 new AttendanceResource($attendance),
-                $attendance->isLate()
-                    ? "Pointe avec {$attendance->late_minutes} min de retard"
-                    : "Pointage enregistre — bonjour !",
+                match($attendance->status) {
+                    \App\Enums\AttendanceStatus::BAD_LOCATION => "Pointage enregistre mais HORS ZONE !",
+                    \App\Enums\AttendanceStatus::LATE => "Pointe avec {$attendance->late_minutes} min de retard",
+                    default => "Pointage enregistre — bonjour !",
+                },
                 201
             );
  

@@ -16,7 +16,7 @@ class Employee extends Model
     protected $fillable = [
         'first_name', 'last_name', 'email', 'phone',
         'department_id', 'schedule_id', 'contract_type',
-        'qr_token', 'pin', 'hire_date', 'status', 'company_id', 'user_id',
+        'qr_token', 'pin', 'hire_date', 'status', 'role', 'company_id', 'user_id',
     ];
  
     /**
@@ -53,6 +53,18 @@ class Employee extends Model
         return $this->belongsTo(Schedule::class);
     }
  
+    public function scheduleOverrides(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ScheduleOverride::class);
+    }
+
+    public function missions(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Mission::class, 'mission_assignments')
+                    ->withPivot(['id', 'status', 'comment', 'assigned_at'])
+                    ->withTimestamps();
+    }
+
     // ── Full name accessor ─────────────────────────────────
     public function getFullNameAttribute(): string
     {

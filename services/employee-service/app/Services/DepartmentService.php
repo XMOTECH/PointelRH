@@ -44,7 +44,7 @@ class DepartmentService
      */
     public function getById(string $id): Department
     {
-        $department = Department::find($id);
+        $department = Department::with('manager')->find($id);
         if (!$department) {
             throw new ResourceNotFoundException('Department');
         }
@@ -99,6 +99,6 @@ class DepartmentService
      */
     public function list(string $companyId): Collection
     {
-        return Department::where('company_id', $companyId)->get();
+        return Department::with('manager')->where('company_id', $companyId)->get();
     }
 }

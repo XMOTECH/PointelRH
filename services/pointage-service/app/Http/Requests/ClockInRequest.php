@@ -17,6 +17,8 @@ class ClockInRequest extends FormRequest
             'channel'    => 'required|string|in:qr,pin,qr_location,nfc,face',
             'payload'    => 'required|array',
             'company_id' => 'nullable|string',
+            'latitude'   => 'nullable|numeric|between:-90,90',
+            'longitude'  => 'nullable|numeric|between:-180,180',
         ];
     }
 }

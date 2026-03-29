@@ -20,7 +20,10 @@ class ScopeByDepartment
 
         // Si c'est un manager, on force le filtrage par son département
         if ($userRole === 'manager' && $departmentId) {
-            $request->merge(['filter_department_id' => $departmentId]);
+            $request->merge([
+                'filter_department_id' => $departmentId,
+                'department_id' => $departmentId
+            ]);
         }
 
         return $next($request);

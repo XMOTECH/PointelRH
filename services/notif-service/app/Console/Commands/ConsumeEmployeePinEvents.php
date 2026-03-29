@@ -105,9 +105,9 @@ class ConsumeEmployeePinEvents extends Command
                 email: $email,
             ));
 
-            $this->info(" [v] PIN email sent to {$email} for employee: {$employeeId}");
+            $this->info(" [v] PIN email sent for employee: {$employeeId}");
         } catch (\Exception $e) {
-            $this->error(" [x] Failed to send PIN email to {$email}: " . $e->getMessage());
+            $this->error(" [x] Failed to send PIN email for employee {$employeeId}: " . $e->getMessage());
         }
     }
 
@@ -115,6 +115,7 @@ class ConsumeEmployeePinEvents extends Command
     {
         $email = $data['email'] ?? null;
         $tempPassword = $data['temp_password'] ?? null;
+        $pin = $data['pin'] ?? null;
         $employeeName = $data['employee_name'] ?? 'Employé';
         $employeeId = $data['employee_id'] ?? '';
         $companyId = $data['company_id'] ?? '';
@@ -137,16 +138,26 @@ class ConsumeEmployeePinEvents extends Command
                 'metadata' => ['employee_name' => $employeeName],
             ]);
 
-            Mail::to($email)->send(new EmployeeCredentialsMail(
-                employeeName: $employeeName,
-                credentialType: 'password',
-                credentialValue: $tempPassword,
-                email: $email,
-            ));
-
-            $this->info(" [v] Credentials email sent to {$email} for employee: {$employeeId}");
+            if ($pin) {
+                Mail::to($email)->send(new EmployeeCredentialsMail(
+                    employeeName: $employeeName,
+                    credentialType: 'pin',
+                    credentialValue: $pin,
+                    password: $tempPassword,
+                    email: $email,
+                ));
+                $this->info(" [v] Combined credentials email (PIN + password) sent to {$employeeId}");
+            } else {
+                Mail::to($email)->send(new EmployeeCredentialsMail(
+                    employeeName: $employeeName,
+                    credentialType: 'password',
+                    credentialValue: $tempPassword,
+                    email: $email,
+                ));
+                $this->info(" [v] Password-only credentials email sent to {$employeeId}");
+            }
         } catch (\Exception $e) {
-            $this->error(" [x] Failed to send credentials email to {$email}: " . $e->getMessage());
+            $this->error(" [x] Failed to send credentials email: " . $e->getMessage());
         }
     }
 }

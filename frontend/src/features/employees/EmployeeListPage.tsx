@@ -1,4 +1,4 @@
-import { Plus, Users, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Button } from '../../components/ui/Button';
 import { useEmployees } from './hooks/useEmployees';
@@ -98,16 +98,17 @@ export function EmployeeListPage() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-8"
+      className="space-y-8"
     >
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-3 text-primary mb-2">
-            <Users size={20} />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">Gestion du Personnel</span>
-          </div>
-          <h1 className="text-4xl font-display font-bold text-on-surface tracking-tight">Annuaire des Employés</h1>
+          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase italic">
+            Annuaire des Employés
+          </h1>
+          <p className="text-on-surface-variant mt-1 font-medium">
+            Gérez votre capital humain et les accès utilisateurs.
+          </p>
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">

@@ -45,7 +45,22 @@ class ClockInService
             graceMinutes: $employee->schedule['grace_minutes'],
             timezone:     $employee->schedule['timezone'],
         );
- 
+
+        // Etape 4.5 — Verifier le géo-fencing (si coordonnées fournies)
+        $isWithinZone = true;
+        if ($data->latitude && $data->longitude && $employee->location_id) {
+            $location = \App\Models\Location::find($employee->location_id);
+            if ($location) {
+                $isWithinZone = \App\Domain\GeofencingService::isWithinZone(
+                    $data->latitude,
+                    $data->longitude,
+                    $location->latitude,
+                    $location->longitude,
+                    $location->radius_meters
+                );
+            }
+        }
+
         // Etape 5 — Persister
         $attendance = $this->attendances->create([
             'id'            => (string) Str::uuid(),
@@ -59,9 +74,14 @@ class ClockInService
             'checked_in_at' => now(),
             'work_date'     => today(),
             'late_minutes'  => $lateMinutes,
-            'status'        => $lateMinutes > 0
-                               ? AttendanceStatus::LATE
-                               : AttendanceStatus::PRESENT,
+            'status'        => $isWithinZone 
+                               ? ($lateMinutes > 0 ? AttendanceStatus::LATE : AttendanceStatus::PRESENT)
+                               : AttendanceStatus::BAD_LOCATION, // Need to add this enum?
+            'metadata'      => [
+                'latitude' => $data->latitude,
+                'longitude' => $data->longitude,
+                'is_within_zone' => $isWithinZone,
+            ]
         ]);
  
         // Etape 6 — Publier evenements RabbitMQ

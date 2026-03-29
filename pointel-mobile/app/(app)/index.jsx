@@ -92,7 +92,7 @@ export default function ClockInScreen() {
       let latitude = 0, longitude = 0;
       if (locStatus === 'granted') {
         const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.High,
         });
         latitude = location.coords.latitude;
         longitude = location.coords.longitude;
@@ -100,7 +100,9 @@ export default function ClockInScreen() {
 
       const response = await api.post('/pointage/clock-in', {
         channel: 'qr_location',
-        payload: { location_token: locationToken, latitude, longitude },
+        payload: { location_token: locationToken },
+        latitude,
+        longitude,
       });
 
       if (response.data?.success !== false) {

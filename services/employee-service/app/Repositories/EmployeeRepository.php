@@ -98,6 +98,10 @@ class EmployeeRepository
             $query->where('contract_type', $filters['contract_type']);
         }
 
+        if (!empty($filters['role'])) {
+            $query->where('role', $filters['role']);
+        }
+
         return $query->get();
     }
 }

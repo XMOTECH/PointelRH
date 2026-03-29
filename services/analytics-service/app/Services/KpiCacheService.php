@@ -14,10 +14,38 @@ class KpiCacheService
         $cacheKey = "kpi:dashboard:{$companyId}:{$date}";
 
         return Cache::remember($cacheKey, self::TTL, function () use ($companyId, $date) {
-            return DailySnapshot::where([
+            $snapshots = DailySnapshot::where([
                 'company_id'    => $companyId,
                 'snapshot_date' => $date,
-            ])->get()->map(fn($s) => [
+            ])->get();
+
+            // If no snapshots exist for today, lazy-initialize them from Departments
+            if ($snapshots->isEmpty() && $date === now()->toDateString()) {
+                $departments = \App\Models\Department::where('company_id', $companyId)->get();
+                
+                foreach ($departments as $dept) {
+                    DailySnapshot::create([
+                        'snapshot_date' => $date,
+                        'company_id'    => $companyId,
+                        'department_id' => $dept->id,
+                        'total_employees' => $dept->employee_count,
+                        'present_count'  => 0,
+                        'late_count'     => 0,
+                        'absent_count'   => $dept->employee_count,
+                        'presence_rate'  => 0,
+                        'punctuality_rate' => 0,
+                        'last_updated_at' => now(),
+                    ]);
+                }
+
+                // Refresh snapshots after creation
+                $snapshots = DailySnapshot::where([
+                    'company_id'    => $companyId,
+                    'snapshot_date' => $date,
+                ])->get();
+            }
+
+            return $snapshots->map(fn($s) => [
                 'department_id'   => $s->department_id,
                 'total_employees' => $s->total_employees,
                 'present'         => $s->present_count,

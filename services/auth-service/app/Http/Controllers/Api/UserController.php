@@ -17,25 +17,44 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'email'       => 'required|email|unique:users,email',
+            'email'       => 'required|email', // Remove unique check here to handle it manually
             'name'        => 'required|string|max:255',
             'role'        => 'required|string|in:admin,manager,employee',
             'company_id'  => 'required|uuid',
-            'employee_id' => 'required|uuid', // Essential for the 1:1 mapping
+            'employee_id' => 'required|uuid', 
+            'department_id' => 'nullable|uuid',
         ]);
 
-        // Generate a random temporary password if not provided
+        // Try to find existing user by email
+        $user = User::where('email', $validated['email'])->first();
         $password = Str::random(12);
 
-        $user = User::create([
-            'name'        => $validated['name'],
-            'email'       => $validated['email'],
-            'password'    => $password,
-            'role'        => $validated['role'],
-            'company_id'  => $validated['company_id'],
-            'employee_id' => $validated['employee_id'],
-            'is_active'   => true,
-        ]);
+        if ($user) {
+            // Update existing user
+            $user->update([
+                'name'        => $validated['name'],
+                'role'        => $validated['role'],
+                'company_id'  => $validated['company_id'],
+                'employee_id' => $validated['employee_id'],
+                'department_id' => $validated['department_id'],
+                'password'    => Hash::make($password), // Reset password for security if re-syncing
+                'is_active'   => true,
+            ]);
+            $message = 'User updated successfully';
+        } else {
+            // Create new user
+            $user = User::create([
+                'name'        => $validated['name'],
+                'email'       => $validated['email'],
+                'password'    => $password, // Mutator will hash it
+                'role'        => $validated['role'],
+                'company_id'  => $validated['company_id'],
+                'employee_id' => $validated['employee_id'],
+                'department_id' => $validated['department_id'],
+                'is_active'   => true,
+            ]);
+            $message = 'User created successfully';
+        }
 
         // Assign Spatie role
         try {
@@ -61,7 +80,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'User created successfully',
+            'message' => $message,
             'data'    => [
                 'id'            => $user->id,
                 'email'         => $user->email,

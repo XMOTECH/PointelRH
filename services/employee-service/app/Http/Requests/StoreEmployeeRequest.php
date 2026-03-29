@@ -3,6 +3,9 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Log;
 
 class StoreEmployeeRequest extends FormRequest
 {
@@ -31,6 +34,24 @@ class StoreEmployeeRequest extends FormRequest
             'contract_type' => 'required|in:cdi,cdd,freelance,intern',
             'hire_date' => 'required|date',
             'status' => 'sometimes|in:active,inactive,suspended',
+            'role' => 'required|in:manager,employee',
         ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        Log::warning('Employee creation validation failed', [
+            'errors' => $validator->errors()->toArray(),
+            'input' => $this->except(['password']),
+        ]);
+
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'message' => 'Validation errors',
+            'data' => $validator->errors()
+        ], 422));
     }
 }

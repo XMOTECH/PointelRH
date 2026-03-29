@@ -8,6 +8,10 @@ use Illuminate\Http\Request;
 
 class LocationController extends BaseApiController
 {
+    public function __construct(
+        private readonly \App\Services\RabbitMQService $rabbitMQService
+    ) {}
+
     /**
      * List all locations for the company.
      * GET /api/locations
@@ -40,6 +44,8 @@ class LocationController extends BaseApiController
 
         $location = Location::create($validated);
 
+        $this->rabbitMQService->publishEvent('LocationCreated', $location->toArray());
+
         return $this->respondSuccess($location, 'Site créé avec succès', 201);
     }
 
@@ -62,6 +68,8 @@ class LocationController extends BaseApiController
 
         $location->update($validated);
 
+        $this->rabbitMQService->publishEvent('LocationUpdated', $location->toArray());
+
         return $this->respondSuccess($location, 'Site mis à jour');
     }
 
@@ -75,6 +83,8 @@ class LocationController extends BaseApiController
             ->findOrFail($id);
 
         $location->delete();
+
+        $this->rabbitMQService->publishEvent('LocationDeleted', ['id' => $id]);
 
         return $this->respondSuccess(null, 'Site supprimé');
     }

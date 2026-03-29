@@ -64,9 +64,21 @@ class ConsumeEmployeeEvents extends Command
                         ]
                     );
                     $this->info(" [v] Synced employee replica for {$data['id']}");
-                } elseif ($event === 'EmployeeDeleted') {
-                    DB::table('employees_replica')->where('id', $data['id'])->delete();
-                    $this->info(" [v] Deleted employee replica for {$data['id']}");
+                } elseif (in_array($event, ['LocationCreated', 'LocationUpdated'])) {
+                    DB::table('locations')->updateOrInsert(
+                        ['id' => $data['id']],
+                        [
+                            'latitude' => $data['latitude'],
+                            'longitude' => $data['longitude'],
+                            'radius_meters' => $data['radius_meters'],
+                            'company_id' => $data['company_id'],
+                            'updated_at' => now(),
+                        ]
+                    );
+                    $this->info(" [v] Synced location data for {$data['id']}");
+                } elseif ($event === 'LocationDeleted') {
+                    DB::table('locations')->where('id', $data['id'])->delete();
+                    $this->info(" [v] Deleted location data for {$data['id']}");
                 }
 
                 $msg->ack();

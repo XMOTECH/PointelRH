@@ -8,12 +8,16 @@ use App\Http\Controllers\Api\LocationController;
 
 /* |-------------------------------------------------------------------------- | API Routes |-------------------------------------------------------------------------- | | Here is where you can register API routes for your application. These | routes are loaded by the RouteServiceProvider within a group which | is assigned the "api" middleware group. Enjoy building your API! | */
 
-// ── Internal Service Routes (No JWT for faster inter-service communication)
+// ── Internal Service Routes (No JWT for inter-service communication)
 Route::get('/employees/{id}/notification-context', [\App\Http\Controllers\Api\EmployeeNotificationController::class , 'getNotificationContext']);
-Route::post('/employees/resolve-qr', [EmployeeController::class , 'resolveQr']);
-Route::post('/employees/resolve-pin', [EmployeeController::class , 'resolvePin']);
 Route::get('/employees/by-user/{userId}', [EmployeeController::class , 'resolveByUser']);
 Route::get('/locations/resolve/{token}', [\App\Http\Controllers\Api\LocationController::class, 'resolve']);
+
+// ── Endpoints sensibles avec rate limiting (brute force protection)
+Route::middleware(['throttle:resolve-employee'])->group(function () {
+    Route::post('/employees/resolve-qr', [EmployeeController::class , 'resolveQr']);
+    Route::post('/employees/resolve-pin', [EmployeeController::class , 'resolvePin']);
+});
 
 // ── Routes protégées par JWT ──────────────────────────────
 Route::middleware(['auth.jwt'])->group(function () {
@@ -26,15 +30,23 @@ Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/employees/{id}/schedule', [EmployeeController::class , 'schedule']);
         Route::patch('/employees/{id}/status', [EmployeeController::class , 'updateStatus']);
         Route::post('/employees/{id}/generate-pin', [EmployeeController::class , 'generatePin']);
+
+        Route::apiResource('leaves', \App\Http\Controllers\Api\LeaveRequestController::class);
+        Route::patch('/leaves/{id}/status', [\App\Http\Controllers\Api\LeaveRequestController::class, 'update']);
+
+        Route::apiResource('missions', \App\Http\Controllers\Api\MissionController::class);
+        Route::post('/missions/{id}/assign', [\App\Http\Controllers\Api\MissionController::class, 'assign']);
+
+        // ── Operational Planning ──────────────────────────────
+        Route::get('/planning', [\App\Http\Controllers\Api\PlanningController::class, 'index']);
+        Route::post('/planning/override', [\App\Http\Controllers\Api\PlanningController::class, 'override']);
     });
 
     // ── Departments ────────────────────────────────────────
     Route::apiResource('departments', DepartmentController::class);
 
-    // ── Locations ──────────────────────────────────────────
-    Route::apiResource('locations', LocationController::class);
-    Route::get('/locations/{id}/qr', [LocationController::class, 'generateQr']);
-
-    // ── Schedules ──────────────────────────────────────────
-    Route::apiResource('schedules', ScheduleController::class);
+    // ── Settings ───────────────────────────────────────────
+    Route::get('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'index']);
+    Route::post('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'update']);
+    Route::get('/settings/{group}', [\App\Http\Controllers\Api\SettingsController::class, 'show']);
 });

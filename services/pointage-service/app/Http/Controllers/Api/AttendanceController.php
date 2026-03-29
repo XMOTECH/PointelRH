@@ -42,6 +42,10 @@ class AttendanceController extends BaseApiController
                 $query->where('location_id', $locationId);
             }
 
+            if ($request->has('filter_department_id')) {
+                $query->where('department_id', $request->filter_department_id);
+            }
+
             $attendances = $query->orderBy('checked_in_at', 'desc')->get();
 
             return $this->respondSuccess(

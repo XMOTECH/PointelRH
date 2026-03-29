@@ -30,7 +30,9 @@ const useAuthStore = create((set, get) => ({
     const { user } = get();
     if (!user?.id) return null;
     try {
-      const response = await api.get(`/employees/by-user/${user.id}`);
+      const response = await api.get(`/employees/by-user/${user.id}`, {
+        params: { email: user.email },
+      });
       const employee = response.data?.data ?? response.data;
       set({ employee });
       return employee;
@@ -61,7 +63,9 @@ const useAuthStore = create((set, get) => ({
 
       // Fetch employee profile in background
       try {
-        const empResponse = await api.get(`/employees/by-user/${user.id}`);
+        const empResponse = await api.get(`/employees/by-user/${user.id}`, {
+          params: { email: user.email },
+        });
         const employee = empResponse.data?.data ?? empResponse.data;
         set({ employee });
       } catch {

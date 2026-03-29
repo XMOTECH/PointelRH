@@ -16,9 +16,15 @@ class Department extends Model
         'location',
         'company_id',
     ];
+ 
+    public function manager(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'manager_id');
+    }
 
     public function employees()
     {
         return $this->hasMany(Employee::class);
     }
+
 }

@@ -55,6 +55,18 @@ class ConsumeEmployeeEvents extends Command
                     }
                 }
 
+                if ($event === 'EmployeeUpdated') {
+                    $this->info(" [!] Data sync event: " . $event);
+                    $user = User::where('employee_id', $data['id'])->first();
+                    if ($user) {
+                        $user->update([
+                            'department_id' => $data['department_id'] ?? $user->department_id,
+                            'role' => $data['role'] ?? $user->role,
+                        ]);
+                        $this->info(" [v] Updated department/role for user => {$user->id}");
+                    }
+                }
+
                 $msg->ack();
             };
 

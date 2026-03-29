@@ -14,6 +14,8 @@ class DepartmentResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return array_merge(parent::toArray($request), [
+            'manager_name' => $this->manager ? $this->manager->full_name : null,
+        ]);
     }
 }
