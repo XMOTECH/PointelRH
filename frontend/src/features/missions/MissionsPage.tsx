@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { missionsApi } from './api/missions.api';
 import type { Mission } from './api/missions.api';
+import { MissionForm } from './components/MissionForm';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
@@ -22,6 +23,7 @@ export const MissionsPage: React.FC = () => {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
     loadMissions();
@@ -79,7 +81,7 @@ export const MissionsPage: React.FC = () => {
         
         <Button 
           className="btn-primary group shadow-lg shadow-primary/20"
-          onClick={() => alert("Le formulaire de création de mission arrive très bientôt !")}
+          onClick={() => setIsFormOpen(true)}
         >
           <Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />
           Nouvelle Mission
@@ -169,14 +171,19 @@ export const MissionsPage: React.FC = () => {
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold text-right">Affectés</span>
                     <div className="flex -space-x-3">
-                      {[1, 2, 3].map(e => (
-                        <div key={e} className="w-8 h-8 rounded-full bg-surface-container-highest border-2 border-white flex items-center justify-center text-[10px] font-bold text-primary ring-1 ring-primary/5">
-                          {mission.employees?.length ? mission.employees[0].first_name[0] : '?'}
+                      {(mission.employees || []).slice(0, 3).map(emp => (
+                        <div key={emp.id} className="w-8 h-8 rounded-full bg-primary/10 border-2 border-white flex items-center justify-center text-[10px] font-bold text-primary ring-1 ring-primary/5">
+                          {emp.first_name[0]}{emp.last_name[0]}
                         </div>
                       ))}
                       {mission.employees && mission.employees.length > 3 && (
                         <div className="w-8 h-8 rounded-full bg-primary text-on-primary border-2 border-white flex items-center justify-center text-[10px] font-bold">
                           +{mission.employees.length - 3}
+                        </div>
+                      )}
+                      {(!mission.employees || mission.employees.length === 0) && (
+                         <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-400">
+                          ?
                         </div>
                       )}
                     </div>
@@ -208,12 +215,19 @@ export const MissionsPage: React.FC = () => {
           <p className="text-on-surface-variant max-w-sm text-center mb-8 font-medium">
             Le calendrier est vide. Commencez par définir une nouvelle mission pour mobiliser vos équipes sur le terrain.
           </p>
-          <Button className="btn-primary px-8">
+          <Button className="btn-primary px-8" onClick={() => setIsFormOpen(true)}>
             <Plus className="w-5 h-5" />
             Créer ma première mission
           </Button>
         </div>
       )}
+
+      {/* Mission Creation Form */}
+      <MissionForm 
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={loadMissions}
+      />
     </div>
   );
 };

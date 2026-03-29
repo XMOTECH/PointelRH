@@ -27,6 +27,7 @@ export interface CreateMissionDTO {
   start_date: string;
   end_date?: string;
   department_id?: string;
+  employee_ids?: string[];
 }
 
 export const missionsApi = {

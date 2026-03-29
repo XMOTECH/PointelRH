@@ -10,6 +10,7 @@ use App\Services\LoggingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class MissionController extends BaseApiController
@@ -40,10 +41,6 @@ class MissionController extends BaseApiController
         }
     }
 
-    /**
-     * Store a newly created mission.
-     * POST /api/missions
-     */
     public function store(Request $request): JsonResponse
     {
         try {
@@ -55,6 +52,8 @@ class MissionController extends BaseApiController
                 'start_date' => 'required|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
                 'department_id' => 'nullable|uuid|exists:departments,id',
+                'employee_ids' => 'nullable|array',
+                'employee_ids.*' => 'uuid|exists:employees,id',
             ]);
 
             if ($validator->fails()) {
@@ -62,6 +61,8 @@ class MissionController extends BaseApiController
             }
 
             $data = $validator->validated();
+            $employeeIds = $data['employee_ids'] ?? [];
+            unset($data['employee_ids']);
             
             // Security: Enforce department if manager
             if ($request->has('filter_department_id')) {
@@ -71,12 +72,42 @@ class MissionController extends BaseApiController
             $data['company_id'] = $request->auth_company_id;
             $data['id'] = (string) Str::uuid();
 
+            DB::beginTransaction();
+
             $mission = Mission::create($data);
 
-            LoggingService::info('Mission created', ['mission_id' => $mission->id]);
+            if (!empty($employeeIds)) {
+                // Ensure all employees belong to the same company/department context
+                $validEmployees = Employee::whereIn('id', $employeeIds)
+                    ->where('company_id', $request->auth_company_id);
 
-            return $this->respondSuccess(new MissionResource($mission), 'Mission créée avec succès', 201);
+                if ($request->has('filter_department_id')) {
+                    $validEmployees->where('department_id', $request->filter_department_id);
+                }
+
+                $finalIds = $validEmployees->pluck('id')->toArray();
+
+                if (count($finalIds) !== count($employeeIds)) {
+                    DB::rollBack();
+                    return $this->respondError('Certains employés ne sont pas éligibles pour cette mission', 422);
+                }
+
+                $mission->employees()->syncWithPivotValues($finalIds, [
+                    'status' => 'assigned',
+                    'assigned_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            LoggingService::info('Mission created with assignments', [
+                'mission_id' => $mission->id,
+                'assignments_count' => count($employeeIds)
+            ]);
+
+            return $this->respondSuccess(new MissionResource($mission->load('employees')), 'Mission créée avec succès', 201);
         } catch (\Exception $e) {
+            DB::rollBack();
             LoggingService::error('Failed to create mission', $e);
             return $this->respondServerError('Impossible de créer la mission');
         }
