@@ -30,6 +30,12 @@ class EmployeeResource extends JsonResource
             'schedule_id' => $this->schedule_id,
             'department' => new DepartmentResource($this->whenLoaded('department')),
             'schedule' => new ScheduleResource($this->whenLoaded('schedule')),
+            'mission_status' => $this->whenPivotLoaded('mission_assignments', function() {
+                return $this->pivot->status;
+            }),
+            'assigned_at' => $this->whenPivotLoaded('mission_assignments', function() {
+                return $this->pivot->assigned_at;
+            }),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

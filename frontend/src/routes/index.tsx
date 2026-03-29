@@ -20,6 +20,7 @@ import { ScheduleListPage, WeeklyPlanningPage } from '../features/schedules';
 import { AdminLeaveRequestsPage } from '../features/leaves';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { MissionsPage } from '../features/missions/MissionsPage';
+import { MissionTrackingPage } from '../features/missions/MissionTrackingPage';
 
 function RoleBasedRedirect() {
   const { user, loading } = useAuth();
@@ -74,6 +75,7 @@ export function AppRoutes() {
           <Route path="/schedules/planning" element={<WeeklyPlanningPage />} />
           <Route path="/leaves" element={<AdminLeaveRequestsPage />} />
           <Route path="/missions" element={<MissionsPage />} />
+          <Route path="/missions/:id/tracking" element={<MissionTrackingPage />} />
           <Route path="/admin/users" element={<div className="p-8"><h1 className="text-2xl font-bold mb-4">Gestion des Utilisateurs</h1><p className="text-on-surface-variant">Chargement du module...</p></div>} />
           
           <Route path="/settings" element={<SettingsPage />} />

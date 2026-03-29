@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Briefcase, 
   Plus, 
@@ -7,7 +8,8 @@ import {
   Search,
   Filter,
   CheckCircle,
-  Clock
+  Clock,
+  ChevronRight
 } from 'lucide-react';
 import { missionsApi } from './api/missions.api';
 import type { Mission } from './api/missions.api';
@@ -20,6 +22,7 @@ import { fr } from 'date-fns/locale';
 
 export const MissionsPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -191,11 +194,18 @@ export const MissionsPage: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button variant="tertiary" className="btn-ghost flex-1 text-xs">
-                    Modifier
+                  <Button 
+                    variant="tertiary" 
+                    className="btn-ghost flex-1 text-xs"
+                    onClick={() => navigate(`/missions/${mission.id}/tracking`)}
+                  >
+                    Suivre
                   </Button>
-                  <Button className="btn-primary w-12 h-10 p-0 rounded-xl">
-                    <Plus className="w-5 h-5" />
+                  <Button 
+                    className="btn-primary w-12 h-10 p-0 rounded-xl"
+                    onClick={() => navigate(`/missions/${mission.id}/tracking`)}
+                  >
+                    <ChevronRight className="w-5 h-5" />
                   </Button>
                 </div>
               </div>
