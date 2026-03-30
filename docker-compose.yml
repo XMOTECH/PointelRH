@@ -18,9 +18,9 @@ volumes:
 services:
 
   # ─── AUTH SERVICE ─────────────────────────────────────────
-  auth-service:   
+  auth-service:
     build:
-      context: ./services/auth-service   
+      context: ./services/auth-service
       dockerfile: Dockerfile
     container_name: auth-service
     restart: unless-stopped
@@ -36,11 +36,17 @@ services:
       - DB_USERNAME=auth_user
       - DB_PASSWORD=auth_pass
       - REDIS_HOST=redis
-      - JWT_SECRET=${JWT_SECRET}  
+      - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=pointel
+      - RABBITMQ_PASSWORD=pointel_pass
     depends_on:
       auth-db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - pointel_net
@@ -102,9 +108,14 @@ services:
       - REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=pointel
+      - RABBITMQ_PASSWORD=pointel_pass
     depends_on:
       - employee-db
       - redis
+      - rabbitmq
     networks:
       - pointel_net
 

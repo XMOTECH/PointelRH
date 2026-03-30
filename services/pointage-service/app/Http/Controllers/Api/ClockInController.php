@@ -67,7 +67,11 @@ class ClockInController extends BaseApiController
  
         } catch (AlreadyClockedInException $e) {
             LoggingService::warning('Clock-in failed: already clocked in', ['error' => $e->getMessage()]);
-            return $this->respondConflict($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'employee_id' => $e->employeeId,
+            ], 409);
         } catch (InvalidTokenException $e) {
             LoggingService::warning('Clock-in failed: invalid token', ['error' => $e->getMessage()]);
             return $this->respondNotFound($e->getMessage());

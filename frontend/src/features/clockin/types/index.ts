@@ -30,6 +30,7 @@ export interface ClockInRequestPayload {
   payload: {
     qr_token?: string;
     pin_code?: string;
+    user_id?: string;
   };
 }
 

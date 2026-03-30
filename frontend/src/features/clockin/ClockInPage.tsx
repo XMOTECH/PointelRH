@@ -11,14 +11,13 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useClockIn } from './hooks/useClockIn';
 import { useClockOut } from './hooks/useClockOut';
-import { useRealTimeClock, useQRCodeData, useTodayStatus } from './hooks/hooks';
-import { ClockCard, QRCodeCard, SuccessMessage, ClockOutSuccessMessage, ErrorMessage } from './components';
+import { useRealTimeClock, useTodayStatus } from './hooks/hooks';
+import { ClockCard, SuccessMessage, ClockOutSuccessMessage, ErrorMessage } from './components';
 import { CLOCK_IN_MESSAGES, SPACING, LAYOUT } from './constants';
 
 export default function ClockInPage() {
   const { user } = useAuth();
   const currentTime = useRealTimeClock();
-  const { qrToken, isLoading: qrLoading } = useQRCodeData(user?.employee_id);
   const { todayAttendance, isCheckedIn, isCheckedOut } = useTodayStatus(user?.employee_id);
 
   const {
@@ -66,7 +65,6 @@ export default function ClockInPage() {
         </p>
       </div>
 
-      {/* Contenu - Cartes côte à côte */}
       <div
         style={{
           display: 'grid',
@@ -77,19 +75,18 @@ export default function ClockInPage() {
         <ClockCard
           currentTime={currentTime}
           onClockIn={() => clockIn({
-            channel: 'qr',
-            payload: { qr_token: qrToken || '' },
+            channel: 'web',
+            payload: { user_id: user?.id || '' },
           })}
           onClockOut={() => {
             if (user?.employee_id) {
               clockOut({ employee_id: user.employee_id });
             }
           }}
-          isPending={isPending || qrLoading}
+          isPending={isPending}
           clockState={clockState}
           todayAttendance={todayAttendance}
         />
-        <QRCodeCard qrValue={qrToken || ''} userId={user?.id} />
       </div>
 
       {/* Messages de statut */}

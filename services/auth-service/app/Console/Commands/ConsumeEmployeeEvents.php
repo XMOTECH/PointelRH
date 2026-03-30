@@ -27,7 +27,9 @@ class ConsumeEmployeeEvents extends Command
 
             $channel->exchange_declare($exchange, 'fanout', false, true, false);
 
-            list($queue_name, ,) = $channel->queue_declare('', false, false, true, false);
+            // Durable named queue — survives consumer restarts, no message loss
+            $queue_name = 'auth_service.employee_security';
+            $channel->queue_declare($queue_name, false, true, false, false);
             $channel->queue_bind($queue_name, $exchange);
 
             $this->info(" [*] Auth-Service Security Worker waiting for enforcement events.");

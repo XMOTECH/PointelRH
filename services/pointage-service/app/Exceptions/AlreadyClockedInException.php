@@ -9,8 +9,10 @@ class AlreadyClockedInException extends BaseApiException
 {
     protected int $statusCode = 409; // Conflict
 
-    public function __construct(string $message = 'Employé a déjà pointé aujourd\'hui')
-    {
+    public function __construct(
+        string $message = 'Employé a déjà pointé aujourd\'hui',
+        public readonly ?string $employeeId = null,
+    ) {
         parent::__construct($message);
     }
 }

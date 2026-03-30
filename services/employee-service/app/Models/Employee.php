@@ -16,7 +16,7 @@ class Employee extends Model
     protected $fillable = [
         'first_name', 'last_name', 'email', 'phone',
         'department_id', 'schedule_id', 'contract_type',
-        'qr_token', 'pin', 'hire_date', 'status', 'role', 'company_id', 'user_id',
+        'qr_token', 'pin', 'pin_prefix', 'hire_date', 'status', 'role', 'company_id', 'user_id',
     ];
  
     /**
@@ -24,6 +24,7 @@ class Employee extends Model
      */
     protected $hidden = [
         'pin',
+        'pin_prefix',
     ];
 
     protected $casts = [
@@ -33,12 +34,13 @@ class Employee extends Model
     ];
 
     /**
-     * Hash the PIN before saving.
+     * Hash the PIN before saving and store the prefix for fast lookup.
      */
     protected function setPinAttribute($value)
     {
         if ($value) {
             $this->attributes['pin'] = \Illuminate\Support\Facades\Hash::make($value);
+            $this->attributes['pin_prefix'] = substr($value, 0, 2);
         }
     }
 

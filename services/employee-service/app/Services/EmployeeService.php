@@ -134,18 +134,34 @@ class EmployeeService
 
     /**
      * Résoudre un employé via son code PIN
+     *
+     * Optimisation: on utilise pin_prefix (2 premiers caractères stockés en clair)
+     * pour pré-filtrer en SQL avant de faire Hash::check() sur les candidats.
+     * Réduit le nombre de vérifications bcrypt de O(n) à O(petit sous-ensemble).
      */
     public function resolveByPin(string $pin, string $companyId): ?Employee
     {
-        // On récupère les candidats potentiels (actifs dans cette entreprise)
-        // Note: On ne peut pas filtrer par PIN dans le SQL car il est haché
-        $employees = Employee::with(['schedule', 'department'])
+        $prefix = substr($pin, 0, 2);
+
+        // Pré-filtrage par prefix — réduit drastiquement les candidats
+        $candidates = Employee::with(['schedule', 'department'])
             ->where('company_id', $companyId)
             ->where('status', \App\Enums\EmployeeStatus::ACTIVE->value)
+            ->where(function ($query) use ($prefix) {
+                $query->where('pin_prefix', $prefix)
+                      ->orWhereNull('pin_prefix'); // Fallback pour les PINs générés avant la migration
+            })
+            ->whereNotNull('pin')
             ->get();
 
-        foreach ($employees as $employee) {
+        foreach ($candidates as $employee) {
             if (\Illuminate\Support\Facades\Hash::check($pin, $employee->pin)) {
+                // Backfill pin_prefix si absent (migration progressive)
+                if ($employee->pin_prefix === null) {
+                    $employee->timestamps = false;
+                    $employee->pin_prefix = $prefix;
+                    $employee->saveQuietly();
+                }
                 return $employee;
             }
         }

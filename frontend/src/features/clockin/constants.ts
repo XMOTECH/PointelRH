@@ -6,7 +6,7 @@
 // Messages utilisateur
 export const CLOCK_IN_MESSAGES = {
   title: 'Espace Pointage',
-  description: 'Scannez votre QR Code pour enregistrer votre présence.',
+  description: 'Utilisez l\'application mobile pour scanner le QR Code sur site.',
   pending: 'Enregistrement...',
   success: 'Pointé avec succès',
   successDetail: (time: string) => `Votre présence a été enregistrée à ${time}.`,
@@ -88,7 +88,7 @@ export const TEXT_LIMITS = {
 
 // Grid Layout
 export const LAYOUT = {
-  containerMaxWidth: '800px',
-  gridColumns: '1fr 1fr',
+  containerMaxWidth: '500px',
+  gridColumns: '1fr',
   gridGap: '2rem',
 } as const;

@@ -26,11 +26,16 @@ class AppServiceProvider extends ServiceProvider
             return new \App\Services\Drivers\LocationQrDriver(config('services.employee.url'));
         });
 
+        $this->app->singleton(\App\Services\Drivers\WebDriver::class, function ($app) {
+            return new \App\Services\Drivers\WebDriver(config('services.employee.url'));
+        });
+
         $this->app->singleton(\App\Services\DriverResolver::class, function ($app) {
             $resolver = new \App\Services\DriverResolver();
             $resolver->register('qr', $app->make(\App\Services\Drivers\QrDriver::class));
             $resolver->register('pin', $app->make(\App\Services\Drivers\PinDriver::class));
             $resolver->register('qr_location', $app->make(\App\Services\Drivers\LocationQrDriver::class));
+            $resolver->register('web', $app->make(\App\Services\Drivers\WebDriver::class));
             return $resolver;
         });
 

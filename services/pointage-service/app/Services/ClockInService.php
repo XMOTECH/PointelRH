@@ -30,7 +30,10 @@ class ClockInService
  
         // Etape 2 — Verifier l'unicite du pointage
         if ($this->attendances->existsForToday($employee->id)) {
-            throw new AlreadyClockedInException("{$employee->first_name} {$employee->last_name} a deja pointe aujourd'hui");
+            throw new AlreadyClockedInException(
+                "{$employee->first_name} {$employee->last_name} a deja pointe aujourd'hui",
+                $employee->id,
+            );
         }
  
         // Etape 3 — Verifier le jour de travail

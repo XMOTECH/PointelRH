@@ -63,18 +63,27 @@ class UserController extends Controller
             // Ignore if role doesn't exist, though it should be seeded
         }
 
-        // Publish event to send credentials by email
+        // Publish event for notifications (credentials email)
         try {
             $rabbitMQ = new RabbitMQService();
             $rabbitMQ->publishEvent('UserCreated', [
+                'user_id' => $user->id,
                 'employee_id' => $validated['employee_id'],
                 'employee_name' => $validated['name'],
                 'email' => $validated['email'],
                 'temp_password' => $password,
                 'company_id' => $validated['company_id'],
             ]);
+
+            // Publish to auth_events exchange for employee-service sync
+            $rabbitMQ->publishEvent('UserCreated', [
+                'user_id' => $user->id,
+                'employee_id' => $validated['employee_id'],
+                'email' => $validated['email'],
+                'company_id' => $validated['company_id'],
+            ], 'auth_events');
         } catch (\Exception $e) {
-            // Non-blocking: credentials email failure shouldn't fail user creation
+            // Non-blocking: event failure shouldn't fail user creation
             \Illuminate\Support\Facades\Log::warning('Failed to publish UserCreated event: ' . $e->getMessage());
         }
 
