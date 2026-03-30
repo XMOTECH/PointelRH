@@ -5,4 +5,4 @@
 
 export { ClockCard } from './ClockCard';
 export { QRCodeCard } from './QRCodeCard';
-export { SuccessMessage, ErrorMessage } from './StatusMessages';
+export { SuccessMessage, ClockOutSuccessMessage, ErrorMessage } from './StatusMessages';

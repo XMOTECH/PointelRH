@@ -13,6 +13,13 @@ export const CLOCK_IN_MESSAGES = {
   error: 'Erreur de pointage',
   lateWarning: (minutes: number) => `Pointe avec ${minutes} min de retard`,
   greeting: 'Pointage enregistré — bonjour !',
+  // Clock-out
+  clockOutTitle: 'Pointer la Sortie',
+  clockOutPending: 'Enregistrement de la sortie...',
+  clockOutSuccess: 'Sortie enregistrée',
+  clockOutDescription: 'Enregistrez votre départ pour clôturer la journée.',
+  dayComplete: 'Journée complète',
+  dayCompleteDescription: 'Votre journée a été enregistrée avec succès.',
 } as const;
 
 // Taile des éléments UI
@@ -47,6 +54,12 @@ export const COLORS = {
   error: '#C53030',
   errorBg: '#FFF5F5',
   errorBorder: '#FED7D7',
+  warning: '#C05621',
+  warningBg: '#FFFAF0',
+  warningBorder: '#FEEBC8',
+  neutral: '#718096',
+  neutralBg: '#F7FAFC',
+  neutralBorder: '#E2E8F0',
   primary: 'var(--primary)',
   primaryBgLight: 'rgba(0, 181, 173, 0.1)',
   textMuted: 'var(--text-muted)',

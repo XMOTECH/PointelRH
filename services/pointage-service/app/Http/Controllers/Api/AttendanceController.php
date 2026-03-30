@@ -11,6 +11,30 @@ use App\Services\LoggingService;
 class AttendanceController extends BaseApiController
 {
     /**
+     * Récupérer le pointage du jour pour un employé donné
+     */
+    public function myToday(Request $request)
+    {
+        try {
+            $employeeId = $request->query('employee_id');
+            if (!$employeeId) {
+                return $this->respondError('employee_id est requis', 422);
+            }
+
+            $attendance = Attendance::where('employee_id', $employeeId)
+                ->where('work_date', Carbon::today())
+                ->first();
+
+            return $this->respondSuccess(
+                $attendance ? new AttendanceResource($attendance) : null
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve today status', $e);
+            return $this->respondServerError('Impossible de récupérer le statut du jour');
+        }
+    }
+
+    /**
      * Récupérer les pointages d'aujourd'hui pour la compagnie
      */
     public function today(Request $request)

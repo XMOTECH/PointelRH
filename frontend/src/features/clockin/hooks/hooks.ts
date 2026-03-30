@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DELAYS } from '../constants';
 import { employeesApi } from '../../employees/api/employees.api';
+import { clockInApi } from '../api/clockin.api';
+import type { TodayStatusResponse } from '../types';
 
 /**
  * Hook pour gérer l'horloge en temps réel
@@ -35,6 +37,24 @@ export function useQRCodeData(employeeId: string | undefined): { qrToken: string
   });
 
   return { qrToken: qrToken ?? null, isLoading };
+}
+
+/**
+ * Hook pour récupérer le statut de pointage du jour
+ * Retourne l'attendance du jour + indicateurs isCheckedIn / isCheckedOut
+ */
+export function useTodayStatus(employeeId: string | undefined) {
+  const { data: todayAttendance = null, isLoading } = useQuery<TodayStatusResponse | null>({
+    queryKey: ['today-status', employeeId],
+    queryFn: () => clockInApi.getTodayStatus(employeeId!),
+    enabled: !!employeeId,
+    refetchInterval: 30_000,
+  });
+
+  const isCheckedIn = !!todayAttendance?.checked_in_at;
+  const isCheckedOut = !!todayAttendance?.checked_out_at;
+
+  return { todayAttendance, isCheckedIn, isCheckedOut, isLoading };
 }
 
 /**

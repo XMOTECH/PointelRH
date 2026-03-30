@@ -29,6 +29,7 @@ export function useClockIn() {
       // Invalider les requêtes en cache pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ['attendances'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['today-status'] });
     },
     onError: (error) => {
       // Log l'erreur pour le debugging en développement

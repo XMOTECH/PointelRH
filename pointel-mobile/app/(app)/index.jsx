@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Dimensions,
   ActivityIndicator, Alert, Animated,
@@ -31,12 +31,45 @@ export default function ClockInScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Today status: null = not loaded, object = attendance record
+  const [todayAttendance, setTodayAttendance] = useState(null);
+  const [todayLoading, setTodayLoading] = useState(true);
+
+  // Derived state
+  const isCheckedIn = !!todayAttendance?.checked_in_at;
+  const isCheckedOut = !!todayAttendance?.checked_out_at;
+  // 'checkin' or 'checkout' — determines what the next action will be
+  const nextAction = isCheckedIn && !isCheckedOut ? 'checkout' : 'checkin';
+
   // Pulse animation for scanner
   const pulseAnim = useRef(new Animated.Value(1)).current;
   // Success scale animation
   const successScale = useRef(new Animated.Value(0)).current;
 
-  // Update clock every minute
+  // Fetch today's status on mount
+  const fetchTodayStatus = useCallback(async () => {
+    const employeeId = employee?.id || user?.employee_id;
+    if (!employeeId) {
+      setTodayLoading(false);
+      return;
+    }
+    try {
+      const response = await api.get('/pointage/attendances/my-today', {
+        params: { employee_id: employeeId },
+      });
+      setTodayAttendance(response.data?.data || null);
+    } catch {
+      // Silently fail — will show default idle state
+    } finally {
+      setTodayLoading(false);
+    }
+  }, [employee, user]);
+
+  useEffect(() => {
+    fetchTodayStatus();
+  }, [fetchTodayStatus]);
+
+  // Update clock every 30s
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(interval);
@@ -107,6 +140,7 @@ export default function ClockInScreen() {
 
       if (response.data?.success !== false) {
         setClockedAt(new Date());
+        setTodayAttendance(response.data?.data || { checked_in_at: new Date().toISOString() });
         setStatus('confirmed');
       } else {
         setErrorMsg(response.data?.error || 'Erreur lors du pointage');
@@ -121,41 +155,115 @@ export default function ClockInScreen() {
     }
   };
 
+  const handleClockOut = async () => {
+    if (status === 'loading') return;
+    setStatus('loading');
+    setErrorMsg(null);
+
+    const employeeId = employee?.id || user?.employee_id;
+    if (!employeeId) {
+      setErrorMsg('Impossible de déterminer l\'employé');
+      setStatus('idle');
+      return;
+    }
+
+    try {
+      const response = await api.post('/pointage/clock-out', {
+        employee_id: employeeId,
+      });
+
+      if (response.data?.success !== false) {
+        setClockedAt(new Date());
+        setTodayAttendance(response.data?.data || { ...todayAttendance, checked_out_at: new Date().toISOString() });
+        setStatus('confirmed');
+      } else {
+        setErrorMsg(response.data?.error || 'Erreur lors du pointage de sortie');
+        setStatus('idle');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error
+        || err.response?.data?.message
+        || 'Erreur reseau';
+      setErrorMsg(msg);
+      setStatus('idle');
+    }
+  };
+
   const handleBarcodeScanned = ({ data }) => {
     if (status !== 'scanning') return;
-    handleClockIn(data);
+    if (nextAction === 'checkout') {
+      handleClockOut();
+    } else {
+      handleClockIn(data);
+    }
   };
 
   const handleReset = () => {
     setStatus('idle');
     setClockedAt(null);
     setErrorMsg(null);
+    fetchTodayStatus();
   };
 
   const userName = employee?.first_name || user?.name?.split(' ')[0] || 'Collaborateur';
   const greeting = currentTime.getHours() < 12 ? 'Bonjour' : currentTime.getHours() < 18 ? 'Bon apres-midi' : 'Bonsoir';
 
-  // ── CONFIRMED STATE ──
-  if (status === 'confirmed') {
+  // ── LOADING TODAY STATUS ──
+  if (todayLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
         <View style={styles.confirmedContainer}>
-          <Animated.View style={[styles.successCircleOuter, { transform: [{ scale: successScale }] }]}>
-            <View style={styles.successCircleInner}>
-              <Ionicons name="checkmark" size={44} color={Colors.on_primary} />
+          <ActivityIndicator size="large" color={Colors.primary_vibrant} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── CONFIRMED STATE ──
+  if (status === 'confirmed') {
+    const isCheckoutConfirm = isCheckedOut || (todayAttendance?.checked_out_at);
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.confirmedContainer}>
+          <Animated.View style={[
+            styles.successCircleOuter,
+            { transform: [{ scale: successScale }] },
+            isCheckoutConfirm && { backgroundColor: Colors.status.warning?.light || '#FFF3E0' },
+          ]}>
+            <View style={[
+              styles.successCircleInner,
+              isCheckoutConfirm && { backgroundColor: Colors.status.warning?.vibrant || '#F57C00' },
+            ]}>
+              <Ionicons name={isCheckoutConfirm ? 'log-out-outline' : 'checkmark'} size={44} color={Colors.on_primary} />
             </View>
           </Animated.View>
 
-          <Text style={styles.confirmedTitle}>Pointage enregistre !</Text>
-          <Text style={styles.confirmedSub}>Bonne journee de travail</Text>
+          <Text style={styles.confirmedTitle}>
+            {isCheckoutConfirm ? 'Sortie enregistree !' : 'Pointage enregistre !'}
+          </Text>
+          <Text style={styles.confirmedSub}>
+            {isCheckoutConfirm ? 'A demain !' : 'Bonne journee de travail'}
+          </Text>
 
           <PremiumCard style={styles.confirmedCard}>
             <Text style={styles.confirmedTime}>{formatTime(clockedAt)}</Text>
             <Text style={styles.confirmedDate}>{formatDate(clockedAt)}</Text>
             <View style={styles.confirmedBadge}>
-              <PremiumBadge status="present" label="En poste" />
+              <PremiumBadge
+                status={isCheckoutConfirm ? 'absent' : 'present'}
+                label={isCheckoutConfirm ? 'Journée terminée' : 'En poste'}
+              />
             </View>
+            {isCheckoutConfirm && todayAttendance?.work_minutes != null && (
+              <Text style={styles.confirmedDuration}>
+                Durée : {Math.floor(todayAttendance.work_minutes / 60)}h{String(todayAttendance.work_minutes % 60).padStart(2, '0')}
+                {todayAttendance.overtime_minutes > 0 && (
+                  ` (+${Math.floor(todayAttendance.overtime_minutes / 60)}h${String(todayAttendance.overtime_minutes % 60).padStart(2, '0')} sup)`
+                )}
+              </Text>
+            )}
           </PremiumCard>
 
           <View style={styles.confirmedFooter}>
@@ -191,7 +299,9 @@ export default function ClockInScreen() {
                 >
                   <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
-                <Text style={styles.scanTitle}>Scanner le QR</Text>
+                <Text style={styles.scanTitle}>
+                  {nextAction === 'checkout' ? 'Scanner pour la Sortie' : 'Scanner le QR'}
+                </Text>
                 <View style={{ width: 44 }} />
               </View>
             </SafeAreaView>
@@ -215,7 +325,9 @@ export default function ClockInScreen() {
           {/* Bottom dark section */}
           <View style={[styles.scanDarkSection, styles.scanBottom]}>
             <Text style={styles.scanInstruction}>
-              Placez le QR Code du site dans le cadre
+              {nextAction === 'checkout'
+                ? 'Scannez le QR Code pour enregistrer votre sortie'
+                : 'Placez le QR Code du site dans le cadre'}
             </Text>
             <TouchableOpacity style={styles.scanCancelBtn} onPress={() => setStatus('idle')}>
               <Text style={styles.scanCancelText}>Annuler</Text>
@@ -227,14 +339,62 @@ export default function ClockInScreen() {
         {status === 'loading' && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#fff" />
-            <Text style={styles.loadingText}>Pointage en cours...</Text>
+            <Text style={styles.loadingText}>
+              {nextAction === 'checkout' ? 'Sortie en cours...' : 'Pointage en cours...'}
+            </Text>
           </View>
         )}
       </View>
     );
   }
 
-  // ── IDLE STATE ──
+  // ── DAY COMPLETE STATE (checked in + checked out) ──
+  if (isCheckedIn && isCheckedOut) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerGreeting}>{greeting},</Text>
+            <Text style={styles.headerName}>{userName}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveTime}>{formatTime(currentTime)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.body}>
+          <View style={styles.statusSection}>
+            <View style={[styles.outerRing, { backgroundColor: Colors.status.success?.light || '#E8F5E9' }]}>
+              <View style={[styles.middleRing]}>
+                <View style={styles.innerCircle}>
+                  <Ionicons name="checkmark-circle-outline" size={52} color={Colors.status.success?.vibrant || '#4CAF50'} />
+                </View>
+              </View>
+            </View>
+            <Text style={styles.statusText}>Journée complète</Text>
+            <Text style={styles.statusHint}>
+              Entrée : {todayAttendance?.checked_in_at ? formatTime(new Date(todayAttendance.checked_in_at)) : '—'}
+              {'  '}Sortie : {todayAttendance?.checked_out_at ? formatTime(new Date(todayAttendance.checked_out_at)) : '—'}
+            </Text>
+            {todayAttendance?.work_minutes != null && (
+              <Text style={[styles.statusHint, { marginTop: 8, fontFamily: 'Inter_600SemiBold' }]}>
+                Durée : {Math.floor(todayAttendance.work_minutes / 60)}h{String(todayAttendance.work_minutes % 60).padStart(2, '0')}
+                {todayAttendance.overtime_minutes > 0 && (
+                  ` (+${Math.floor(todayAttendance.overtime_minutes / 60)}h${String(todayAttendance.overtime_minutes % 60).padStart(2, '0')} sup)`
+                )}
+              </Text>
+            )}
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── IDLE STATE (not yet checked in, or checked in but not out) ──
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -254,15 +414,30 @@ export default function ClockInScreen() {
       <View style={styles.body}>
         {/* Status Illustration */}
         <View style={styles.statusSection}>
-          <View style={styles.outerRing}>
+          <View style={[
+            styles.outerRing,
+            nextAction === 'checkout' && { backgroundColor: Colors.status.warning?.light || '#FFF3E0' },
+          ]}>
             <View style={styles.middleRing}>
               <View style={styles.innerCircle}>
-                <Ionicons name="finger-print-outline" size={52} color={Colors.primary_vibrant} />
+                <Ionicons
+                  name={nextAction === 'checkout' ? 'log-out-outline' : 'finger-print-outline'}
+                  size={52}
+                  color={nextAction === 'checkout' ? (Colors.status.warning?.vibrant || '#F57C00') : Colors.primary_vibrant}
+                />
               </View>
             </View>
           </View>
-          <Text style={styles.statusText}>Vous n'avez pas encore pointe</Text>
-          <Text style={styles.statusHint}>Scannez le QR code sur site pour pointer</Text>
+          <Text style={styles.statusText}>
+            {nextAction === 'checkout'
+              ? 'Vous êtes en poste'
+              : 'Vous n\'avez pas encore pointé'}
+          </Text>
+          <Text style={styles.statusHint}>
+            {nextAction === 'checkout'
+              ? `Entrée à ${todayAttendance?.checked_in_at ? formatTime(new Date(todayAttendance.checked_in_at)) : '—'} — Scannez pour pointer la sortie`
+              : 'Scannez le QR code sur site pour pointer'}
+          </Text>
         </View>
 
         {/* Action Area */}
@@ -275,11 +450,20 @@ export default function ClockInScreen() {
           )}
 
           <PremiumButton
-            title="Scanner le QR Code"
+            title={nextAction === 'checkout' ? 'Pointer la Sortie' : 'Scanner le QR Code'}
             onPress={handleStartScan}
             size="lg"
-            style={styles.mainBtn}
-            icon={<Ionicons name="qr-code-outline" size={22} color={Colors.on_primary} />}
+            style={[
+              styles.mainBtn,
+              nextAction === 'checkout' && { backgroundColor: Colors.status.warning?.vibrant || '#F57C00' },
+            ]}
+            icon={
+              <Ionicons
+                name={nextAction === 'checkout' ? 'log-out-outline' : 'qr-code-outline'}
+                size={22}
+                color={Colors.on_primary}
+              />
+            }
           />
 
           <View style={styles.locationRow}>
@@ -584,6 +768,12 @@ const styles = StyleSheet.create({
   },
   confirmedBadge: {
     marginTop: 24,
+  },
+  confirmedDuration: {
+    ...Typography.body_md,
+    color: Colors.on_surface_variant,
+    marginTop: 12,
+    textAlign: 'center',
   },
   confirmedFooter: {
     width: '100%',

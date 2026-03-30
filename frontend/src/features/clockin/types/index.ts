@@ -32,3 +32,26 @@ export interface ClockInRequestPayload {
     pin_code?: string;
   };
 }
+
+export interface ClockOutRequestPayload {
+  employee_id: string;
+}
+
+export interface TodayStatusResponse {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  company_id: string;
+  department_id: string;
+  location_id: string | null;
+  location_name: string | null;
+  channel: string;
+  checked_in_at: string | null;
+  checked_out_at: string | null;
+  work_date: string;
+  late_minutes: number;
+  work_minutes: number | null;
+  overtime_minutes: number | null;
+  status: string;
+  status_label: string;
+}

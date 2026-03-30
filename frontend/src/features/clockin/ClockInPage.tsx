@@ -4,24 +4,51 @@
  *
  * Responsabilités:
  * - Orchestrer les composants de l'UI
- * - Gérer l'état du pointage
+ * - Gérer l'état du pointage (entrée + sortie)
  * - Afficher les messages de statut
  */
 
 import { useAuth } from '@/hooks/useAuth';
 import { useClockIn } from './hooks/useClockIn';
-import { useRealTimeClock, useQRCodeData } from './hooks/hooks';
-import { ClockCard, QRCodeCard, SuccessMessage, ErrorMessage } from './components';
+import { useClockOut } from './hooks/useClockOut';
+import { useRealTimeClock, useQRCodeData, useTodayStatus } from './hooks/hooks';
+import { ClockCard, QRCodeCard, SuccessMessage, ClockOutSuccessMessage, ErrorMessage } from './components';
 import { CLOCK_IN_MESSAGES, SPACING, LAYOUT } from './constants';
 
 export default function ClockInPage() {
   const { user } = useAuth();
-  const { mutate: clockIn, isPending, isSuccess, isError, error } = useClockIn();
   const currentTime = useRealTimeClock();
   const { qrToken, isLoading: qrLoading } = useQRCodeData(user?.employee_id);
+  const { todayAttendance, isCheckedIn, isCheckedOut } = useTodayStatus(user?.employee_id);
 
-  // Extraire le message d'erreur de manière sûre
-  const errorMessage = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Une erreur est survenue.';
+  const {
+    mutate: clockIn,
+    isPending: clockInPending,
+    isSuccess: clockInSuccess,
+    isError: clockInError,
+    error: clockInErrorObj,
+  } = useClockIn();
+
+  const {
+    mutate: clockOut,
+    isPending: clockOutPending,
+    isSuccess: clockOutSuccess,
+    isError: clockOutError,
+    error: clockOutErrorObj,
+  } = useClockOut();
+
+  // Determine clock state based on today's attendance
+  const clockState = isCheckedOut || clockOutSuccess
+    ? 'complete'
+    : isCheckedIn || clockInSuccess
+      ? 'checked_in'
+      : 'idle';
+
+  const isPending = clockInPending || clockOutPending;
+
+  // Extract error messages safely
+  const clockInErrorMessage = (clockInErrorObj as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Une erreur est survenue.';
+  const clockOutErrorMessage = (clockOutErrorObj as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Une erreur est survenue lors du pointage de sortie.';
 
   return (
     <div className="clock-in-container" style={{ maxWidth: LAYOUT.containerMaxWidth, margin: '0 auto' }}>
@@ -31,7 +58,11 @@ export default function ClockInPage() {
           {CLOCK_IN_MESSAGES.title}
         </h2>
         <p style={{ color: 'var(--text-muted)', marginTop: SPACING.sm }}>
-          {CLOCK_IN_MESSAGES.description}
+          {clockState === 'checked_in'
+            ? CLOCK_IN_MESSAGES.clockOutDescription
+            : clockState === 'complete'
+              ? CLOCK_IN_MESSAGES.dayCompleteDescription
+              : CLOCK_IN_MESSAGES.description}
         </p>
       </div>
 
@@ -47,18 +78,33 @@ export default function ClockInPage() {
           currentTime={currentTime}
           onClockIn={() => clockIn({
             channel: 'qr',
-            payload: { qr_token: qrToken || '' }
+            payload: { qr_token: qrToken || '' },
           })}
+          onClockOut={() => {
+            if (user?.employee_id) {
+              clockOut({ employee_id: user.employee_id });
+            }
+          }}
           isPending={isPending || qrLoading}
-          isSuccess={isSuccess}
+          clockState={clockState}
+          todayAttendance={todayAttendance}
         />
         <QRCodeCard qrValue={qrToken || ''} userId={user?.id} />
       </div>
 
       {/* Messages de statut */}
       <div style={{ marginTop: SPACING.lg }}>
-        {isSuccess && <SuccessMessage timestamp={new Date()} />}
-        {isError && <ErrorMessage message={errorMessage} />}
+        {clockInSuccess && clockState === 'checked_in' && !clockOutSuccess && (
+          <SuccessMessage timestamp={new Date()} />
+        )}
+        {(clockOutSuccess || (clockState === 'complete' && todayAttendance)) && (
+          <ClockOutSuccessMessage
+            workMinutes={todayAttendance?.work_minutes ?? null}
+            overtimeMinutes={todayAttendance?.overtime_minutes ?? null}
+          />
+        )}
+        {clockInError && <ErrorMessage message={clockInErrorMessage} />}
+        {clockOutError && <ErrorMessage message={clockOutErrorMessage} />}
       </div>
     </div>
   );

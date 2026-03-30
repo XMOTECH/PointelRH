@@ -14,6 +14,13 @@ class AttendanceRepository
             ->exists();
     }
 
+    public function findTodayForEmployee(string $employeeId): ?Attendance
+    {
+        return Attendance::where('employee_id', $employeeId)
+            ->where('work_date', Carbon::today())
+            ->first();
+    }
+
     public function create(array $data): Attendance
     {
         return Attendance::create($data);
