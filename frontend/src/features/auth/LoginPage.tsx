@@ -17,7 +17,8 @@ export function LoginPage() {
     setError(null);
     try {
       const user = await login(email, pass);
-      if (user.role === 'employee') navigate('/clock-in');
+      if (user.role === 'super_admin') navigate('/admin/companies');
+      else if (user.role === 'employee') navigate('/clock-in');
       else navigate('/dashboard');
     } catch (err) {
       const errorMsg = (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Identifiants invalides. Veuillez réessayer.';
@@ -32,7 +33,8 @@ export function LoginPage() {
     setError(null);
     try {
       const user = await loginWithGoogle(idToken);
-      if (user.role === 'employee') navigate('/clock-in');
+      if (user.role === 'super_admin') navigate('/admin/companies');
+      else if (user.role === 'employee') navigate('/clock-in');
       else navigate('/dashboard');
     } catch (err) {
       const errorMsg = (err as { response?: { data?: { error?: string; message?: string } } }).response?.data?.error || 

@@ -15,6 +15,7 @@ class ClockOutRequest extends FormRequest
     {
         return [
             'employee_id' => 'required|string',
+            'company_id'  => 'nullable|string',
         ];
     }
 }

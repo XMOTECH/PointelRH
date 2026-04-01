@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\RabbitMQService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
@@ -37,7 +36,7 @@ class UserController extends Controller
                 'company_id'  => $validated['company_id'],
                 'employee_id' => $validated['employee_id'],
                 'department_id' => $validated['department_id'],
-                'password'    => Hash::make($password), // Reset password for security if re-syncing
+                'password'    => $password, // Model cast handles hashing
                 'is_active'   => true,
             ]);
             $message = 'User updated successfully';
@@ -56,12 +55,8 @@ class UserController extends Controller
             $message = 'User created successfully';
         }
 
-        // Assign Spatie role
-        try {
-            $user->assignRole($validated['role']);
-        } catch (\Exception $e) {
-            // Ignore if role doesn't exist, though it should be seeded
-        }
+        // Sync Spatie role (auto-synced by model boot, but explicit here for clarity)
+        $user->syncRoles($validated['role']);
 
         // Publish event for notifications (credentials email)
         try {

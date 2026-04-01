@@ -7,7 +7,7 @@ import { useRealTimeClock } from '../clockin/hooks/hooks';
 import { useClockIn } from '../clockin/hooks/useClockIn';
 import { useClockOut } from '../clockin/hooks/useClockOut';
 import { cn } from '../../lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 
 type KioskAction = 'checkin' | 'checkout';
 
@@ -20,8 +20,23 @@ export default function KioskPage() {
   const [resolvedEmployeeId, setResolvedEmployeeId] = useState<string | null>(null);
 
   const currentTime = useRealTimeClock();
-  const { mutate: clockIn, isPending: clockInPending, isError: clockInError, isSuccess: clockInSuccess, data: clockInData, reset: resetClockIn } = useClockIn();
-  const { mutate: clockOut, isPending: clockOutPending, isError: clockOutError, isSuccess: clockOutSuccess, data: clockOutData, reset: resetClockOut } = useClockOut();
+  const { 
+    mutate: clockIn, 
+    isPending: clockInPending, 
+    error: clockInError, 
+    isSuccess: clockInSuccess, 
+    data: clockInData, 
+    reset: resetClockIn 
+  } = useClockIn();
+
+  const { 
+    mutate: clockOut, 
+    isPending: clockOutPending, 
+    error: clockOutError, 
+    isSuccess: clockOutSuccess, 
+    data: clockOutData, 
+    reset: resetClockOut 
+  } = useClockOut();
   const { user } = useAuth();
 
   const companyId = user?.company_id || new URLSearchParams(window.location.search).get('company_id');
@@ -80,7 +95,7 @@ export default function KioskPage() {
     if (clockInError) {
       const err = clockInError as { response?: { status?: number } };
       // Don't reset on 409 — the auto-clock-out handler will take over
-      if (err.response?.status !== 409) {
+      if (err?.response?.status !== 409) {
         const errorTimer = setTimeout(() => {
           setPin('');
         }, 0);
@@ -128,26 +143,50 @@ export default function KioskPage() {
   useEffect(() => {
     if (clockInError) {
       const err = clockInError as { response?: { status?: number; data?: { employee_id?: string } } };
-      if (err.response?.status === 409 && err.response?.data?.employee_id) {
+      if (err?.response?.status === 409 && err?.response?.data?.employee_id) {
         // Employee is already clocked in — auto-trigger clock-out with their ID
         const empId = err.response.data.employee_id;
         setResolvedEmployeeId(empId);
         setAction('checkout');
         resetClockIn();
-        clockOut({ employee_id: empId });
+        clockOut({ 
+          employee_id: empId,
+          company_id: companyId || undefined
+        });
       }
     }
   }, [clockInError, resetClockIn, clockOut]);
 
-  const handleKeyPress = (key: string) => {
+  const handleKeyPress = useCallback((key: string) => {
     if (pin.length < 4 && !isPending && !isSuccess) {
       setPin((prev) => prev + key);
     }
-  };
+  }, [pin.length, isPending, isSuccess]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     setPin((prev) => prev.slice(0, -1));
-  };
+  }, []);
+
+  // Physical Keyboard Support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Numbers 0-9 (Normal and Numpad)
+      if (/^[0-9]$/.test(e.key)) {
+        handleKeyPress(e.key);
+      } 
+      // Backspace for correction
+      else if (e.key === 'Backspace') {
+        handleDelete();
+      }
+      // Escape to reset if needed
+      else if (e.key === 'Escape') {
+        setPin('');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyPress, handleDelete]);
 
   const isCheckout = action === 'checkout';
 
@@ -241,7 +280,7 @@ export default function KioskPage() {
             />
 
             <div className="h-8 mt-8 flex items-center justify-center w-full">
-                {clockInError && !isCheckout && (clockInError as { response?: { status?: number } }).response?.status !== 409 && (
+                {clockInError && !isCheckout && (clockInError as any)?.response?.status !== 409 && (
                   <p className="text-[10px] font-bold tracking-widest text-red-500 uppercase animate-bounce">
                     PIN incorrect. réessayez.
                   </p>

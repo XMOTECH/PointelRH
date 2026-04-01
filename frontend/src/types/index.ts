@@ -4,7 +4,7 @@ export interface User {
   last_name: string;
   name?: string;         // Computed full name from backend
   email: string;
-  role: 'admin' | 'manager' | 'employee';
+  role: 'super_admin' | 'admin' | 'manager' | 'employee';
   department_id?: string;
   company_id?: string;
   employee_id?: string;

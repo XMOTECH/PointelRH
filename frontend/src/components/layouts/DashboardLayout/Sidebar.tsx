@@ -15,7 +15,7 @@ import {
   Building2,
   CalendarRange,
   PlaneTakeoff,
-  ShieldCheck
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -37,16 +37,21 @@ export const Sidebar: React.FC = () => {
     { icon: <Bell size={20} />, label: 'Live Monitor', path: '/monitor', roles: ['admin', 'manager'] },
     { icon: <ShieldCheck size={20} />, label: 'Utilisateurs', path: '/admin/users', roles: ['admin'] },
     { icon: <Settings size={20} />, label: 'Paramètres', path: '/settings', roles: ['admin'] },
-    
+
+    // ── Platform Admin (Super Admin) ──
+    { icon: <Building2 size={20} />, label: 'Entreprises', path: '/admin/companies', roles: ['super_admin'] },
+
+    // ── Employee ──
     { icon: <Clock size={20} />, label: 'Pointage', path: '/clock-in', roles: ['employee'] },
     { icon: <User size={20} />, label: 'Mon Profil', path: '/my-profile', roles: ['employee'] },
     { icon: <History size={20} />, label: 'Historique', path: '/my-attendance', roles: ['employee'] },
     { icon: <CalendarDays size={20} />, label: 'Mon Planning', path: '/my-schedule', roles: ['employee'] },
   ];
 
-  const filteredNavItems = navItems.filter(item => 
+  const filteredNavItems = navItems.filter(item =>
     user && item.roles.includes(user.role)
   );
+
 
   return (
     <aside className="w-64 bg-surface-container-low flex flex-col fixed inset-y-0 left-0 z-50 transition-all duration-300">
@@ -54,11 +59,12 @@ export const Sidebar: React.FC = () => {
         <h1 className="text-2xl font-display font-black text-on-surface tracking-tighter uppercase italic">
           Pointel<span className="text-primary not-italic">RH</span>
         </h1>
-        
+        {user?.role === 'super_admin' && (
+          <span className="text-[10px] font-bold uppercase tracking-widest text-primary/50 mt-1 block">Super Admin</span>
+        )}
       </div>
 
       <nav className="flex-1 px-4 flex flex-col gap-1">
-        
         {filteredNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -67,8 +73,8 @@ export const Sidebar: React.FC = () => {
               to={item.path}
               className={cn(
                 "group relative flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200",
-                isActive 
-                  ? "accent-bar bg-surface-container-highest text-primary font-semibold" 
+                isActive
+                  ? "accent-bar bg-surface-container-highest text-primary font-semibold"
                   : "text-on-surface-variant hover:bg-surface-container/50 hover:text-on-surface"
               )}
             >

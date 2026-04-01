@@ -5,56 +5,63 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Company;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // 1. Créer une entreprise par défaut (exactement celle attendue par l'Employee Service)
-        $companyId = '3a655ab3-1c07-404c-8201-a9226aeda728';
-        
-        $company = Company::firstOrCreate(
-            ['id' => $companyId],
-            ['name' => 'Pointel Test Company']
+        // 1. Always seed roles & permissions first
+        $this->call(RolesAndPermissionsSeeder::class);
+
+        // 2. System company for the super admin
+        $systemCompany = Company::firstOrCreate(
+            ['name' => 'Pointel Plateforme'],
+            ['plan' => 'enterprise', 'is_active' => true]
         );
 
-        // 2. Créer l'utilisateur Admin
-        $admin = User::where('email', 'admin@test.com')->first();
-        if (!$admin) {
-            User::create([
-                'id' => (string) Str::uuid(),
-                'email' => 'admin@test.com',
-                'name' => 'Admin Pointel',
-                'password' => Hash::make('password'),
-                'company_id' => $company->id,
-                'role' => 'admin',
-                'is_active' => true
-            ]);
-        } else {
-            $admin->update([
-                'name' => 'Admin Pointel',
-                'password' => Hash::make('password'),
-                'company_id' => $company->id,
-                'role' => 'admin',
-                'is_active' => true
-            ]);
-        }
-
-        // 3. Créer Optionnellement un utilisateur test générique
-        User::updateOrCreate(
-            ['email' => 'test@example.com'],
+        // 3. Super Admin (production-ready, change password after first login)
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'superadmin@pointel.rh'],
             [
-                'name' => 'Test User',
-                'password' => Hash::make('password'),
-                'company_id' => $company->id,
-                'role' => 'employee',
-                'is_active' => true
+                'name'       => 'Super Admin',
+                'password'   => 'ChangeMe@2026!',
+                'role'       => 'super_admin',
+                'company_id' => $systemCompany->id,
+                'is_active'  => true,
             ]
         );
+        $superAdmin->syncRoles('super_admin');
+
+        // 4. Test company (development/staging only)
+        if (app()->environment('local', 'staging', 'testing')) {
+            $testCompany = Company::firstOrCreate(
+                ['name' => 'Pointel Test Company'],
+                ['plan' => 'pro', 'is_active' => true]
+            );
+
+            $admin = User::firstOrCreate(
+                ['email' => 'admin@test.com'],
+                [
+                    'name'       => 'Admin Pointel',
+                    'password'   => 'password',
+                    'role'       => 'admin',
+                    'company_id' => $testCompany->id,
+                    'is_active'  => true,
+                ]
+            );
+            $admin->syncRoles('admin');
+
+            $testUser = User::firstOrCreate(
+                ['email' => 'test@example.com'],
+                [
+                    'name'       => 'Test User',
+                    'password'   => 'password',
+                    'role'       => 'employee',
+                    'company_id' => $testCompany->id,
+                    'is_active'  => true,
+                ]
+            );
+            $testUser->syncRoles('employee');
+        }
     }
 }

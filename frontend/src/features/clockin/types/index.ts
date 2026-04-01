@@ -18,6 +18,8 @@ export interface AttendanceResponse {
   time: string;
   channel: string;
   late_minutes?: number;
+  work_minutes?: number;
+  overtime_minutes?: number;
   employee?: {
     first_name: string;
     last_name: string;
@@ -36,6 +38,7 @@ export interface ClockInRequestPayload {
 
 export interface ClockOutRequestPayload {
   employee_id: string;
+  company_id?: string;
 }
 
 export interface TodayStatusResponse {

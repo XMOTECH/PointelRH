@@ -32,9 +32,15 @@ class ClockOutController extends BaseApiController
     public function store(ClockOutRequest $request): JsonResponse
     {
         try {
+            $companyId = $request->auth_company_id ?? $request->input('company_id');
+
+            if (!$companyId) {
+                return $this->respondError('ID de l\'entreprise manquant pour le pointage', 400);
+            }
+
             $attendance = $this->clockOutService->clockOut(
                 employeeId: $request->validated('employee_id'),
-                companyId: $request->auth_company_id,
+                companyId: $companyId,
             );
 
             LoggingService::info('Clock-out successful', [

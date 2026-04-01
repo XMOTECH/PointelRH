@@ -21,6 +21,7 @@ import { AdminLeaveRequestsPage } from '../features/leaves';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { MissionsPage } from '../features/missions/MissionsPage';
 import { MissionTrackingPage } from '../features/missions/MissionTrackingPage';
+import { CompanyListPage } from '../features/admin/companies/CompanyListPage';
 
 function RoleBasedRedirect() {
   const { user, loading } = useAuth();
@@ -31,6 +32,8 @@ function RoleBasedRedirect() {
 
     if (!user) {
       navigate('/login', { replace: true });
+    } else if (user.role === 'super_admin') {
+      navigate('/admin/companies', { replace: true });
     } else if (user.role === 'employee') {
       navigate('/clock-in', { replace: true });
     } else {
@@ -54,22 +57,20 @@ export function AppRoutes() {
       <Routes>
         {/* Public */}
         <Route path="/login/*" element={<LoginPage />} />
-
-        {/* KIOSK MVP */}
         <Route path="/kiosk" element={<KioskPage />} />
 
-        {/* Layout Wrapper */}
+        {/* Admin/Manager/Employee Layout */}
         <Route element={
-          <ProtectedRoute roles={['admin', 'manager', 'employee']}>
+          <ProtectedRoute roles={['admin', 'manager', 'employee', 'super_admin']}>
             <DashboardLayout />
           </ProtectedRoute>
         }>
+          {/* Admin & Manager routes */}
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/monitor" element={<LiveMonitorPage />} />
           <Route path="/locations" element={<QrLocationsPage />} />
           <Route path="/employees" element={<EmployeeListPage />} />
           <Route path="/managers" element={<ManagerListPage />} />
-          
           <Route path="/departments" element={<DepartmentListPage />} />
           <Route path="/schedules" element={<ScheduleListPage />} />
           <Route path="/schedules/planning" element={<WeeklyPlanningPage />} />
@@ -77,13 +78,23 @@ export function AppRoutes() {
           <Route path="/missions" element={<MissionsPage />} />
           <Route path="/missions/:id/tracking" element={<MissionTrackingPage />} />
           <Route path="/admin/users" element={<div className="p-8"><h1 className="text-2xl font-bold mb-4">Gestion des Utilisateurs</h1><p className="text-on-surface-variant">Chargement du module...</p></div>} />
-          
           <Route path="/settings" element={<SettingsPage />} />
+
+          {/* Employee routes */}
           <Route path="/clock-in" element={<ClockInPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/my-profile" element={<MyProfilePage />} />
           <Route path="/my-attendance" element={<MyAttendancePage />} />
           <Route path="/my-schedule" element={<MySchedulePage />} />
+        </Route>
+
+        {/* Super Admin routes — separate ProtectedRoute */}
+        <Route element={
+          <ProtectedRoute roles={['super_admin']}>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }>
+          <Route path="/admin/companies" element={<CompanyListPage />} />
         </Route>
 
         <Route path="/" element={<RoleBasedRedirect />} />
@@ -92,4 +103,3 @@ export function AppRoutes() {
     </BrowserRouter>
   );
 }
-
