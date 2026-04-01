@@ -3,8 +3,8 @@
 namespace App\Services\Drivers;
 
 use App\Contracts\ClockInDriver;
-use App\Services\DTOs\Employee;
 use App\Exceptions\InvalidTokenException;
+use App\Services\DTOs\Employee;
 use Illuminate\Support\Facades\Http;
 
 class WebDriver implements ClockInDriver
@@ -15,29 +15,29 @@ class WebDriver implements ClockInDriver
 
     public function validate(array $payload): bool
     {
-        return !empty($payload['user_id']) && is_string($payload['user_id']);
+        return ! empty($payload['user_id']) && is_string($payload['user_id']);
     }
 
     public function resolve(array $payload, string $companyId): Employee
     {
         // On résout l'employé via son user_id (authentifié sur le web)
         $response = Http::timeout(5)
-            ->get("{$this->employeeServiceUrl}/employees/by-user/" . ($payload['user_id'] ?? 'none'));
+            ->get("{$this->employeeServiceUrl}/employees/by-user/".($payload['user_id'] ?? 'none'));
 
-        if (!$response->successful()) {
-            throw new InvalidTokenException("Aucun employé lié à cet utilisateur ou service indisponible.");
+        if (! $response->successful()) {
+            throw new InvalidTokenException('Aucun employé lié à cet utilisateur ou service indisponible.');
         }
 
         $empData = $response->json('data');
-        if (!$empData) {
+        if (! $empData) {
             throw new InvalidTokenException("Données d'employé introuvables.");
         }
 
         if (($empData['status'] ?? 'active') !== 'active') {
-            throw new \RuntimeException("Votre profil employé est désactivé.");
+            throw new \RuntimeException('Votre profil employé est désactivé.');
         }
 
-        // Note: Sur le web, l'utilisateur est déjà dans sa session, 
+        // Note: Sur le web, l'utilisateur est déjà dans sa session,
         // on vérifie quand même la cohérence de l'entreprise si nécessaire.
         if (($empData['company_id'] ?? null) !== $companyId) {
             throw new InvalidTokenException("Incohérence d'entreprise détectée.");
@@ -56,10 +56,13 @@ class WebDriver implements ClockInDriver
                 'start_time' => $scheduleData['start_time'],
                 'grace_minutes' => $scheduleData['grace_minutes'],
                 'work_days' => $scheduleData['work_days'],
-                'timezone' => $scheduleData['timezone'] ?? env('APP_TIMEZONE', 'Africa/Dakar')
+                'timezone' => $scheduleData['timezone'] ?? env('APP_TIMEZONE', 'Africa/Dakar'),
             ] : null,
         ]);
     }
 
-    public function channelName(): string { return 'web'; }
+    public function channelName(): string
+    {
+        return 'web';
+    }
 }

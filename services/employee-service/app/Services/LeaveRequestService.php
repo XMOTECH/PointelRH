@@ -3,9 +3,7 @@
 namespace App\Services;
 
 use App\Models\LeaveRequest;
-use App\Enums\EmployeeStatus;
 use Illuminate\Support\Collection;
-use Carbon\Carbon;
 
 class LeaveRequestService
 {
@@ -29,6 +27,7 @@ class LeaveRequestService
     public function update(LeaveRequest $leaveRequest, array $data): LeaveRequest
     {
         $leaveRequest->update($data);
+
         return $leaveRequest;
     }
 

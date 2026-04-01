@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\AttendanceStatus;
+use App\Models\Scopes\CompanyScope;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Enums\AttendanceStatus;
 
 class Attendance extends Model
 {
@@ -13,7 +14,7 @@ class Attendance extends Model
 
     protected static function booted()
     {
-        static::addGlobalScope(new \App\Models\Scopes\CompanyScope);
+        static::addGlobalScope(new CompanyScope);
     }
 
     protected $fillable = [
@@ -38,13 +39,13 @@ class Attendance extends Model
     ];
 
     protected $casts = [
-        'checked_in_at'  => 'datetime',
+        'checked_in_at' => 'datetime',
         'checked_out_at' => 'datetime',
-        'work_date'      => 'date',
-        'status'         => AttendanceStatus::class,
-        'metadata'       => 'array',
-        'late_minutes'   => 'integer',
-        'work_minutes'   => 'integer',
+        'work_date' => 'date',
+        'status' => AttendanceStatus::class,
+        'metadata' => 'array',
+        'late_minutes' => 'integer',
+        'work_minutes' => 'integer',
         'overtime_minutes' => 'integer',
     ];
 
@@ -55,6 +56,6 @@ class Attendance extends Model
 
     public function hasCheckedOut(): bool
     {
-        return !is_null($this->checked_out_at);
+        return ! is_null($this->checked_out_at);
     }
 }

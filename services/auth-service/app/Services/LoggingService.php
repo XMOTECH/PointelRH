@@ -21,7 +21,7 @@ class LoggingService
     /**
      * Log une erreur de traitement
      */
-    public static function error(string $message, \Throwable $exception = null, array $context = []): void
+    public static function error(string $message, ?\Throwable $exception = null, array $context = []): void
     {
         if ($exception) {
             $context['exception'] = $exception->getMessage();

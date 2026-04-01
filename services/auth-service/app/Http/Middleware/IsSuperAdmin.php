@@ -12,7 +12,7 @@ class IsSuperAdmin
     {
         $user = $request->user();
 
-        if (!$user || !$user->hasRole('super_admin')) {
+        if (! $user || ! $user->hasRole('super_admin')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Accès refusé. Droits de Super Admin requis.',

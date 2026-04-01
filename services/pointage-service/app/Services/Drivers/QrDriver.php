@@ -3,8 +3,8 @@
 namespace App\Services\Drivers;
 
 use App\Contracts\ClockInDriver;
-use App\Services\DTOs\Employee;
 use App\Exceptions\InvalidTokenException;
+use App\Services\DTOs\Employee;
 use Illuminate\Support\Facades\Http;
 
 class QrDriver implements ClockInDriver
@@ -15,7 +15,7 @@ class QrDriver implements ClockInDriver
 
     public function validate(array $payload): bool
     {
-        return !empty($payload['qr_token']) && is_string($payload['qr_token']);
+        return ! empty($payload['qr_token']) && is_string($payload['qr_token']);
     }
 
     public function resolve(array $payload, string $companyId): Employee
@@ -23,23 +23,23 @@ class QrDriver implements ClockInDriver
         // Appel HTTP vers le service employee pour récupérer l'employé ET son planning complet (requis pour le pointage)
         $response = Http::timeout(5)
             ->post("{$this->employeeServiceUrl}/employees/resolve-qr", [
-                'qr_token' => $payload['qr_token']
+                'qr_token' => $payload['qr_token'],
             ]);
 
-        if (!$response->successful()) {
-            throw new InvalidTokenException("QR token inconnu, invalide ou employé inactif.");
+        if (! $response->successful()) {
+            throw new InvalidTokenException('QR token inconnu, invalide ou employé inactif.');
         }
 
         $resData = $response->json('data');
         $empData = $resData['employee'] ?? null;
         $scheduleData = $resData['schedule'] ?? null;
 
-        if (!$empData) {
-            throw new InvalidTokenException("Employé introuvable.");
+        if (! $empData) {
+            throw new InvalidTokenException('Employé introuvable.');
         }
 
         if (($empData['status'] ?? 'active') !== 'active') {
-            throw new \RuntimeException("Cet employé est désactivé.");
+            throw new \RuntimeException('Cet employé est désactivé.');
         }
 
         if (($empData['company_id'] ?? null) !== $companyId) {
@@ -57,10 +57,13 @@ class QrDriver implements ClockInDriver
                 'start_time' => $scheduleData['start_time'],
                 'grace_minutes' => $scheduleData['grace_minutes'],
                 'work_days' => $scheduleData['work_days'],
-                'timezone' => $scheduleData['timezone'] ?? env('APP_TIMEZONE', 'Africa/Dakar')
+                'timezone' => $scheduleData['timezone'] ?? env('APP_TIMEZONE', 'Africa/Dakar'),
             ] : null,
         ]);
     }
 
-    public function channelName(): string { return 'qr'; }
+    public function channelName(): string
+    {
+        return 'qr';
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Enums\EmployeeStatus;
 use App\Models\Employee;
 use Illuminate\Support\Collection;
 
@@ -42,6 +43,7 @@ class EmployeeRepository
     {
         $employee = $this->findById($id);
         $employee->update($data);
+
         return $employee;
     }
 
@@ -75,7 +77,7 @@ class EmployeeRepository
     public function findActiveByCompanyId(string $companyId): Collection
     {
         return Employee::where('company_id', $companyId)
-            ->where('status', \App\Enums\EmployeeStatus::ACTIVE)
+            ->where('status', EmployeeStatus::ACTIVE)
             ->get();
     }
 
@@ -86,19 +88,19 @@ class EmployeeRepository
     {
         $query = Employee::where('company_id', $companyId);
 
-        if (!empty($filters['department_id'])) {
+        if (! empty($filters['department_id'])) {
             $query->where('department_id', $filters['department_id']);
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['contract_type'])) {
+        if (! empty($filters['contract_type'])) {
             $query->where('contract_type', $filters['contract_type']);
         }
 
-        if (!empty($filters['role'])) {
+        if (! empty($filters['role'])) {
             $query->where('role', $filters['role']);
         }
 

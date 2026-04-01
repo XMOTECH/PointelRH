@@ -19,10 +19,10 @@ class Setting extends Model
     public function getValueAttribute($value)
     {
         return match ($this->type) {
-            'json'    => json_decode($value, true),
+            'json' => json_decode($value, true),
             'boolean' => (bool) $value,
             'integer' => (int) $value,
-            default   => $value,
+            default => $value,
         };
     }
 
@@ -45,6 +45,7 @@ class Setting extends Model
     public static function get(string $key, $default = null)
     {
         $setting = self::where('key', $key)->first();
+
         return $setting ? $setting->value : $default;
     }
 

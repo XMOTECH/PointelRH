@@ -16,8 +16,7 @@ export default function KioskPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [action, setAction] = useState<KioskAction>('checkin');
 
-  // Track the resolved employee for clock-out after clock-in identifies them
-  const [resolvedEmployeeId, setResolvedEmployeeId] = useState<string | null>(null);
+  // Prevent multiple clock-outs for the same event
 
   const currentTime = useRealTimeClock();
   const { 
@@ -42,7 +41,6 @@ export default function KioskPage() {
   const companyId = user?.company_id || new URLSearchParams(window.location.search).get('company_id');
 
   const isPending = clockInPending || clockOutPending;
-  const isError = clockInError || clockOutError;
   const isSuccess = clockInSuccess || clockOutSuccess;
 
   // PIN always attempts clock-in. If 409 (already clocked in), the useEffect
@@ -54,8 +52,21 @@ export default function KioskPage() {
       channel: 'pin',
       company_id: companyId,
       payload: { pin_code: pinCode },
+    }, {
+      onError: (error) => {
+        const err = error as { response?: { status?: number; data?: { employee_id?: string } } };
+        if (err?.response?.status === 409 && err?.response?.data?.employee_id) {
+          const empId = err.response.data.employee_id;
+          setAction('checkout');
+          resetClockIn();
+          clockOut({ 
+            employee_id: empId,
+            company_id: companyId || undefined
+          });
+        }
+      }
     });
-  }, [companyId, clockIn]);
+  }, [companyId, clockIn, clockOut, resetClockIn]);
 
   // Auto-submit when 4 digits
   useEffect(() => {
@@ -72,8 +83,6 @@ export default function KioskPage() {
       const firstName = clockInData.employee?.first_name || 'Employé';
       const timeStr = format(new Date(), 'HH:mm');
 
-      setResolvedEmployeeId(employeeId);
-
       const successTimer = setTimeout(() => {
         setSuccessMsg(`Bonjour ${firstName}, pointage enregistré à ${timeStr}`);
       }, 0);
@@ -82,7 +91,6 @@ export default function KioskPage() {
         setPin('');
         setSuccessMsg('');
         setAction('checkin');
-        setResolvedEmployeeId(null);
         resetClockIn();
       }, 4000);
 
@@ -119,7 +127,6 @@ export default function KioskPage() {
         setPin('');
         setSuccessMsg('');
         setAction('checkin');
-        setResolvedEmployeeId(null);
         resetClockOut();
       }, 4000);
 
@@ -133,29 +140,12 @@ export default function KioskPage() {
       const errorTimer = setTimeout(() => {
         setPin('');
         setAction('checkin');
-        setResolvedEmployeeId(null);
       }, 0);
       return () => clearTimeout(errorTimer);
     }
   }, [clockOutSuccess, clockOutError, clockOutData, resetClockOut]);
 
-  // After clock-in 409 (already clocked in) — extract employee_id and auto-clock-out
-  useEffect(() => {
-    if (clockInError) {
-      const err = clockInError as { response?: { status?: number; data?: { employee_id?: string } } };
-      if (err?.response?.status === 409 && err?.response?.data?.employee_id) {
-        // Employee is already clocked in — auto-trigger clock-out with their ID
-        const empId = err.response.data.employee_id;
-        setResolvedEmployeeId(empId);
-        setAction('checkout');
-        resetClockIn();
-        clockOut({ 
-          employee_id: empId,
-          company_id: companyId || undefined
-        });
-      }
-    }
-  }, [clockInError, resetClockIn, clockOut]);
+  // Removed the 409 auto-checkout useEffect (now handled in handlePinSubmit's onError)
 
   const handleKeyPress = useCallback((key: string) => {
     if (pin.length < 4 && !isPending && !isSuccess) {
@@ -317,7 +307,6 @@ export default function KioskPage() {
                 onClick={() => {
                   setAction('checkin');
                   setPin('');
-                  setResolvedEmployeeId(null);
                   resetClockIn();
                   resetClockOut();
                 }}

@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\Employee;
-use App\Models\ScheduleOverride;
 use App\Models\LeaveRequest;
+use App\Models\ScheduleOverride;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -17,24 +17,24 @@ class PlanningService
     {
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
-        
+
         $employee = Employee::with('schedule')->findOrFail($employeeId);
-        
+
         // Fetch all relevant data in bulk
         $overrides = ScheduleOverride::where('employee_id', $employeeId)
             ->whereBetween('date', [$start, $end])
             ->get()
-            ->keyBy(fn($o) => $o->date->format('Y-m-d'));
-            
+            ->keyBy(fn ($o) => $o->date->format('Y-m-d'));
+
         $leaves = LeaveRequest::where('employee_id', $employeeId)
             ->where('status', 'approved')
             ->where(function ($query) use ($start, $end) {
                 $query->whereBetween('start_date', [$start, $end])
-                      ->orWhereBetween('end_date', [$start, $end])
-                      ->orWhere(function ($q) use ($start, $end) {
-                          $q->where('start_date', '<=', $start)
+                    ->orWhereBetween('end_date', [$start, $end])
+                    ->orWhere(function ($q) use ($start, $end) {
+                        $q->where('start_date', '<=', $start)
                             ->where('end_date', '>=', $end);
-                      });
+                    });
             })
             ->get();
 
@@ -44,7 +44,7 @@ class PlanningService
         while ($current->lte($end)) {
             $dateStr = $current->format('Y-m-d');
             $dayOfWeek = $current->dayOfWeekIso; // 1 (Mon) to 7 (Sun)
-            
+
             $dayResult = [
                 'date' => $dateStr,
                 'status' => 'rest', // default
@@ -69,16 +69,16 @@ class PlanningService
                     $dayResult['start_time'] = $override->start_time;
                     $dayResult['end_time'] = $override->end_time;
                 }
-            } 
+            }
             // 2. Check Approved Leaves
-            else if ($this->isDateInLeaves($current, $leaves)) {
+            elseif ($this->isDateInLeaves($current, $leaves)) {
                 $leave = $this->getLeaveForDate($current, $leaves);
                 $dayResult['status'] = 'leave';
                 $dayResult['type'] = 'leave';
                 $dayResult['reason'] = $leave->leave_type;
             }
             // 3. Fallback to Template
-            else if ($employee->schedule && $employee->schedule->isWorkDay($dayOfWeek)) {
+            elseif ($employee->schedule && $employee->schedule->isWorkDay($dayOfWeek)) {
                 $dayResult['status'] = 'work';
                 $dayResult['start_time'] = $employee->schedule->start_time;
                 $dayResult['end_time'] = $employee->schedule->end_time;
@@ -93,11 +93,11 @@ class PlanningService
 
     private function isDateInLeaves(Carbon $date, Collection $leaves): bool
     {
-        return $leaves->contains(fn($l) => $date->between($l->start_date, $l->end_date));
+        return $leaves->contains(fn ($l) => $date->between($l->start_date, $l->end_date));
     }
 
     private function getLeaveForDate(Carbon $date, Collection $leaves): ?LeaveRequest
     {
-        return $leaves->first(fn($l) => $date->between($l->start_date, $l->end_date));
+        return $leaves->first(fn ($l) => $date->between($l->start_date, $l->end_date));
     }
 }

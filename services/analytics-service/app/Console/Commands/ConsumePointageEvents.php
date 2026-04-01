@@ -2,14 +2,16 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Services\KpiCacheService;
+use App\Services\SnapshotUpdater;
+use Illuminate\Console\Command;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class ConsumePointageEvents extends Command
 {
     protected $signature = 'rabbitmq:consume-analytics';
+
     protected $description = 'Consume pointage events to invalidate Redis caches immediately';
 
     public function handle(KpiCacheService $kpiCache)
@@ -26,14 +28,16 @@ class ConsumePointageEvents extends Command
 
             $channel->exchange_declare($exchange, 'fanout', false, true, false);
 
-            list($queue_name, ,) = $channel->queue_declare('', false, false, true, false);
+            [$queue_name] = $channel->queue_declare('', false, false, true, false);
             $channel->queue_bind($queue_name, $exchange);
 
-            $this->info(" [*] Analytics Worker waiting for clock-in/out events.");
+            $this->info(' [*] Analytics Worker waiting for clock-in/out events.');
 
             $callback = function (AMQPMessage $msg) use ($kpiCache) {
                 $payload = json_decode($msg->body, true);
-                if (!$payload) return;
+                if (! $payload) {
+                    return;
+                }
 
                 $event = $payload['event'] ?? '';
                 $data = $payload['data'] ?? [];
@@ -45,7 +49,7 @@ class ConsumePointageEvents extends Command
                     if ($companyId && $date) {
                         // 1. Generate KPIs in Database FIRST
                         $data['event'] = $event; // SnapshotUpdater expects 'event' inside payload
-                        app(\App\Services\SnapshotUpdater::class)->updateFromAttendance($data);
+                        app(SnapshotUpdater::class)->updateFromAttendance($data);
                         $this->info(" [v] Generated DailySnapshot stats for company: {$companyId}");
 
                         // 2. Clear Redis caches immediately
@@ -67,7 +71,8 @@ class ConsumePointageEvents extends Command
             $connection->close();
 
         } catch (\Exception $e) {
-            $this->error("Error connecting to RabbitMQ: " . $e->getMessage());
+            $this->error('Error connecting to RabbitMQ: '.$e->getMessage());
+
             return 1;
         }
 

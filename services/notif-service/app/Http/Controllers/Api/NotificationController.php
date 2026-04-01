@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Services\LoggingService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
@@ -21,7 +21,7 @@ class NotificationController extends Controller
 
             // Optionally, the frontend might send an employee_id or manager_id header
             // to filter notifications specific to the authenticated user.
-            
+
             $notifications = Notification::where('company_id', $companyId)
                 ->orderBy('created_at', 'desc')
                 ->limit(50)
@@ -29,13 +29,14 @@ class NotificationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $notifications
+                'data' => $notifications,
             ]);
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve notifications', $e);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Impossible de récupérer les notifications'
+                'message' => 'Impossible de récupérer les notifications',
             ], 500);
         }
     }

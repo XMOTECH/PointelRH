@@ -2,15 +2,17 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Department;
 use App\Services\KpiCacheService;
+use App\Services\SnapshotUpdater;
+use Illuminate\Console\Command;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class ConsumeEmployeeEvents extends Command
 {
     protected $signature = 'rabbitmq:consume-employees';
+
     protected $description = 'Consume employee events to sync department employee counts';
 
     public function handle(KpiCacheService $kpiCache)
@@ -27,14 +29,16 @@ class ConsumeEmployeeEvents extends Command
 
             $channel->exchange_declare($exchange, 'fanout', false, true, false);
 
-            list($queue_name, ,) = $channel->queue_declare('analytics_employee_queue', false, true, false, false);
+            [$queue_name] = $channel->queue_declare('analytics_employee_queue', false, true, false, false);
             $channel->queue_bind($queue_name, $exchange);
 
-            $this->info(" [*] Analytics Employee Worker waiting for events.");
+            $this->info(' [*] Analytics Employee Worker waiting for events.');
 
-            $callback = function (AMQPMessage $msg) use ($kpiCache) {
+            $callback = function (AMQPMessage $msg) {
                 $payload = json_decode($msg->body, true);
-                if (!$payload) return;
+                if (! $payload) {
+                    return;
+                }
 
                 $event = $payload['event'] ?? '';
                 $data = $payload['data'] ?? [];
@@ -66,7 +70,8 @@ class ConsumeEmployeeEvents extends Command
             $connection->close();
 
         } catch (\Exception $e) {
-            $this->error("Error connecting to RabbitMQ: " . $e->getMessage());
+            $this->error('Error connecting to RabbitMQ: '.$e->getMessage());
+
             return 1;
         }
 
@@ -77,20 +82,20 @@ class ConsumeEmployeeEvents extends Command
     {
         $deptId = $data['department_id'] ?? null;
         $companyId = $data['company_id'] ?? null;
-        
+
         if ($deptId && $companyId) {
             $dept = Department::firstOrCreate(
                 ['id' => $deptId],
                 ['company_id' => $companyId, 'employee_count' => 0]
             );
             $dept->increment('employee_count');
-            
+
             // Update today's snapshot immediately
-            app(\App\Services\SnapshotUpdater::class)->updateSnapshotBaseCount($deptId, $companyId, $dept->employee_count);
-            
+            app(SnapshotUpdater::class)->updateSnapshotBaseCount($deptId, $companyId, $dept->employee_count);
+
             // Invalidate KPI Cache
-            app(\App\Services\KpiCacheService::class)->invalidate($companyId, now()->toDateString());
-            
+            app(KpiCacheService::class)->invalidate($companyId, now()->toDateString());
+
             $this->info(" [v] Incremented employee_count and updated snapshot for department: {$deptId}");
         }
     }
@@ -104,12 +109,12 @@ class ConsumeEmployeeEvents extends Command
             $dept = Department::find($deptId);
             if ($dept && $dept->employee_count > 0) {
                 $dept->decrement('employee_count');
-                
+
                 if ($companyId) {
-                    app(\App\Services\SnapshotUpdater::class)->updateSnapshotBaseCount($deptId, $companyId, $dept->employee_count);
-                    app(\App\Services\KpiCacheService::class)->invalidate($companyId, now()->toDateString());
+                    app(SnapshotUpdater::class)->updateSnapshotBaseCount($deptId, $companyId, $dept->employee_count);
+                    app(KpiCacheService::class)->invalidate($companyId, now()->toDateString());
                 }
-                
+
                 $this->info(" [v] Decremented employee_count and updated snapshot for department: {$deptId}");
             }
         }

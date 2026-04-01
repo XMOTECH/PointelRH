@@ -18,6 +18,7 @@ class HandleAbsenceDetected implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $backoff = 30;
 
     public function __construct(public array $payload) {}
@@ -27,7 +28,7 @@ class HandleAbsenceDetected implements ShouldQueue
         DeduplicationService $dedup,
     ): void {
         $eventId = $this->payload['event_id'] ?? md5(json_encode($this->payload));
-        
+
         if ($dedup->alreadyProcessed("absence:{$eventId}")) {
             return;
         }
@@ -37,8 +38,9 @@ class HandleAbsenceDetected implements ShouldQueue
 
         $context = $this->resolveContext($employeeId, $companyId);
 
-        if (!$context) {
+        if (! $context) {
             Log::error("Could not resolve context for employee {$employeeId}");
+
             return;
         }
 
@@ -71,7 +73,7 @@ class HandleAbsenceDetected implements ShouldQueue
                 return $response->json('data');
             }
         } catch (\Exception $e) {
-            Log::error("Error resolving context from Employee Service: " . $e->getMessage());
+            Log::error('Error resolving context from Employee Service: '.$e->getMessage());
         }
 
         return null;

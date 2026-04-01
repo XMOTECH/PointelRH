@@ -11,7 +11,7 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, HasUuids, Notifiable, HasRoles;
+    use HasFactory, HasRoles, HasUuids, Notifiable;
 
     protected $fillable = [
         'name',
@@ -74,8 +74,8 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [
-            'role'          => $this->role,
-            'company_id'    => $this->company_id,
+            'role' => $this->role,
+            'company_id' => $this->company_id,
             'department_id' => $this->department_id,
         ];
     }

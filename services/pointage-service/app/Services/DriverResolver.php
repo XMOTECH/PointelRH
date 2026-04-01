@@ -16,11 +16,12 @@ class DriverResolver
 
     public function resolve(string $channel): ClockInDriver
     {
-        if (!isset($this->drivers[$channel])) {
+        if (! isset($this->drivers[$channel])) {
             throw new ChannelNotSupportedException(
-                "Canal '$channel' non supporte. Disponibles: " . implode(', ', array_keys($this->drivers))
+                "Canal '$channel' non supporte. Disponibles: ".implode(', ', array_keys($this->drivers))
             );
         }
+
         return $this->drivers[$channel];
     }
 }

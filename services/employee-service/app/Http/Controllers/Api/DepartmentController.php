@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\InvalidDataException;
+use App\Exceptions\ResourceNotFoundException;
 use App\Http\Resources\DepartmentResource;
 use App\Services\DepartmentService;
 use App\Services\LoggingService;
-use App\Exceptions\ResourceNotFoundException;
-use App\Exceptions\InvalidDataException;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
  * DepartmentController
  * Gère les opérations CRUD sur les départements
- * 
+ *
  * Responsabilités:
  * - Valider les entrées
  * - Appeler les services métier
@@ -26,17 +26,15 @@ class DepartmentController extends BaseApiController
     public function __construct(
         private readonly DepartmentService $departmentService
     ) {}
-   /**
+
+    /**
      * Lister tous les départements de la compagnie
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
         try {
             $departments = $this->departmentService->list($request->auth_company_id);
-            
+
             LoggingService::info('Departments list retrieved', [
                 'company_id' => $request->auth_company_id,
                 'count' => $departments->count(),
@@ -49,15 +47,13 @@ class DepartmentController extends BaseApiController
             );
         } catch (\Exception $e) {
             LoggingService::error('Failed to list departments', $e);
+
             return $this->respondServerError();
         }
     }
 
     /**
      * Créer un nouveau département
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
@@ -79,22 +75,21 @@ class DepartmentController extends BaseApiController
             );
         } catch (ValidationException $e) {
             LoggingService::warning('Validation failed when creating department', ['errors' => $e->errors()]);
+
             return $this->respondValidationError($e->errors());
         } catch (InvalidDataException $e) {
             LoggingService::warning('Invalid data when creating department', ['error' => $e->getMessage()]);
+
             return $this->respondError($e->getMessage(), 422);
         } catch (\Exception $e) {
             LoggingService::error('Failed to create department', $e);
+
             return $this->respondServerError();
         }
     }
 
     /**
      * Récupérer un département spécifique
-     *
-     * @param string $id
-     * @param Request $request
-     * @return JsonResponse
      */
     public function show(string $id, Request $request): JsonResponse
     {
@@ -112,19 +107,17 @@ class DepartmentController extends BaseApiController
             );
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Department not found', ['department_id' => $id]);
+
             return $this->respondNotFound('Department not found');
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve department', $e);
+
             return $this->respondServerError();
         }
     }
 
     /**
      * Modifier un département
-     *
-     * @param Request $request
-     * @param string $id
-     * @return JsonResponse
      */
     public function update(Request $request, string $id): JsonResponse
     {
@@ -145,25 +138,25 @@ class DepartmentController extends BaseApiController
             );
         } catch (ValidationException $e) {
             LoggingService::warning('Validation failed when updating department', ['errors' => $e->errors()]);
+
             return $this->respondValidationError($e->errors());
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Department not found for update', ['department_id' => $id]);
+
             return $this->respondNotFound('Department not found');
         } catch (InvalidDataException $e) {
             LoggingService::warning('Invalid data when updating department', ['error' => $e->getMessage()]);
+
             return $this->respondError($e->getMessage(), 422);
         } catch (\Exception $e) {
             LoggingService::error('Failed to update department', $e);
+
             return $this->respondServerError();
         }
     }
 
     /**
      * Supprimer un département
-     *
-     * @param string $id
-     * @param Request $request
-     * @return JsonResponse
      */
     public function destroy(string $id, Request $request): JsonResponse
     {
@@ -177,11 +170,12 @@ class DepartmentController extends BaseApiController
             );
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Department not found for deletion', ['department_id' => $id]);
+
             return $this->respondNotFound('Department not found');
         } catch (\Exception $e) {
             LoggingService::error('Failed to delete department', $e);
+
             return $this->respondServerError();
         }
     }
 }
-

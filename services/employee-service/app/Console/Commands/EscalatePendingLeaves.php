@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\LeaveRequestService;
 use Illuminate\Console\Command;
 
 class EscalatePendingLeaves extends Command
@@ -23,7 +24,7 @@ class EscalatePendingLeaves extends Command
     /**
      * Execute the console command.
      */
-    public function handle(\App\Services\LeaveRequestService $leaveService)
+    public function handle(LeaveRequestService $leaveService)
     {
         $this->info('Checking for leave requests to escalate...');
 
@@ -31,6 +32,7 @@ class EscalatePendingLeaves extends Command
 
         if ($requests->isEmpty()) {
             $this->info('No requests found for escalation.');
+
             return 0;
         }
 
@@ -40,6 +42,7 @@ class EscalatePendingLeaves extends Command
         }
 
         $this->info('Escalation process completed.');
+
         return 0;
     }
 }

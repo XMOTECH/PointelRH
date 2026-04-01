@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Modal } from '../../../../components/ui/Modal';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
@@ -23,11 +23,15 @@ const initialFormData: CreateCompanyData = {
 
 export function CompanyCreateModal({ open, onClose, onSubmit, isLoading }: CompanyCreateModalProps) {
   const [formData, setFormData] = useState<CreateCompanyData>(initialFormData);
+  const [prevOpen, setPrevOpen] = useState(open);
 
-  // Reset form when modal opens
-  useEffect(() => {
-    if (open) setFormData(initialFormData);
-  }, [open]);
+  // Reset form when modal opens (render phase update instead of effect)
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setFormData(initialFormData);
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -35,7 +35,7 @@ class EmployeeCredentialsMail extends Mailable
                 'credentialValue' => $this->credentialValue,
                 'password' => $this->password,
                 'email' => $this->email,
-                'loginUrl' => config('app.frontend_url', 'http://localhost:5173') . '/login',
+                'loginUrl' => config('app.frontend_url', 'http://localhost:5173').'/login',
             ],
         );
     }

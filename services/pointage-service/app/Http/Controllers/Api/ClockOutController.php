@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\AttendanceNotFoundException;
+use App\Exceptions\NotClockedInException;
 use App\Http\Requests\ClockOutRequest;
 use App\Http\Resources\AttendanceResource;
 use App\Services\ClockOutService;
 use App\Services\LoggingService;
-use App\Exceptions\AttendanceNotFoundException;
-use App\Exceptions\NotClockedInException;
+use App\Services\RabbitMQService;
 use Illuminate\Http\JsonResponse;
 
 /**
  * ClockOutController
  * Gère les demandes de pointage de sortie
- * 
+ *
  * Responsabilités:
  * - Valider les entrées
  * - Appeler le service métier
@@ -34,7 +35,7 @@ class ClockOutController extends BaseApiController
         try {
             $companyId = $request->auth_company_id ?? $request->input('company_id');
 
-            if (!$companyId) {
+            if (! $companyId) {
                 return $this->respondError('ID de l\'entreprise manquant pour le pointage', 400);
             }
 
@@ -49,7 +50,7 @@ class ClockOutController extends BaseApiController
             ]);
 
             // Broadcast event to clear Analytics cache
-            (new \App\Services\RabbitMQService())->publishEvent('EmployeeCheckedOut', [
+            (new RabbitMQService)->publishEvent('EmployeeCheckedOut', [
                 'employee_id' => $attendance->employee_id,
                 'company_id' => $attendance->company_id,
                 'department_id' => $attendance->department_id,
@@ -65,14 +66,17 @@ class ClockOutController extends BaseApiController
 
         } catch (AttendanceNotFoundException $e) {
             LoggingService::warning('Clock-out failed: attendance not found', ['error' => $e->getMessage()]);
+
             return $this->respondNotFound($e->getMessage());
 
         } catch (NotClockedInException $e) {
             LoggingService::warning('Clock-out failed: not clocked in', ['error' => $e->getMessage()]);
+
             return $this->respondConflict($e->getMessage());
 
         } catch (\Exception $e) {
             LoggingService::error('Clock-out error', $e);
+
             return $this->respondServerError('Une erreur est survenue lors du pointage de sortie');
         }
     }

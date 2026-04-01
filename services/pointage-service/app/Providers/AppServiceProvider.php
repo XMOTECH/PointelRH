@@ -2,6 +2,15 @@
 
 namespace App\Providers;
 
+use App\Events\EventPublisher;
+use App\Repositories\AttendanceRepository;
+use App\Services\ClockInService;
+use App\Services\ClockOutService;
+use App\Services\DriverResolver;
+use App\Services\Drivers\LocationQrDriver;
+use App\Services\Drivers\PinDriver;
+use App\Services\Drivers\QrDriver;
+use App\Services\Drivers\WebDriver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,46 +20,47 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(\App\Repositories\AttendanceRepository::class, \App\Repositories\AttendanceRepository::class);
-        $this->app->singleton(\App\Events\EventPublisher::class, \App\Events\EventPublisher::class);
+        $this->app->singleton(AttendanceRepository::class, AttendanceRepository::class);
+        $this->app->singleton(EventPublisher::class, EventPublisher::class);
 
-        $this->app->singleton(\App\Services\Drivers\QrDriver::class, function ($app) {
-            return new \App\Services\Drivers\QrDriver(config('services.employee.url'));
+        $this->app->singleton(QrDriver::class, function ($app) {
+            return new QrDriver(config('services.employee.url'));
         });
 
-        $this->app->singleton(\App\Services\Drivers\PinDriver::class, function ($app) {
-            return new \App\Services\Drivers\PinDriver(config('services.employee.url'));
+        $this->app->singleton(PinDriver::class, function ($app) {
+            return new PinDriver(config('services.employee.url'));
         });
 
-        $this->app->singleton(\App\Services\Drivers\LocationQrDriver::class, function ($app) {
-            return new \App\Services\Drivers\LocationQrDriver(config('services.employee.url'));
+        $this->app->singleton(LocationQrDriver::class, function ($app) {
+            return new LocationQrDriver(config('services.employee.url'));
         });
 
-        $this->app->singleton(\App\Services\Drivers\WebDriver::class, function ($app) {
-            return new \App\Services\Drivers\WebDriver(config('services.employee.url'));
+        $this->app->singleton(WebDriver::class, function ($app) {
+            return new WebDriver(config('services.employee.url'));
         });
 
-        $this->app->singleton(\App\Services\DriverResolver::class, function ($app) {
-            $resolver = new \App\Services\DriverResolver();
-            $resolver->register('qr', $app->make(\App\Services\Drivers\QrDriver::class));
-            $resolver->register('pin', $app->make(\App\Services\Drivers\PinDriver::class));
-            $resolver->register('qr_location', $app->make(\App\Services\Drivers\LocationQrDriver::class));
-            $resolver->register('web', $app->make(\App\Services\Drivers\WebDriver::class));
+        $this->app->singleton(DriverResolver::class, function ($app) {
+            $resolver = new DriverResolver;
+            $resolver->register('qr', $app->make(QrDriver::class));
+            $resolver->register('pin', $app->make(PinDriver::class));
+            $resolver->register('qr_location', $app->make(LocationQrDriver::class));
+            $resolver->register('web', $app->make(WebDriver::class));
+
             return $resolver;
         });
 
-        $this->app->singleton(\App\Services\ClockOutService::class, function ($app) {
-            return new \App\Services\ClockOutService(
-                $app->make(\App\Repositories\AttendanceRepository::class),
-                $app->make(\App\Events\EventPublisher::class)
+        $this->app->singleton(ClockOutService::class, function ($app) {
+            return new ClockOutService(
+                $app->make(AttendanceRepository::class),
+                $app->make(EventPublisher::class)
             );
         });
 
-        $this->app->singleton(\App\Services\ClockInService::class, function ($app) {
-            return new \App\Services\ClockInService(
-                $app->make(\App\Services\DriverResolver::class),
-                $app->make(\App\Repositories\AttendanceRepository::class),
-                $app->make(\App\Events\EventPublisher::class)
+        $this->app->singleton(ClockInService::class, function ($app) {
+            return new ClockInService(
+                $app->make(DriverResolver::class),
+                $app->make(AttendanceRepository::class),
+                $app->make(EventPublisher::class)
             );
         });
     }

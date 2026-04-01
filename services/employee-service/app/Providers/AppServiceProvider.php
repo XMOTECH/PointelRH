@@ -2,8 +2,7 @@
 
 namespace App\Providers;
 
-use App\Models\Employee;
-use App\Observers\EmployeeObserver;
+use App\Services\RabbitMQService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -15,8 +14,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(\App\Services\RabbitMQService::class, function () {
-            return new \App\Services\RabbitMQService();
+        $this->app->singleton(RabbitMQService::class, function () {
+            return new RabbitMQService;
         });
     }
 

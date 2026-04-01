@@ -3,8 +3,8 @@
 namespace App\Services\Drivers;
 
 use App\Contracts\ClockInDriver;
-use App\Services\DTOs\Employee;
 use App\Exceptions\InvalidTokenException;
+use App\Services\DTOs\Employee;
 use Illuminate\Support\Facades\Http;
 
 class LocationQrDriver implements ClockInDriver
@@ -19,8 +19,8 @@ class LocationQrDriver implements ClockInDriver
         $locationResponse = Http::timeout(5)
             ->get("{$this->employeeServiceUrl}/locations/resolve/{$payload['location_token']}");
 
-        if (!$locationResponse->successful()) {
-            throw new InvalidTokenException("Point de passage invalide ou inaccessible.");
+        if (! $locationResponse->successful()) {
+            throw new InvalidTokenException('Point de passage invalide ou inaccessible.');
         }
 
         $location = $locationResponse->json('data.location');
@@ -30,7 +30,7 @@ class LocationQrDriver implements ClockInDriver
         $userLng = $payload['longitude'] ?? null;
 
         if ($userLat === null || $userLng === null) {
-            throw new InvalidTokenException("Coordonnées GPS manquantes.");
+            throw new InvalidTokenException('Coordonnées GPS manquantes.');
         }
 
         $distance = $this->calculateDistance(
@@ -40,7 +40,7 @@ class LocationQrDriver implements ClockInDriver
 
         if ($distance > $location['radius_meters']) {
             throw new InvalidTokenException(sprintf(
-                "Vous êtes trop loin du point de passage (%.2fm > %dm).",
+                'Vous êtes trop loin du point de passage (%.2fm > %dm).',
                 $distance,
                 $location['radius_meters']
             ));
@@ -50,28 +50,28 @@ class LocationQrDriver implements ClockInDriver
         // Dans ce driver, on suppose que l'ID de l'employé est passé dans le payload (via le middleware JWT)
         $employeeId = $payload['auth_user_id'] ?? null;
 
-        if (!$employeeId) {
-             throw new InvalidTokenException("Identité de l'employé non résolue.");
+        if (! $employeeId) {
+            throw new InvalidTokenException("Identité de l'employé non résolue.");
         }
 
         // Appel pour récupérer les détails complets (planning, etc.)
         $empResponse = Http::timeout(5)
             ->get("{$this->employeeServiceUrl}/employees/by-user/{$employeeId}");
 
-        if (!$empResponse->successful()) {
+        if (! $empResponse->successful()) {
             throw new InvalidTokenException("Impossible de récupérer les détails de l'employé.");
         }
 
         $empData = $empResponse->json('data');
 
         return Employee::fromArray([
-            'id'            => $empData['id'],
-            'first_name'    => $empData['first_name'],
-            'last_name'     => $empData['last_name'],
-            'company_id'    => $empData['company_id'],
+            'id' => $empData['id'],
+            'first_name' => $empData['first_name'],
+            'last_name' => $empData['last_name'],
+            'company_id' => $empData['company_id'],
             'department_id' => $empData['department_id'],
-            'schedule'      => $empData['schedule'],
-            'location_id'   => $location['id'],
+            'schedule' => $empData['schedule'],
+            'location_id' => $location['id'],
             'location_name' => $location['name'],
         ]);
     }

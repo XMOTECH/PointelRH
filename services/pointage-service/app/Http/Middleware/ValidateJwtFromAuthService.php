@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -12,20 +14,20 @@ class ValidateJwtFromAuthService
     {
         $token = $request->bearerToken();
 
-        if (!$token) {
+        if (! $token) {
             return $next($request);
         }
 
         try {
             $key = config('services.auth.jwt_secret');
-            $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($key, 'HS256'));
+            $decoded = JWT::decode($token, new Key($key, 'HS256'));
             $payload = (array) $decoded;
 
             $request->merge([
-                'auth_user_id'     => $payload['sub'],
-                'auth_company_id'  => $payload['company_id'],
+                'auth_user_id' => $payload['sub'],
+                'auth_company_id' => $payload['company_id'],
                 'auth_department_id' => $payload['department_id'] ?? null,
-                'auth_role'        => $payload['role'],
+                'auth_role' => $payload['role'],
                 'auth_permissions' => $payload['permissions'] ?? [],
             ]);
 

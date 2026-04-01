@@ -19,9 +19,9 @@ return new class extends Migration
             $table->timestamp('expires_at');
             $table->timestamp('revoked_at')->nullable();
             $table->timestamps();
-            
+
             $table->foreign('user_id')
-                  ->references('id')->on('users')->onDelete('cascade');
+                ->references('id')->on('users')->onDelete('cascade');
         });
     }
 

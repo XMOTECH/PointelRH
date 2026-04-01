@@ -2,15 +2,16 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\User;
 use App\Models\RefreshToken;
+use App\Models\User;
+use Illuminate\Console\Command;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class ConsumeEmployeeEvents extends Command
 {
     protected $signature = 'rabbitmq:consume-security';
+
     protected $description = 'Consume employee events to enforce security rules (revocation)';
 
     public function handle()
@@ -32,24 +33,26 @@ class ConsumeEmployeeEvents extends Command
             $channel->queue_declare($queue_name, false, true, false, false);
             $channel->queue_bind($queue_name, $exchange);
 
-            $this->info(" [*] Auth-Service Security Worker waiting for enforcement events.");
+            $this->info(' [*] Auth-Service Security Worker waiting for enforcement events.');
 
             $callback = function (AMQPMessage $msg) {
                 $payload = json_decode($msg->body, true);
-                if (!$payload) return;
+                if (! $payload) {
+                    return;
+                }
 
                 $event = $payload['event'] ?? '';
                 $data = $payload['data'] ?? [];
 
                 if (in_array($event, ['EmployeeSuspended', 'EmployeeDeleted'])) {
-                    $this->info(" [!] High priority security event: " . $event);
-                    
+                    $this->info(' [!] High priority security event: '.$event);
+
                     $userId = User::where('employee_id', $data['id'])->value('id');
-                    
+
                     if ($userId) {
                         // Invalidate all tokens universally
                         RefreshToken::where('user_id', $userId)->update(['revoked_at' => now()]);
-                        
+
                         // Disable account if suspended/deleted
                         User::where('id', $userId)->update(['is_active' => false]);
 
@@ -58,7 +61,7 @@ class ConsumeEmployeeEvents extends Command
                 }
 
                 if ($event === 'EmployeeUpdated') {
-                    $this->info(" [!] Data sync event: " . $event);
+                    $this->info(' [!] Data sync event: '.$event);
                     $user = User::where('employee_id', $data['id'])->first();
                     if ($user) {
                         $user->update([
@@ -82,7 +85,8 @@ class ConsumeEmployeeEvents extends Command
             $connection->close();
 
         } catch (\Exception $e) {
-            $this->error("Error connecting to RabbitMQ: " . $e->getMessage());
+            $this->error('Error connecting to RabbitMQ: '.$e->getMessage());
+
             return 1;
         }
 

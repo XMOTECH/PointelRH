@@ -18,10 +18,10 @@ return new class extends Migration
             $table->uuid('company_id')->index();
             $table->uuid('department_id')->nullable();
             $table->uuid('schedule_id')->nullable();
-            
+
             // To handle suspended users easily
             $table->boolean('is_active')->default(true);
-            
+
             $table->timestamps();
         });
     }

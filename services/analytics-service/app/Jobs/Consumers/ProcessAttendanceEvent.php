@@ -18,12 +18,12 @@ class ProcessAttendanceEvent implements ShouldQueue
 
     public function handle(SnapshotUpdater $updater): void
     {
-        Log::info("Processing attendance event for analytics", ['event_id' => $this->payload['event_id'] ?? 'unknown']);
+        Log::info('Processing attendance event for analytics', ['event_id' => $this->payload['event_id'] ?? 'unknown']);
 
         try {
             $updater->updateFromAttendance($this->payload);
         } catch (\Exception $e) {
-            Log::error("Failed to process analytics event: " . $e->getMessage());
+            Log::error('Failed to process analytics event: '.$e->getMessage());
             throw $e;
         }
     }

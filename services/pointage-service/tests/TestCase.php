@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -20,7 +21,7 @@ abstract class TestCase extends BaseTestCase
             'exp' => time() + 3600,
         ];
 
-        $token = \Firebase\JWT\JWT::encode($payload, config('services.auth.jwt_secret'), 'HS256');
+        $token = JWT::encode($payload, config('services.auth.jwt_secret'), 'HS256');
 
         return $this->withToken($token);
     }

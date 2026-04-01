@@ -2,14 +2,15 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Employee;
+use Illuminate\Console\Command;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class ConsumeAuthEvents extends Command
 {
     protected $signature = 'employees:consume-auth-events';
+
     protected $description = 'Consume auth-service events to sync user_id on employees';
 
     public function handle(): int
@@ -36,8 +37,9 @@ class ConsumeAuthEvents extends Command
 
             $callback = function (AMQPMessage $msg) {
                 $payload = json_decode($msg->body, true);
-                if (!$payload) {
+                if (! $payload) {
                     $msg->ack();
+
                     return;
                 }
 
@@ -61,7 +63,8 @@ class ConsumeAuthEvents extends Command
             $connection->close();
 
         } catch (\Exception $e) {
-            $this->error('Error connecting to RabbitMQ: ' . $e->getMessage());
+            $this->error('Error connecting to RabbitMQ: '.$e->getMessage());
+
             return 1;
         }
 
@@ -82,8 +85,9 @@ class ConsumeAuthEvents extends Command
         $employeeId = $data['employee_id'] ?? null;
         $email = $data['email'] ?? null;
 
-        if (!$userId) {
+        if (! $userId) {
             $this->warn(' [!] UserCreated event missing user_id, skipping.');
+
             return;
         }
 
@@ -94,18 +98,20 @@ class ConsumeAuthEvents extends Command
         }
 
         // Priority 2: fallback to email match
-        if (!$employee && $email) {
+        if (! $employee && $email) {
             $employee = Employee::where('email', $email)->first();
         }
 
-        if (!$employee) {
+        if (! $employee) {
             $this->warn(" [!] No employee found for user_id={$userId} (employee_id={$employeeId}, email={$email})");
+
             return;
         }
 
         // Idempotent: skip if already linked to the same user
         if ($employee->user_id === $userId) {
             $this->info(" [=] Employee {$employee->id} already linked to user {$userId}");
+
             return;
         }
 

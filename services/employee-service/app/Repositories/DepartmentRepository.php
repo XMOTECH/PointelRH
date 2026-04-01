@@ -34,6 +34,7 @@ class DepartmentRepository
     {
         $department = $this->findById($id);
         $department->update($data);
+
         return $department;
     }
 

@@ -2,13 +2,14 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Employee;
 use App\Services\RabbitMQService;
+use Illuminate\Console\Command;
 
 class ResyncEmployees extends Command
 {
     protected $signature = 'rabbitmq:resync-employees';
+
     protected $description = 'Broadcast all employees to RabbitMQ to sync other services';
 
     public function handle(RabbitMQService $rabbitMQ)
@@ -21,7 +22,8 @@ class ResyncEmployees extends Command
             $this->info("Synced employee: {$employee->email}");
         }
 
-        $this->info("Resync complete!");
+        $this->info('Resync complete!');
+
         return 0;
     }
 }

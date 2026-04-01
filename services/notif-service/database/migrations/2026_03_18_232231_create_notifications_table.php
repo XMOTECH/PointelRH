@@ -19,14 +19,14 @@ return new class extends Migration
             $table->string('channel');
             $table->string('title');
             $table->text('body');
-            $table->enum('status',['pending','sent','failed','read'])->default('pending');
+            $table->enum('status', ['pending', 'sent', 'failed', 'read'])->default('pending');
             $table->json('metadata')->nullable();
             $table->timestamp('read_at')->nullable();
             $table->timestamp('sent_at')->nullable();
             $table->timestamps();
-            
-            $table->index(['recipient_id','status']);
-            $table->index(['company_id','type','created_at']);
+
+            $table->index(['recipient_id', 'status']);
+            $table->index(['company_id', 'type', 'created_at']);
         });
     }
 

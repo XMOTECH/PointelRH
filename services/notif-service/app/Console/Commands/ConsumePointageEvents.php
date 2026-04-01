@@ -2,15 +2,16 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\Consumers\HandleAbsenceDetected;
+use App\Jobs\Consumers\HandleLateArrival;
 use Illuminate\Console\Command;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
-use App\Jobs\Consumers\HandleLateArrival;
-use App\Jobs\Consumers\HandleAbsenceDetected;
 
 class ConsumePointageEvents extends Command
 {
     protected $signature = 'rabbitmq:consume-notif';
+
     protected $description = 'Consume pointage events for Notification Service';
 
     public function handle()
@@ -26,26 +27,28 @@ class ConsumePointageEvents extends Command
             $channel = $connection->channel();
 
             $channel->exchange_declare($exchange, 'fanout', false, true, false);
-            list($queue_name, ,) = $channel->queue_declare('', false, false, true, false);
+            [$queue_name] = $channel->queue_declare('', false, false, true, false);
             $channel->queue_bind($queue_name, $exchange);
 
-            $this->info(" [*] Notification Worker waiting for pointage events.");
+            $this->info(' [*] Notification Worker waiting for pointage events.');
 
             $callback = function (AMQPMessage $msg) {
                 $payload = json_decode($msg->body, true);
-                if (!$payload) return;
+                if (! $payload) {
+                    return;
+                }
 
                 $event = $payload['event'] ?? '';
                 $data = $payload['data'] ?? [];
 
                 if ($event === 'LateArrivalDetected') {
                     $dispatchPayload = [
-                        'event_id'      => md5($msg->body),
-                        'employee_id'   => $data['employee_id'] ?? null,
-                        'company_id'    => $data['company_id'] ?? null,
-                        'late_minutes'  => $data['late_minutes'] ?? 0,
+                        'event_id' => md5($msg->body),
+                        'employee_id' => $data['employee_id'] ?? null,
+                        'company_id' => $data['company_id'] ?? null,
+                        'late_minutes' => $data['late_minutes'] ?? 0,
                         'expected_time' => $data['expected_time'] ?? '--:--',
-                        'actual_time'   => $data['actual_time'] ?? '--:--',
+                        'actual_time' => $data['actual_time'] ?? '--:--',
                         'clock_in_time' => $data['actual_time'] ?? '--:--', // Mapped for HandleLateArrival
                     ];
 
@@ -57,9 +60,9 @@ class ConsumePointageEvents extends Command
 
                 if ($event === 'AbsenceDetected') {
                     $dispatchPayload = [
-                        'event_id'      => md5($msg->body),
-                        'employee_id'   => $data['employee_id'] ?? null,
-                        'company_id'    => $data['company_id'] ?? null,
+                        'event_id' => md5($msg->body),
+                        'employee_id' => $data['employee_id'] ?? null,
+                        'company_id' => $data['company_id'] ?? null,
                     ];
 
                     if ($dispatchPayload['employee_id'] && $dispatchPayload['company_id']) {
@@ -81,7 +84,8 @@ class ConsumePointageEvents extends Command
             $connection->close();
 
         } catch (\Exception $e) {
-            $this->error("Error connecting to RabbitMQ: " . $e->getMessage());
+            $this->error('Error connecting to RabbitMQ: '.$e->getMessage());
+
             return 1;
         }
 

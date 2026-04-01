@@ -23,7 +23,7 @@ class MissionResource extends JsonResource
             'start_date' => $this->start_date ? $this->start_date->toDateString() : null,
             'end_date' => $this->end_date ? $this->end_date->toDateString() : null,
             'department_id' => $this->department_id,
-            'department' => $this->whenLoaded('department', function() {
+            'department' => $this->whenLoaded('department', function () {
                 return [
                     'id' => $this->department->id,
                     'name' => $this->department->name,

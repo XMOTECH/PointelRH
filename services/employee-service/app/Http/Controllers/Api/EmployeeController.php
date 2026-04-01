@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Resources\EmployeeResource;
-use App\Http\Resources\EmployeeCollection;
+use App\Exceptions\InvalidDataException;
+use App\Exceptions\ResourceNotFoundException;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
-use App\Services\EmployeeService;
-use App\Services\LoggingService;
-use App\Exceptions\ResourceNotFoundException;
-use App\Exceptions\InvalidDataException;
+use App\Http\Resources\EmployeeCollection;
+use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\EmployeeService;
+use App\Services\LoggingService;
 use App\Services\RabbitMQService;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -43,9 +44,9 @@ class EmployeeController extends BaseApiController
         try {
             $filters = [
                 'department_id' => $request->query('department_id'),
-                'status'        => $request->query('status'),
+                'status' => $request->query('status'),
                 'contract_type' => $request->query('contract_type'),
-                'role'          => $request->query('role'),
+                'role' => $request->query('role'),
             ];
 
             $employees = $this->employeeService->list(
@@ -55,7 +56,7 @@ class EmployeeController extends BaseApiController
 
             LoggingService::info('Employees list retrieved', [
                 'company_id' => $request->auth_company_id,
-                'count'      => $employees->count(),
+                'count' => $employees->count(),
             ]);
 
             return $this->respondSuccess(
@@ -65,6 +66,7 @@ class EmployeeController extends BaseApiController
             );
         } catch (\Exception $e) {
             LoggingService::error('Failed to list employees', $e);
+
             return $this->respondServerError('Impossible de récupérer la liste des employés');
         }
     }
@@ -75,7 +77,7 @@ class EmployeeController extends BaseApiController
     public function store(StoreEmployeeRequest $request): JsonResponse
     {
         try {
-            $data               = $request->validated();
+            $data = $request->validated();
             $data['company_id'] = $request->auth_company_id;
 
             $employee = $this->employeeService->create($data);
@@ -87,9 +89,11 @@ class EmployeeController extends BaseApiController
             );
         } catch (InvalidDataException $e) {
             LoggingService::warning('Invalid data when creating employee', ['error' => $e->getMessage()]);
+
             return $this->respondError($e->getMessage(), 422);
         } catch (\Exception $e) {
             LoggingService::error('Failed to create employee', $e);
+
             return $this->respondServerError('Impossible de créer l\'employé');
         }
     }
@@ -109,9 +113,11 @@ class EmployeeController extends BaseApiController
             );
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Employee not found', ['employee_id' => $id]);
+
             return $this->respondNotFound('Employé non trouvé');
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve employee', $e);
+
             return $this->respondServerError('Impossible de récupérer l\'employé');
         }
     }
@@ -131,12 +137,15 @@ class EmployeeController extends BaseApiController
             );
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Employee not found for update', ['employee_id' => $id]);
+
             return $this->respondNotFound('Employé non trouvé');
         } catch (InvalidDataException $e) {
             LoggingService::warning('Invalid data when updating employee', ['error' => $e->getMessage()]);
+
             return $this->respondError($e->getMessage(), 422);
         } catch (\Exception $e) {
             LoggingService::error('Failed to update employee', $e);
+
             return $this->respondServerError('Impossible de mettre à jour l\'employé');
         }
     }
@@ -156,9 +165,11 @@ class EmployeeController extends BaseApiController
             );
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Employee not found for deletion', ['employee_id' => $id]);
+
             return $this->respondNotFound('Employé non trouvé');
         } catch (\Exception $e) {
             LoggingService::error('Failed to delete employee', $e);
+
             return $this->respondServerError('Impossible de supprimer l\'employé');
         }
     }
@@ -171,26 +182,28 @@ class EmployeeController extends BaseApiController
     {
         try {
             $qrToken = $request->input('qr_token') ?: $request->json('qr_token');
-            if (!$qrToken) {
+            if (! $qrToken) {
                 return $this->respondError('The qr token field is required.', 422);
             }
 
             $employee = $this->employeeService->resolve($qrToken);
 
-            if (!$employee) {
+            if (! $employee) {
                 LoggingService::warning('Invalid QR token or employee resolution failed');
+
                 return $this->respondNotFound('QR token invalide ou employé inactif');
             }
 
             LoggingService::info('Employee resolved via service', ['employee_id' => $employee->id]);
 
             return $this->respondSuccess([
-                'employee'   => (new EmployeeResource($employee))->resolve(),
-                'schedule'   => $employee->schedule,
+                'employee' => (new EmployeeResource($employee))->resolve(),
+                'schedule' => $employee->schedule,
                 'department' => $employee->department,
             ]);
         } catch (\Exception $e) {
             LoggingService::error('Failed to resolve QR token', $e);
+
             return $this->respondServerError('Impossible de résoudre le QR token');
         }
     }
@@ -205,28 +218,30 @@ class EmployeeController extends BaseApiController
             $pin = $request->input('pin');
             $companyId = $request->input('company_id');
 
-            if (!$pin || !$companyId) {
+            if (! $pin || ! $companyId) {
                 return $this->respondError('The pin and company_id fields are required.', 422);
             }
 
             $employee = $this->employeeService->resolveByPin($pin, $companyId);
 
-            if (!$employee) {
+            if (! $employee) {
                 LoggingService::warning('Invalid PIN or employee resolution failed', [
                     'company_id' => $companyId,
                 ]);
+
                 return $this->respondNotFound('Code PIN invalide ou employé inactif');
             }
 
             LoggingService::info('Employee resolved via PIN', ['employee_id' => $employee->id]);
 
             return $this->respondSuccess([
-                'employee'   => (new EmployeeResource($employee))->resolve(),
-                'schedule'   => $employee->schedule,
+                'employee' => (new EmployeeResource($employee))->resolve(),
+                'schedule' => $employee->schedule,
                 'department' => $employee->department,
             ]);
         } catch (\Exception $e) {
             LoggingService::error('Failed to resolve PIN', $e);
+
             return $this->respondServerError('Impossible de résoudre le code PIN');
         }
     }
@@ -241,17 +256,19 @@ class EmployeeController extends BaseApiController
             $employee = Employee::with('schedule')->findOrFail($id);
 
             return $this->respondSuccess([
-                'schedule'      => $employee->schedule,
-                'work_days'     => $employee->schedule->work_days,
-                'start_time'    => $employee->schedule->start_time,
+                'schedule' => $employee->schedule,
+                'work_days' => $employee->schedule->work_days,
+                'start_time' => $employee->schedule->start_time,
                 'grace_minutes' => $employee->schedule->grace_minutes,
-                'timezone'      => $employee->schedule->timezone,
+                'timezone' => $employee->schedule->timezone,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             LoggingService::warning('Employee not found for schedule', ['employee_id' => $id]);
+
             return $this->respondNotFound('Employé non trouvé');
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve employee schedule', $e);
+
             return $this->respondServerError('Impossible de récupérer l\'horaire');
         }
     }
@@ -277,11 +294,13 @@ class EmployeeController extends BaseApiController
                 'Statut mis à jour',
                 200
             );
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             LoggingService::warning('Employee not found for status update', ['employee_id' => $id]);
+
             return $this->respondNotFound('Employé non trouvé');
         } catch (\Exception $e) {
             LoggingService::error('Failed to update employee status', $e);
+
             return $this->respondServerError('Impossible de mettre à jour le statut');
         }
     }
@@ -293,13 +312,13 @@ class EmployeeController extends BaseApiController
     public function me(Request $request): JsonResponse
     {
         try {
-            if (!$request->auth_user_id) {
+            if (! $request->auth_user_id) {
                 return $this->respondUnauthorized('Utilisateur non authentifié');
             }
 
             // Un utilisateur peut avoir un employee_id lié
-            $user = \App\Models\User::find($request->auth_user_id);
-            if (!$user || !$user->employee_id) {
+            $user = User::find($request->auth_user_id);
+            if (! $user || ! $user->employee_id) {
                 return $this->respondNotFound('Aucun profil employé lié à cet utilisateur');
             }
 
@@ -312,6 +331,7 @@ class EmployeeController extends BaseApiController
             );
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve self profile', $e);
+
             return $this->respondServerError('Impossible de récupérer votre profil');
         }
     }
@@ -326,7 +346,7 @@ class EmployeeController extends BaseApiController
             $employee = Employee::where('company_id', $request->auth_company_id)
                 ->findOrFail($id);
 
-            if (!$employee->email) {
+            if (! $employee->email) {
                 return $this->respondError('Cet employé n\'a pas d\'adresse email', 422);
             }
 
@@ -344,11 +364,11 @@ class EmployeeController extends BaseApiController
                     $user = User::find($employee->user_id);
                 }
 
-                if (!$user) {
+                if (! $user) {
                     $user = User::where('email', $employee->email)->first();
                 }
 
-                if (!$user) {
+                if (! $user) {
                     $user = User::create([
                         'name' => "{$employee->first_name} {$employee->last_name}",
                         'email' => $employee->email,
@@ -375,10 +395,11 @@ class EmployeeController extends BaseApiController
             LoggingService::info('PIN generated for employee', ['employee_id' => $id]);
 
             return $this->respondSuccess(null, 'Code PIN généré et envoyé par email');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return $this->respondNotFound('Employé non trouvé');
         } catch (\Exception $e) {
             LoggingService::error('Failed to generate PIN', $e);
+
             return $this->respondServerError('Impossible de générer le code PIN');
         }
     }
@@ -392,13 +413,14 @@ class EmployeeController extends BaseApiController
         try {
             $employee = Employee::with(['schedule', 'department'])->where('user_id', $userId)->first();
 
-            if (!$employee) {
+            if (! $employee) {
                 return $this->respondNotFound('Aucun employé lié à cet utilisateur');
             }
 
             return $this->respondSuccess(new EmployeeResource($employee));
         } catch (\Exception $e) {
             LoggingService::error('Failed to resolve employee by user_id', $e);
+
             return $this->respondServerError('Erreur lors de la résolution de l\'employé');
         }
     }

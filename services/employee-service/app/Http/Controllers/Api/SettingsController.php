@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class SettingsController extends Controller
 {
@@ -15,14 +15,14 @@ class SettingsController extends Controller
     public function index(): JsonResponse
     {
         $settings = Setting::all();
-        
+
         $grouped = $settings->groupBy('group')->map(function ($items) {
             return $items->pluck('value', 'key');
         });
 
         return response()->json([
             'status' => 'success',
-            'data'   => $grouped
+            'data' => $grouped,
         ]);
     }
 
@@ -33,7 +33,7 @@ class SettingsController extends Controller
     {
         $data = $request->validate([
             'settings' => 'required|array',
-            'group'    => 'nullable|string',
+            'group' => 'nullable|string',
         ]);
 
         foreach ($data['settings'] as $key => $value) {
@@ -42,7 +42,7 @@ class SettingsController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Paramètres mis à jour avec succès'
+            'message' => 'Paramètres mis à jour avec succès',
         ]);
     }
 
@@ -55,7 +55,7 @@ class SettingsController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data'   => $settings
+            'data' => $settings,
         ]);
     }
 }

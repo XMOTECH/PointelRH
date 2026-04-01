@@ -2,13 +2,15 @@
 
 namespace App\Contracts;
 
+use App\Exceptions\InvalidTokenException;
 use App\Services\DTOs\Employee;
 
 interface ClockInDriver
 {
     /**
      * Resoudre l'identite de l'employe depuis le payload du canal
-     * @throws \App\Exceptions\InvalidTokenException
+     *
+     * @throws InvalidTokenException
      */
     public function resolve(array $payload, string $companyId): Employee;
 

@@ -14,7 +14,7 @@ abstract class BaseApiController extends Controller
     /**
      * Réponse succès
      */
-    protected function respondSuccess(mixed $data = null, string $message = null, int $statusCode = 200): JsonResponse
+    protected function respondSuccess(mixed $data = null, ?string $message = null, int $statusCode = 200): JsonResponse
     {
         return response()->json([
             'success' => true,

@@ -25,8 +25,8 @@ return new class extends Migration
             $table->unsignedInteger('overtime_minutes')->default(0);
             $table->unsignedTinyInteger('leave_days')->default(0);
             $table->timestamps();
-            
-            $table->unique(['employee_id','month','year']);
+
+            $table->unique(['employee_id', 'month', 'year']);
         });
     }
 

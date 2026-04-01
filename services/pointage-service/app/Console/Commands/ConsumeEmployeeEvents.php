@@ -36,25 +36,27 @@ class ConsumeEmployeeEvents extends Command
 
             $channel->exchange_declare($exchange, 'fanout', false, true, false);
 
-            list($queue_name, ,) = $channel->queue_declare('', false, false, true, false);
+            [$queue_name] = $channel->queue_declare('', false, false, true, false);
             $channel->queue_bind($queue_name, $exchange);
 
-            $this->info(" [*] Waiting for employee events in pointage-service. To exit press CTRL+C");
+            $this->info(' [*] Waiting for employee events in pointage-service. To exit press CTRL+C');
 
             $callback = function (AMQPMessage $msg) {
                 $payload = json_decode($msg->body, true);
-                if (!$payload) return;
+                if (! $payload) {
+                    return;
+                }
 
                 $event = $payload['event'] ?? '';
                 $data = $payload['data'] ?? [];
 
-                $this->info(" [x] Received event: " . $event);
+                $this->info(' [x] Received event: '.$event);
 
                 if (in_array($event, ['EmployeeCreated', 'EmployeeUpdated'])) {
                     DB::table('employees_replica')->updateOrInsert(
                         ['id' => $data['id']],
                         [
-                            'name' => $data['first_name'] . ' ' . $data['last_name'],
+                            'name' => $data['first_name'].' '.$data['last_name'],
                             'qr_token' => $data['qr_token'] ?? '',
                             'company_id' => $data['company_id'],
                             'department_id' => $data['department_id'] ?? null,
@@ -94,7 +96,8 @@ class ConsumeEmployeeEvents extends Command
             $connection->close();
 
         } catch (\Exception $e) {
-            $this->error("Error connecting to RabbitMQ: " . $e->getMessage());
+            $this->error('Error connecting to RabbitMQ: '.$e->getMessage());
+
             return 1;
         }
 

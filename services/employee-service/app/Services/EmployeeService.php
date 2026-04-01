@@ -2,15 +2,18 @@
 
 namespace App\Services;
 
-use App\Exceptions\ResourceNotFoundException;
+use App\Enums\EmployeeStatus;
 use App\Exceptions\InvalidDataException;
+use App\Exceptions\ResourceNotFoundException;
 use App\Models\Employee;
+use App\Repositories\EmployeeRepository;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * EmployeeService
  * Service métier pour la gestion des employés
- * 
+ *
  * Responsabilités:
  * - Créer, mettre à jour, supprimer les employés
  * - Valider les règles métier
@@ -19,7 +22,7 @@ use Illuminate\Support\Collection;
 class EmployeeService
 {
     public function __construct(
-        private readonly \App\Repositories\EmployeeRepository $employeeRepository
+        private readonly EmployeeRepository $employeeRepository
     ) {}
 
     /**
@@ -34,6 +37,7 @@ class EmployeeService
             LoggingService::info('Employee created via service', [
                 'employee_id' => $employee->id,
             ]);
+
             return $employee;
         } catch (\Exception $e) {
             LoggingService::error('Failed to create employee in service', $e);
@@ -49,9 +53,10 @@ class EmployeeService
     public function getById(string $id): Employee
     {
         $employee = $this->employeeRepository->findById($id);
-        if (!$employee) {
+        if (! $employee) {
             throw new ResourceNotFoundException('Employee');
         }
+
         return $employee;
     }
 
@@ -66,12 +71,12 @@ class EmployeeService
         try {
             $employee = $this->getById($id);
             $employee->update($data);
-            
+
             LoggingService::info('Employee updated via service', [
                 'employee_id' => $id,
                 'changed_fields' => array_keys($data),
             ]);
-            
+
             return $employee;
         } catch (\Exception $e) {
             LoggingService::error('Failed to update employee in service', $e);
@@ -88,13 +93,13 @@ class EmployeeService
     {
         $employee = $this->getById($id);
         $deleted = $this->employeeRepository->delete($id);
-        
+
         if ($deleted) {
             LoggingService::info('Employee deleted via service', [
                 'employee_id' => $id,
             ]);
         }
-        
+
         return $deleted;
     }
 
@@ -121,14 +126,14 @@ class EmployeeService
         if (is_array($decoded) && isset($decoded['user_id'])) {
             return Employee::with(['schedule', 'department'])
                 ->where('id', $decoded['user_id'])
-                ->where('status', \App\Enums\EmployeeStatus::ACTIVE->value)
+                ->where('status', EmployeeStatus::ACTIVE->value)
                 ->first();
         }
 
         // Sinon par QR token brut
         return Employee::with(['schedule', 'department'])
             ->where('qr_token', $identifier)
-            ->where('status', \App\Enums\EmployeeStatus::ACTIVE->value)
+            ->where('status', EmployeeStatus::ACTIVE->value)
             ->first();
     }
 
@@ -146,22 +151,23 @@ class EmployeeService
         // Pré-filtrage par prefix — réduit drastiquement les candidats
         $candidates = Employee::with(['schedule', 'department'])
             ->where('company_id', $companyId)
-            ->where('status', \App\Enums\EmployeeStatus::ACTIVE->value)
+            ->where('status', EmployeeStatus::ACTIVE->value)
             ->where(function ($query) use ($prefix) {
                 $query->where('pin_prefix', $prefix)
-                      ->orWhereNull('pin_prefix'); // Fallback pour les PINs générés avant la migration
+                    ->orWhereNull('pin_prefix'); // Fallback pour les PINs générés avant la migration
             })
             ->whereNotNull('pin')
             ->get();
 
         foreach ($candidates as $employee) {
-            if (\Illuminate\Support\Facades\Hash::check($pin, $employee->pin)) {
+            if (Hash::check($pin, $employee->pin)) {
                 // Backfill pin_prefix si absent (migration progressive)
                 if ($employee->pin_prefix === null) {
                     $employee->timestamps = false;
                     $employee->pin_prefix = $prefix;
                     $employee->saveQuietly();
                 }
+
                 return $employee;
             }
         }

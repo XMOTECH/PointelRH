@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Services\PlanningService;
-use App\Services\LoggingService;
+use App\Models\Employee;
 use App\Models\ScheduleOverride;
-use Illuminate\Http\Request;
+use App\Services\LoggingService;
+use App\Services\PlanningService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class PlanningController extends BaseApiController
@@ -27,7 +28,7 @@ class PlanningController extends BaseApiController
             $departmentId = $request->filter_department_id ?? $request->query('department_id');
 
             // Fetch employees for this company/department
-            $query = \App\Models\Employee::where('company_id', $request->auth_company_id);
+            $query = Employee::where('company_id', $request->auth_company_id);
             if ($departmentId) {
                 $query->where('department_id', $departmentId);
             }
@@ -38,13 +39,14 @@ class PlanningController extends BaseApiController
                     'employee_id' => $employee->id,
                     'first_name' => $employee->first_name,
                     'last_name' => $employee->last_name,
-                    'days' => $this->planningService->getEmployeePlanning($employee->id, $startDate, $endDate)
+                    'days' => $this->planningService->getEmployeePlanning($employee->id, $startDate, $endDate),
                 ];
             });
 
             return $this->respondSuccess($result);
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve planning', $e);
+
             return $this->respondServerError('Impossible de récupérer le planning');
         }
     }
@@ -72,19 +74,19 @@ class PlanningController extends BaseApiController
             $data = $validator->validated();
 
             // Security: Ensure employee belongs to the authenticated company and department (if manager)
-            $query = \App\Models\Employee::where('id', $data['employee_id'])
+            $query = Employee::where('id', $data['employee_id'])
                 ->where('company_id', $request->auth_company_id);
-            
+
             if ($request->has('filter_department_id')) {
                 $query->where('department_id', $request->filter_department_id);
             }
 
             $employee = $query->first();
 
-            if (!$employee) {
+            if (! $employee) {
                 return $this->respondForbidden('Vous n\'avez pas la permission de modifier cet employé ou il n\'appartient pas à votre département');
             }
-            
+
             $override = ScheduleOverride::updateOrCreate(
                 ['employee_id' => $data['employee_id'], 'date' => $data['date']],
                 [
@@ -103,6 +105,7 @@ class PlanningController extends BaseApiController
             return $this->respondSuccess($override, 'Modification enregistrée');
         } catch (\Exception $e) {
             LoggingService::error('Failed to save schedule override', $e);
+
             return $this->respondServerError('Erreur lors de l\'enregistrement');
         }
     }

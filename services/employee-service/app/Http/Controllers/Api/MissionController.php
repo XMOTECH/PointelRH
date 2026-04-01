@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Mission;
-use App\Models\Employee;
-use App\Http\Resources\MissionResource;
 use App\Http\Resources\MissionCollection;
+use App\Http\Resources\MissionResource;
+use App\Models\Employee;
+use App\Models\Mission;
 use App\Services\LoggingService;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class MissionController extends BaseApiController
@@ -37,6 +38,7 @@ class MissionController extends BaseApiController
             return $this->respondSuccess(new MissionCollection($missions));
         } catch (\Exception $e) {
             LoggingService::error('Failed to list missions', $e);
+
             return $this->respondServerError('Impossible de récupérer les missions');
         }
     }
@@ -63,7 +65,7 @@ class MissionController extends BaseApiController
             $data = $validator->validated();
             $employeeIds = $data['employee_ids'] ?? [];
             unset($data['employee_ids']);
-            
+
             // Security: Enforce department if manager
             if ($request->has('filter_department_id')) {
                 $data['department_id'] = $request->filter_department_id;
@@ -76,7 +78,7 @@ class MissionController extends BaseApiController
 
             $mission = Mission::create($data);
 
-            if (!empty($employeeIds)) {
+            if (! empty($employeeIds)) {
                 // Ensure all employees belong to the same company/department context
                 $validEmployees = Employee::whereIn('id', $employeeIds)
                     ->where('company_id', $request->auth_company_id);
@@ -89,6 +91,7 @@ class MissionController extends BaseApiController
 
                 if (count($finalIds) !== count($employeeIds)) {
                     DB::rollBack();
+
                     return $this->respondError('Certains employés ne sont pas éligibles pour cette mission', 422);
                 }
 
@@ -102,13 +105,14 @@ class MissionController extends BaseApiController
 
             LoggingService::info('Mission created with assignments', [
                 'mission_id' => $mission->id,
-                'assignments_count' => count($employeeIds)
+                'assignments_count' => count($employeeIds),
             ]);
 
             return $this->respondSuccess(new MissionResource($mission->load('employees')), 'Mission créée avec succès', 201);
         } catch (\Exception $e) {
             DB::rollBack();
             LoggingService::error('Failed to create mission', $e);
+
             return $this->respondServerError('Impossible de créer la mission');
         }
     }
@@ -130,10 +134,11 @@ class MissionController extends BaseApiController
             }
 
             return $this->respondSuccess(new MissionResource($mission));
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return $this->respondNotFound('Mission non trouvée');
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve mission', $e);
+
             return $this->respondServerError('Erreur lors de la récupération');
         }
     }
@@ -182,14 +187,15 @@ class MissionController extends BaseApiController
 
             LoggingService::info('Employees assigned to mission', [
                 'mission_id' => $id,
-                'count' => count($finalIds)
+                'count' => count($finalIds),
             ]);
 
             return $this->respondSuccess(null, 'Employés assignés avec succès');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return $this->respondNotFound('Mission non trouvée');
         } catch (\Exception $e) {
             LoggingService::error('Failed to assign employees', $e);
+
             return $this->respondServerError('Erreur lors de l\'assignation');
         }
     }
@@ -211,10 +217,11 @@ class MissionController extends BaseApiController
             $mission->delete();
 
             return $this->respondSuccess(null, 'Mission supprimée');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return $this->respondNotFound('Mission non trouvée');
         } catch (\Exception $e) {
             LoggingService::error('Failed to delete mission', $e);
+
             return $this->respondServerError('Impossible de supprimer la mission');
         }
     }

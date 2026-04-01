@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Attendance;
 use App\Http\Resources\AttendanceResource;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
+use App\Models\Attendance;
 use App\Services\LoggingService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class AttendanceController extends BaseApiController
 {
@@ -17,7 +17,7 @@ class AttendanceController extends BaseApiController
     {
         try {
             $employeeId = $request->query('employee_id');
-            if (!$employeeId) {
+            if (! $employeeId) {
                 return $this->respondError('employee_id est requis', 422);
             }
 
@@ -30,6 +30,7 @@ class AttendanceController extends BaseApiController
             );
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve today status', $e);
+
             return $this->respondServerError('Impossible de récupérer le statut du jour');
         }
     }
@@ -77,6 +78,7 @@ class AttendanceController extends BaseApiController
             );
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve today attendances', $e);
+
             return $this->respondServerError('Impossible de récupérer les pointages');
         }
     }
@@ -105,6 +107,7 @@ class AttendanceController extends BaseApiController
             );
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve employee history', $e);
+
             return $this->respondServerError("Impossible de récupérer l'historique");
         }
     }

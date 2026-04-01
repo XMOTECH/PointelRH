@@ -29,10 +29,10 @@ return new class extends Migration
             $table->decimal('punctuality_rate', 5, 2)->default(0);
             $table->timestamp('last_updated_at')->useCurrent();
             $table->timestamps();
-            
-            $table->unique(['snapshot_date','company_id','department_id']);
-            $table->index(['snapshot_date','company_id']);
-            $table->index(['company_id','department_id','snapshot_date']);
+
+            $table->unique(['snapshot_date', 'company_id', 'department_id']);
+            $table->index(['snapshot_date', 'company_id']);
+            $table->index(['company_id', 'department_id', 'snapshot_date']);
         });
     }
 

@@ -10,8 +10,8 @@ class Location extends Model
     use HasUuids;
 
     protected $fillable = [
-        'name', 'qr_token', 'latitude', 'longitude', 
-        'radius_meters', 'company_id', 'is_active'
+        'name', 'qr_token', 'latitude', 'longitude',
+        'radius_meters', 'company_id', 'is_active',
     ];
 
     protected $casts = [

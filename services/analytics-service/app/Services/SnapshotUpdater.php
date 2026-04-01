@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Models\DailySnapshot;
+use App\Models\Department;
 use App\Models\EmployeeMonthlyStat;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class SnapshotUpdater
 {
@@ -17,11 +17,11 @@ class SnapshotUpdater
         $event = $payload['event'] ?? 'Unknown';
         $companyId = $payload['company_id'];
         $date = isset($payload['checked_in_at']) ? substr($payload['checked_in_at'], 0, 10) : now()->toDateString();
-        
+
         $departmentId = $payload['department_id'] ?? '00000000-0000-0000-0000-000000000000';
 
         // Get total employees for this department from our local cache
-        $dept = \App\Models\Department::find($departmentId);
+        $dept = Department::find($departmentId);
         $totalEmployees = $dept ? $dept->employee_count : 0;
 
         DB::transaction(function () use ($date, $companyId, $departmentId, $payload, $event, $totalEmployees) {
@@ -67,10 +67,10 @@ class SnapshotUpdater
     public function updateSnapshotBaseCount(string $departmentId, string $companyId, int $totalEmployees): void
     {
         $date = now()->toDateString();
-        
+
         $snapshot = DailySnapshot::where([
             'snapshot_date' => $date,
-            'company_id'    => $companyId,
+            'company_id' => $companyId,
             'department_id' => $departmentId,
         ])->first();
 

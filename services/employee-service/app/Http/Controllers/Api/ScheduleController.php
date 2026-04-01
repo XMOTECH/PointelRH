@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Resources\ScheduleResource;
-use App\Services\ScheduleService;
-use App\Services\LoggingService;
-use App\Exceptions\ResourceNotFoundException;
 use App\Exceptions\InvalidDataException;
-use Illuminate\Http\Request;
+use App\Exceptions\ResourceNotFoundException;
+use App\Http\Resources\ScheduleResource;
+use App\Services\LoggingService;
+use App\Services\ScheduleService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
  * ScheduleController
  * Gère les opérations CRUD sur les horaires
- * 
+ *
  * Responsabilités:
  * - Valider les entrées
  * - Appeler les services métier
@@ -26,11 +26,9 @@ class ScheduleController extends BaseApiController
     public function __construct(
         private readonly ScheduleService $scheduleService
     ) {}
+
     /**
      * Lister tous les horaires de la compagnie
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -49,15 +47,13 @@ class ScheduleController extends BaseApiController
             );
         } catch (\Exception $e) {
             LoggingService::error('Failed to list schedules', $e);
+
             return $this->respondServerError();
         }
     }
 
     /**
      * Créer un nouvel horaire
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
@@ -81,22 +77,21 @@ class ScheduleController extends BaseApiController
             );
         } catch (ValidationException $e) {
             LoggingService::warning('Validation failed when creating schedule', ['errors' => $e->errors()]);
+
             return $this->respondValidationError($e->errors());
         } catch (InvalidDataException $e) {
             LoggingService::warning('Invalid data when creating schedule', ['error' => $e->getMessage()]);
+
             return $this->respondError($e->getMessage(), 422);
         } catch (\Exception $e) {
             LoggingService::error('Failed to create schedule', $e);
+
             return $this->respondServerError();
         }
     }
 
     /**
      * Récupérer un horaire spécifique
-     *
-     * @param string $id
-     * @param Request $request
-     * @return JsonResponse
      */
     public function show(string $id, Request $request): JsonResponse
     {
@@ -114,19 +109,17 @@ class ScheduleController extends BaseApiController
             );
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Schedule not found', ['schedule_id' => $id]);
+
             return $this->respondNotFound('Schedule not found');
         } catch (\Exception $e) {
             LoggingService::error('Failed to retrieve schedule', $e);
+
             return $this->respondServerError();
         }
     }
 
     /**
      * Modifier un horaire
-     *
-     * @param Request $request
-     * @param string $id
-     * @return JsonResponse
      */
     public function update(Request $request, string $id): JsonResponse
     {
@@ -149,25 +142,25 @@ class ScheduleController extends BaseApiController
             );
         } catch (ValidationException $e) {
             LoggingService::warning('Validation failed when updating schedule', ['errors' => $e->errors()]);
+
             return $this->respondValidationError($e->errors());
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Schedule not found for update', ['schedule_id' => $id]);
+
             return $this->respondNotFound('Schedule not found');
         } catch (InvalidDataException $e) {
             LoggingService::warning('Invalid data when updating schedule', ['error' => $e->getMessage()]);
+
             return $this->respondError($e->getMessage(), 422);
         } catch (\Exception $e) {
             LoggingService::error('Failed to update schedule', $e);
+
             return $this->respondServerError();
         }
     }
 
     /**
      * Supprimer un horaire
-     *
-     * @param string $id
-     * @param Request $request
-     * @return JsonResponse
      */
     public function destroy(string $id, Request $request): JsonResponse
     {
@@ -181,9 +174,11 @@ class ScheduleController extends BaseApiController
             );
         } catch (ResourceNotFoundException $e) {
             LoggingService::warning('Schedule not found for deletion', ['schedule_id' => $id]);
+
             return $this->respondNotFound('Schedule not found');
         } catch (\Exception $e) {
             LoggingService::error('Failed to delete schedule', $e);
+
             return $this->respondServerError();
         }
     }

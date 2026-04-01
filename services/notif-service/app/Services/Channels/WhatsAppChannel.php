@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppChannel
 {
     private string $apiUrl;
+
     private string $token;
+
     private string $phoneId;
 
     public function __construct()
@@ -22,8 +24,9 @@ class WhatsAppChannel
 
     public function send(NotificationData $data): void
     {
-        if (!$data->recipientPhone) {
+        if (! $data->recipientPhone) {
             Log::warning("WhatsApp skipped: No phone for {$data->recipientId}");
+
             return;
         }
 
@@ -45,7 +48,7 @@ class WhatsAppChannel
                             'type' => 'body',
                             'parameters' => [
                                 ['type' => 'text', 'text' => $data->metadata['employee_name'] ?? 'Employé'],
-                                ['type' => 'text', 'text' => (string)($data->metadata['late_minutes'] ?? 0)],
+                                ['type' => 'text', 'text' => (string) ($data->metadata['late_minutes'] ?? 0)],
                             ],
                         ]],
                     ],
@@ -58,11 +61,11 @@ class WhatsAppChannel
                     'metadata' => array_merge($notif->metadata ?? [], ['wa_id' => $response->json('messages.0.id')]),
                 ]);
             } else {
-                throw new \Exception("WhatsApp API error: " . $response->body());
+                throw new \Exception('WhatsApp API error: '.$response->body());
             }
 
         } catch (\Exception $e) {
-            Log::error("WhatsApp failed for {$data->recipientPhone}: " . $e->getMessage());
+            Log::error("WhatsApp failed for {$data->recipientPhone}: ".$e->getMessage());
             if (isset($notif)) {
                 $notif->update([
                     'status' => 'failed',

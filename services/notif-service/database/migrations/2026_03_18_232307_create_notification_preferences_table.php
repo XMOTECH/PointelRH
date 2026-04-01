@@ -21,8 +21,8 @@ return new class extends Migration
             $table->time('quiet_hours_start')->default('20:00:00');
             $table->time('quiet_hours_end')->default('07:00:00');
             $table->timestamps();
-            
-            $table->unique(['employee_id','notification_type']);
+
+            $table->unique(['employee_id', 'notification_type']);
         });
     }
 

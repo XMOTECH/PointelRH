@@ -10,7 +10,9 @@ use Twilio\Rest\Client;
 class SmsChannel
 {
     private string $sid;
+
     private string $token;
+
     private string $from;
 
     public function __construct()
@@ -22,8 +24,9 @@ class SmsChannel
 
     public function send(NotificationData $data): void
     {
-        if (!$data->recipientPhone) {
+        if (! $data->recipientPhone) {
             Log::warning("SMS skipped: No phone for {$data->recipientId}");
+
             return;
         }
 
@@ -50,7 +53,7 @@ class SmsChannel
             ]);
 
         } catch (\Exception $e) {
-            Log::error("SMS failed for {$data->recipientPhone}: " . $e->getMessage());
+            Log::error("SMS failed for {$data->recipientPhone}: ".$e->getMessage());
             if (isset($notif)) {
                 $notif->update([
                     'status' => 'failed',

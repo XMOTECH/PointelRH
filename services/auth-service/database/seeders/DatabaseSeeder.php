@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Company;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -23,11 +23,11 @@ class DatabaseSeeder extends Seeder
         $superAdmin = User::firstOrCreate(
             ['email' => 'superadmin@pointel.rh'],
             [
-                'name'       => 'Super Admin',
-                'password'   => 'ChangeMe@2026!',
-                'role'       => 'super_admin',
+                'name' => 'Super Admin',
+                'password' => 'ChangeMe@2026!',
+                'role' => 'super_admin',
                 'company_id' => $systemCompany->id,
-                'is_active'  => true,
+                'is_active' => true,
             ]
         );
         $superAdmin->syncRoles('super_admin');
@@ -42,11 +42,11 @@ class DatabaseSeeder extends Seeder
             $admin = User::firstOrCreate(
                 ['email' => 'admin@test.com'],
                 [
-                    'name'       => 'Admin Pointel',
-                    'password'   => 'password',
-                    'role'       => 'admin',
+                    'name' => 'Admin Pointel',
+                    'password' => 'password',
+                    'role' => 'admin',
                     'company_id' => $testCompany->id,
-                    'is_active'  => true,
+                    'is_active' => true,
                 ]
             );
             $admin->syncRoles('admin');
@@ -54,11 +54,11 @@ class DatabaseSeeder extends Seeder
             $testUser = User::firstOrCreate(
                 ['email' => 'test@example.com'],
                 [
-                    'name'       => 'Test User',
-                    'password'   => 'password',
-                    'role'       => 'employee',
+                    'name' => 'Test User',
+                    'password' => 'password',
+                    'role' => 'employee',
                     'company_id' => $testCompany->id,
-                    'is_active'  => true,
+                    'is_active' => true,
                 ]
             );
             $testUser->syncRoles('employee');

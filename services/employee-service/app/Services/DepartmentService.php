@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Exceptions\ResourceNotFoundException;
 use App\Exceptions\InvalidDataException;
+use App\Exceptions\ResourceNotFoundException;
 use App\Models\Department;
 use Illuminate\Support\Collection;
 
 /**
  * DepartmentService
  * Service métier pour la gestion des départements
- * 
+ *
  * Responsabilités:
  * - Créer, mettre à jour, supprimer les départements
  * - Valider les règles métier
@@ -30,6 +30,7 @@ class DepartmentService
             LoggingService::info('Department created via service', [
                 'department_id' => $department->id,
             ]);
+
             return $department;
         } catch (\Exception $e) {
             LoggingService::error('Failed to create department in service', $e);
@@ -45,9 +46,10 @@ class DepartmentService
     public function getById(string $id): Department
     {
         $department = Department::with('manager')->find($id);
-        if (!$department) {
+        if (! $department) {
             throw new ResourceNotFoundException('Department');
         }
+
         return $department;
     }
 
@@ -62,12 +64,12 @@ class DepartmentService
         try {
             $department = $this->getById($id);
             $department->update($data);
-            
+
             LoggingService::info('Department updated via service', [
                 'department_id' => $id,
                 'changed_fields' => array_keys($data),
             ]);
-            
+
             return $department;
         } catch (\Exception $e) {
             LoggingService::error('Failed to update department in service', $e);
@@ -84,13 +86,13 @@ class DepartmentService
     {
         $department = $this->getById($id);
         $deleted = $department->delete();
-        
+
         if ($deleted) {
             LoggingService::info('Department deleted via service', [
                 'department_id' => $id,
             ]);
         }
-        
+
         return $deleted;
     }
 

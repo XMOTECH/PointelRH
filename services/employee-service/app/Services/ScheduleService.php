@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Exceptions\ResourceNotFoundException;
 use App\Exceptions\InvalidDataException;
+use App\Exceptions\ResourceNotFoundException;
 use App\Models\Schedule;
 use Illuminate\Support\Collection;
 
 /**
  * ScheduleService
  * Service métier pour la gestion des horaires
- * 
+ *
  * Responsabilités:
  * - Créer, mettre à jour, supprimer les horaires
  * - Valider les règles métier
@@ -30,6 +30,7 @@ class ScheduleService
             LoggingService::info('Schedule created via service', [
                 'schedule_id' => $schedule->id,
             ]);
+
             return $schedule;
         } catch (\Exception $e) {
             LoggingService::error('Failed to create schedule in service', $e);
@@ -45,9 +46,10 @@ class ScheduleService
     public function getById(string $id): Schedule
     {
         $schedule = Schedule::find($id);
-        if (!$schedule) {
+        if (! $schedule) {
             throw new ResourceNotFoundException('Schedule');
         }
+
         return $schedule;
     }
 
@@ -62,12 +64,12 @@ class ScheduleService
         try {
             $schedule = $this->getById($id);
             $schedule->update($data);
-            
+
             LoggingService::info('Schedule updated via service', [
                 'schedule_id' => $id,
                 'changed_fields' => array_keys($data),
             ]);
-            
+
             return $schedule;
         } catch (\Exception $e) {
             LoggingService::error('Failed to update schedule in service', $e);
@@ -84,13 +86,13 @@ class ScheduleService
     {
         $schedule = $this->getById($id);
         $deleted = $schedule->delete();
-        
+
         if ($deleted) {
             LoggingService::info('Schedule deleted via service', [
                 'schedule_id' => $id,
             ]);
         }
-        
+
         return $deleted;
     }
 

@@ -19,19 +19,19 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->uuid('department_id');
             $table->uuid('schedule_id');
-            $table->enum('contract_type', ['cdi','cdd','freelance','intern'])
-                  ->default('cdi');
+            $table->enum('contract_type', ['cdi', 'cdd', 'freelance', 'intern'])
+                ->default('cdi');
             $table->string('qr_token')->unique();   // généré automatiquement
             $table->date('hire_date');
-            $table->enum('status', ['active','inactive','suspended'])
-                  ->default('active');
+            $table->enum('status', ['active', 'inactive', 'suspended'])
+                ->default('active');
             $table->uuid('company_id');
             $table->timestamps();
-     
+
             $table->foreign('department_id')
-                  ->references('id')->on('departments')->onDelete('restrict');
+                ->references('id')->on('departments')->onDelete('restrict');
             $table->foreign('schedule_id')
-                  ->references('id')->on('schedules')->onDelete('restrict');
+                ->references('id')->on('schedules')->onDelete('restrict');
         });
     }
 

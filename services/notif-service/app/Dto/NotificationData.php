@@ -2,6 +2,8 @@
 
 namespace App\Dto;
 
+use Illuminate\Support\Str;
+
 class NotificationData
 {
     public function __construct(
@@ -18,7 +20,7 @@ class NotificationData
     public function toArray(): array
     {
         return [
-            'id' => \Illuminate\Support\Str::uuid(),
+            'id' => Str::uuid(),
             'recipient_id' => $this->recipientId,
             'company_id' => $this->companyId,
             'type' => $this->type,

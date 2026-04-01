@@ -2,13 +2,12 @@
 
 namespace App\Services;
 
-use App\Exceptions\ResourceNotFoundException;
 use App\Exceptions\NotificationSendException;
 
 /**
  * NotificationService
  * Service métier pour la gestion des notifications
- * 
+ *
  * Responsabilités:
  * - Routeur les notifications
  * - Envoyer les notifications via les différents canaux
@@ -51,14 +50,12 @@ class NotificationService
     /**
      * Envoyer des notifications en masse
      *
-     * @param array $recipients
-     * @param array $notification
      * @return int Nombre de notifications envoyées
      */
     public function sendBulk(array $recipients, array $notification): int
     {
         $sent = 0;
-        
+
         foreach ($recipients as $recipient) {
             try {
                 $notif = array_merge($notification, ['recipient_id' => $recipient['id']]);

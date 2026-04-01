@@ -1,5 +1,8 @@
 <?php
 
+use PhpAmqpLib\Connection\AMQPLazyConnection;
+use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\Jobs\RabbitMQJob;
+
 return [
 
     /*
@@ -92,7 +95,7 @@ return [
         'rabbitmq' => [
             'driver' => 'rabbitmq',
             'queue' => env('RABBITMQ_QUEUE', 'default'),
-            'connection' => PhpAmqpLib\Connection\AMQPLazyConnection::class,
+            'connection' => AMQPLazyConnection::class,
             'hosts' => [
                 [
                     'host' => env('RABBITMQ_HOST', '127.0.0.1'),
@@ -109,7 +112,7 @@ return [
                     'passphrase' => env('RABBITMQ_SSL_PASSPHRASE'),
                 ],
                 'queue' => [
-                    'job' => VladimirYuldashev\LaravelQueueRabbitMQ\Queue\Jobs\RabbitMQJob::class,
+                    'job' => RabbitMQJob::class,
                     'declare' => false,
                     'bind' => false,
                 ],

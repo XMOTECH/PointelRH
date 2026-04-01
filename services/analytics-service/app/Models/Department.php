@@ -13,5 +13,6 @@ class Department extends Model
     ];
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 }

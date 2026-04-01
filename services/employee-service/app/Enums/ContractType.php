@@ -11,7 +11,7 @@ enum ContractType: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::CDI => 'CDI',
             self::CDD => 'CDD',
             self::FREELANCE => 'Freelance',

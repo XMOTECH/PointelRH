@@ -2,18 +2,18 @@
 
 namespace App\Services;
 
+use App\Events\EmployeeCheckedOut;
+use App\Events\EventPublisher;
+use App\Exceptions\AttendanceNotFoundException;
 use App\Models\Attendance;
 use App\Repositories\AttendanceRepository;
-use App\Events\EventPublisher;
-use App\Events\EmployeeCheckedOut;
 use Carbon\Carbon;
-use App\Exceptions\AttendanceNotFoundException;
 
 class ClockOutService
 {
     public function __construct(
         private readonly AttendanceRepository $attendances,
-        private readonly EventPublisher       $publisher,
+        private readonly EventPublisher $publisher,
     ) {}
 
     public function clockOut(string $employeeId, string $companyId): Attendance
@@ -24,7 +24,7 @@ class ClockOutService
             ->whereNull('checked_out_at')
             ->first();
 
-        if (!$attendance) {
+        if (! $attendance) {
             throw new AttendanceNotFoundException("Aucun pointage d'entree trouve pour aujourd'hui");
         }
 
@@ -40,7 +40,7 @@ class ClockOutService
         $schedule = $attendance->metadata['schedule'] ?? null;
         if ($schedule && isset($schedule['start_time'], $schedule['end_time'])) {
             $start = Carbon::parse($schedule['start_time']);
-            $end   = Carbon::parse($schedule['end_time']);
+            $end = Carbon::parse($schedule['end_time']);
             $standardWorkMinutes = (int) $start->diffInMinutes($end);
         }
 

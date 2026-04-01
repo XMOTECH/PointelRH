@@ -14,7 +14,7 @@ class CompanyScope implements Scope
     public function apply(Builder $builder, Model $model)
     {
         if (request()->has('auth_company_id')) {
-            $builder->where($model->getTable() . '.company_id', request('auth_company_id'));
+            $builder->where($model->getTable().'.company_id', request('auth_company_id'));
         }
     }
 }

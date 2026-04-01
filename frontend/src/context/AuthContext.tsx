@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useCallback, useMemo, createContext, type ReactNode } from 'react';
 import api from '../lib/axios';
 import type { User } from '../types';

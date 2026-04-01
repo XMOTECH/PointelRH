@@ -2,13 +2,14 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
-use Illuminate\Support\Facades\Log;
 
 class RabbitMQService
 {
     private $connection;
+
     private $channel;
 
     public function __construct()
@@ -22,13 +23,15 @@ class RabbitMQService
             );
             $this->channel = $this->connection->channel();
         } catch (\Exception $e) {
-            Log::error('RabbitMQ connection failed: ' . $e->getMessage());
+            Log::error('RabbitMQ connection failed: '.$e->getMessage());
         }
     }
 
     public function publishEvent(string $eventName, array $data, string $exchange = 'employee_events')
     {
-        if (!$this->channel) return;
+        if (! $this->channel) {
+            return;
+        }
 
         try {
             // Setup the fanout exchange (all connected consumers will receive it)
@@ -37,18 +40,18 @@ class RabbitMQService
             $payload = json_encode([
                 'event' => $eventName,
                 'data' => $data,
-                'timestamp' => now()->toIso8601String()
+                'timestamp' => now()->toIso8601String(),
             ]);
 
-            $deliveryMode = defined('PhpAmqpLib\Message\AMQPMessage::DELIVERY_MODE_PERSISTENT') 
-                ? AMQPMessage::DELIVERY_MODE_PERSISTENT 
+            $deliveryMode = defined('PhpAmqpLib\Message\AMQPMessage::DELIVERY_MODE_PERSISTENT')
+                ? AMQPMessage::DELIVERY_MODE_PERSISTENT
                 : 2;
             $msg = new AMQPMessage($payload, ['delivery_mode' => $deliveryMode]);
-            
+
             $this->channel->basic_publish($msg, $exchange);
             Log::info("Published $eventName to RabbitMQ");
         } catch (\Exception $e) {
-            Log::error('Failed to publish RabbitMQ event: ' . $e->getMessage());
+            Log::error('Failed to publish RabbitMQ event: '.$e->getMessage());
         }
     }
 

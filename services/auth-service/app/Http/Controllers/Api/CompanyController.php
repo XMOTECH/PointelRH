@@ -33,28 +33,28 @@ class CompanyController extends BaseApiController
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'company_name'   => 'required|string|max:255',
-            'plan'           => 'required|string|in:free,pro,enterprise',
-            'admin_name'     => 'required|string|max:255',
-            'admin_email'    => 'required|email|unique:users,email',
+            'company_name' => 'required|string|max:255',
+            'plan' => 'required|string|in:free,pro,enterprise',
+            'admin_name' => 'required|string|max:255',
+            'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|string|min:8',
         ]);
 
         try {
             $result = DB::transaction(function () use ($validated) {
                 $company = Company::create([
-                    'name'      => $validated['company_name'],
-                    'plan'      => $validated['plan'],
+                    'name' => $validated['company_name'],
+                    'plan' => $validated['plan'],
                     'is_active' => true,
                 ]);
 
                 $user = User::create([
-                    'name'       => $validated['admin_name'],
-                    'email'      => $validated['admin_email'],
-                    'password'   => $validated['admin_password'],
-                    'role'       => 'admin',
+                    'name' => $validated['admin_name'],
+                    'email' => $validated['admin_email'],
+                    'password' => $validated['admin_password'],
+                    'role' => 'admin',
                     'company_id' => $company->id,
-                    'is_active'  => true,
+                    'is_active' => true,
                 ]);
 
                 // syncRoles is auto-triggered by the model's booted() method,
@@ -63,7 +63,7 @@ class CompanyController extends BaseApiController
 
                 return [
                     'company' => $company,
-                    'user'    => $user->only(['id', 'name', 'email', 'role']),
+                    'user' => $user->only(['id', 'name', 'email', 'role']),
                 ];
             });
 
@@ -71,6 +71,7 @@ class CompanyController extends BaseApiController
 
         } catch (\Exception $e) {
             Log::error('Company creation failed', ['error' => $e->getMessage()]);
+
             return $this->respondError('Erreur lors de la création de l\'entreprise.', 500);
         }
     }
@@ -86,7 +87,7 @@ class CompanyController extends BaseApiController
 
         $company = Company::find($id);
 
-        if (!$company) {
+        if (! $company) {
             return $this->respondNotFound('Entreprise introuvable.');
         }
 
@@ -110,17 +111,17 @@ class CompanyController extends BaseApiController
     {
         $totalCompanies = Company::count();
         $activeUsers = User::where('is_active', true)->count();
-        
+
         $planDistribution = Company::select('plan', DB::raw('count(*) as total'))
             ->groupBy('plan')
             ->get()
             ->pluck('total', 'plan');
 
         return $this->respondSuccess([
-            'total_companies'   => $totalCompanies,
-            'active_users'      => $activeUsers,
+            'total_companies' => $totalCompanies,
+            'active_users' => $activeUsers,
             'plan_distribution' => $planDistribution,
-            'sla_status'        => '99.9%', // Hardcoded for now as requested
+            'sla_status' => '99.9%', // Hardcoded for now as requested
         ]);
     }
 }

@@ -20,13 +20,13 @@ return new class extends Migration
             $table->rememberToken();
             $table->uuid('company_id');
             $table->uuid('employee_id')->nullable();
-            $table->enum('role', ['super_admin','admin','manager','employee']);
+            $table->enum('role', ['super_admin', 'admin', 'manager', 'employee']);
             $table->boolean('is_active')->default(true);
             $table->timestamp('last_login_at')->nullable();
             $table->timestamps();
 
             $table->foreign('company_id')
-                  ->references('id')->on('companies')->onDelete('cascade');
+                ->references('id')->on('companies')->onDelete('cascade');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

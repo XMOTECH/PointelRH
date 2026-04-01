@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Employee;
 use App\Services\LoggingService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -15,9 +16,6 @@ class EmployeeNotificationController extends BaseApiController
     /**
      * Récupérer le contexte de notification pour un employé
      * Inclut les infos du manager et ses préférences
-     *
-     * @param string $employeeId
-     * @return JsonResponse
      */
     public function getNotificationContext(string $employeeId): JsonResponse
     {
@@ -34,7 +32,7 @@ class EmployeeNotificationController extends BaseApiController
             // or just return some mock data if not found.
 
             return $this->respondSuccess([
-                'employee_name' => $employee->first_name . ' ' . $employee->last_name,
+                'employee_name' => $employee->first_name.' '.$employee->last_name,
                 'manager_id' => '00000000-0000-0000-0000-000000000001', // Mock
                 'manager_name' => 'Jean Dupont',
                 'manager_email' => 'manager@pointel.sn',
@@ -45,15 +43,17 @@ class EmployeeNotificationController extends BaseApiController
                     'inapp_enabled' => true,
                     'quiet_hours_start' => '22:00:00',
                     'quiet_hours_end' => '06:00:00',
-                ]
+                ],
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             LoggingService::warning('Employee not found for notification context', [
                 'employee_id' => $employeeId,
             ]);
+
             return $this->respondError('Employee not found', 404);
         } catch (\Exception $e) {
             LoggingService::error('Failed to get notification context', $e);
+
             return $this->respondServerError();
         }
     }

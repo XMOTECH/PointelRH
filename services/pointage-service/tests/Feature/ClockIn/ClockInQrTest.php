@@ -2,11 +2,10 @@
 
 namespace Tests\Feature\ClockIn;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\Attendance;
-use Illuminate\Support\Facades\Http;
 use App\Enums\AttendanceStatus;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class ClockInQrTest extends TestCase
 {
@@ -28,10 +27,10 @@ class ClockInQrTest extends TestCase
                         'start_time' => '09:00:00',
                         'grace_minutes' => 15,
                         'work_days' => [1, 2, 3, 4, 5],
-                        'timezone' => 'Africa/Dakar'
-                    ]
-                ]
-            ], 200)
+                        'timezone' => 'Africa/Dakar',
+                    ],
+                ],
+            ], 200),
         ]);
 
         $companyId = 'comp-123';
@@ -39,17 +38,17 @@ class ClockInQrTest extends TestCase
         $response = $this->actingAsCompany($companyId)
             ->postJson('/api/clock-in', [
                 'channel' => 'qr',
-                'payload' => ['qr_token' => 'valid-token']
+                'payload' => ['qr_token' => 'valid-token'],
             ]);
 
         $response->assertStatus(201)
             ->assertJsonStructure(['success', 'attendance', 'message']);
-            
+
         $this->assertDatabaseHas('attendances', [
             'employee_id' => 'emp-123',
             'company_id' => $companyId,
             'channel' => 'qr',
-            'status' => AttendanceStatus::PRESENT->value
+            'status' => AttendanceStatus::PRESENT->value,
         ]);
     }
 }

@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Employee;
 use App\Services\RabbitMQService;
+use Illuminate\Console\Command;
 
 class SyncEmployeesToReplica extends Command
 {
     protected $signature = 'employees:sync-to-pointage';
+
     protected $description = 'Re-publish all employees to RabbitMQ to re-populate employees_replica in pointage-service';
 
     public function handle(): int
     {
         $employees = Employee::all();
-        $rabbitMQ = new RabbitMQService();
+        $rabbitMQ = new RabbitMQService;
         $count = 0;
 
         $this->info("Syncing {$employees->count()} employees to RabbitMQ...");

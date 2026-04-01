@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Department extends Model
 {
@@ -16,8 +17,8 @@ class Department extends Model
         'location',
         'company_id',
     ];
- 
-    public function manager(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+
+    public function manager(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'manager_id');
     }
@@ -26,5 +27,4 @@ class Department extends Model
     {
         return $this->hasMany(Employee::class);
     }
-
 }

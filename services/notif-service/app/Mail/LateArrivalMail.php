@@ -2,8 +2,8 @@
 
 namespace App\Mail;
 
+use App\Dto\NotificationData;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
@@ -18,15 +18,15 @@ class LateArrivalMail extends Mailable
      * Create a new message instance.
      */
     public function __construct(
-        public \App\Dto\NotificationData $data
+        public NotificationData $data
     ) {}
 
     /**
      * Get the message envelope.
      */
-    public function envelope(): \Illuminate\Mail\Mailables\Envelope
+    public function envelope(): Envelope
     {
-        return new \Illuminate\Mail\Mailables\Envelope(
+        return new Envelope(
             subject: $this->data->title,
         );
     }
@@ -34,9 +34,9 @@ class LateArrivalMail extends Mailable
     /**
      * Get the message content definition.
      */
-    public function content(): \Illuminate\Mail\Mailables\Content
+    public function content(): Content
     {
-        return new \Illuminate\Mail\Mailables\Content(
+        return new Content(
             markdown: 'emails.late_arrival',
             with: [
                 'employeeName' => $this->data->metadata['employee_name'] ?? 'Employé',
@@ -44,7 +44,7 @@ class LateArrivalMail extends Mailable
                 'clockInTime' => $this->data->metadata['clock_in_time'] ?? '--:--',
                 'expectedTime' => $this->data->metadata['expected_time'] ?? '--:--',
                 'lateMinutes' => $this->data->metadata['late_minutes'] ?? 0,
-                'dashboardUrl' => config('app.frontend_url', 'http://localhost:3000') . '/dashboard',
+                'dashboardUrl' => config('app.frontend_url', 'http://localhost:3000').'/dashboard',
             ],
         );
     }

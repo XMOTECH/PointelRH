@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\RabbitMQService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
@@ -16,11 +17,11 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'email'       => 'required|email', // Remove unique check here to handle it manually
-            'name'        => 'required|string|max:255',
-            'role'        => 'required|string|in:admin,manager,employee',
-            'company_id'  => 'required|uuid',
-            'employee_id' => 'required|uuid', 
+            'email' => 'required|email', // Remove unique check here to handle it manually
+            'name' => 'required|string|max:255',
+            'role' => 'required|string|in:admin,manager,employee',
+            'company_id' => 'required|uuid',
+            'employee_id' => 'required|uuid',
             'department_id' => 'nullable|uuid',
         ]);
 
@@ -31,26 +32,26 @@ class UserController extends Controller
         if ($user) {
             // Update existing user
             $user->update([
-                'name'        => $validated['name'],
-                'role'        => $validated['role'],
-                'company_id'  => $validated['company_id'],
+                'name' => $validated['name'],
+                'role' => $validated['role'],
+                'company_id' => $validated['company_id'],
                 'employee_id' => $validated['employee_id'],
                 'department_id' => $validated['department_id'],
-                'password'    => $password, // Model cast handles hashing
-                'is_active'   => true,
+                'password' => $password, // Model cast handles hashing
+                'is_active' => true,
             ]);
             $message = 'User updated successfully';
         } else {
             // Create new user
             $user = User::create([
-                'name'        => $validated['name'],
-                'email'       => $validated['email'],
-                'password'    => $password, // Mutator will hash it
-                'role'        => $validated['role'],
-                'company_id'  => $validated['company_id'],
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $password, // Mutator will hash it
+                'role' => $validated['role'],
+                'company_id' => $validated['company_id'],
                 'employee_id' => $validated['employee_id'],
                 'department_id' => $validated['department_id'],
-                'is_active'   => true,
+                'is_active' => true,
             ]);
             $message = 'User created successfully';
         }
@@ -60,7 +61,7 @@ class UserController extends Controller
 
         // Publish event for notifications (credentials email)
         try {
-            $rabbitMQ = new RabbitMQService();
+            $rabbitMQ = new RabbitMQService;
             $rabbitMQ->publishEvent('UserCreated', [
                 'user_id' => $user->id,
                 'employee_id' => $validated['employee_id'],
@@ -79,18 +80,18 @@ class UserController extends Controller
             ], 'auth_events');
         } catch (\Exception $e) {
             // Non-blocking: event failure shouldn't fail user creation
-            \Illuminate\Support\Facades\Log::warning('Failed to publish UserCreated event: ' . $e->getMessage());
+            Log::warning('Failed to publish UserCreated event: '.$e->getMessage());
         }
 
         return response()->json([
             'success' => true,
             'message' => $message,
-            'data'    => [
-                'id'            => $user->id,
-                'email'         => $user->email,
-                'employee_id'   => $user->employee_id,
+            'data' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'employee_id' => $user->employee_id,
                 'temp_password' => $password,
-            ]
+            ],
         ], 201);
     }
 }

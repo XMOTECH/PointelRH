@@ -34,6 +34,7 @@ class ScheduleRepository
     {
         $schedule = $this->findById($id);
         $schedule->update($data);
+
         return $schedule;
     }
 

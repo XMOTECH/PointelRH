@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Location;
+use App\Services\RabbitMQService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class LocationController extends BaseApiController
 {
     public function __construct(
-        private readonly \App\Services\RabbitMQService $rabbitMQService
+        private readonly RabbitMQService $rabbitMQService
     ) {}
 
     /**
@@ -103,7 +104,7 @@ class LocationController extends BaseApiController
         return $this->respondSuccess([
             'qr_token' => $location->qr_token,
             'name' => $location->name,
-            'instructions' => "Use the qr_token to render a QR code on the client side or print it."
+            'instructions' => 'Use the qr_token to render a QR code on the client side or print it.',
         ]);
     }
 
@@ -117,12 +118,12 @@ class LocationController extends BaseApiController
             ->where('is_active', true)
             ->first();
 
-        if (!$location) {
+        if (! $location) {
             return $this->respondNotFound('Point de passage introuvable ou inactif.');
         }
 
         return $this->respondSuccess([
-            'location' => $location
+            'location' => $location,
         ]);
     }
 }

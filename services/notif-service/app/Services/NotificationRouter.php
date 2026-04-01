@@ -3,10 +3,9 @@
 namespace App\Services;
 
 use App\Dto\NotificationData;
-use App\Models\Notification;
 use App\Services\Channels\EmailChannel;
-use App\Services\Channels\WhatsAppChannel;
 use App\Services\Channels\InAppChannel;
+use App\Services\Channels\WhatsAppChannel;
 use Illuminate\Support\Facades\Log;
 
 class NotificationRouter
@@ -21,12 +20,13 @@ class NotificationRouter
     {
         if ($this->isQuietHours($preferences)) {
             Log::info("Notification skipped due to quiet hours for employee {$notif->recipientId}");
+
             return;
         }
 
         // We can persist a master record or multiple records per channel
         // Here we'll persist per channel after successful dispatch or mark as pending
-        
+
         if ($preferences['email_enabled'] ?? true) {
             $this->email->send($notif);
         }
