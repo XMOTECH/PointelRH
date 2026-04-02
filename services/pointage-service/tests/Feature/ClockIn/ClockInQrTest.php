@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\ClockIn;
 
 use App\Enums\AttendanceStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -13,6 +16,9 @@ class ClockInQrTest extends TestCase
 
     public function test_clock_in_qr_success(): void
     {
+        // Freeze time to 08:30 (before schedule start + grace) to ensure PRESENT status
+        Carbon::setTestNow(Carbon::today('Africa/Dakar')->setTime(8, 30));
+
         // Mock Employee Service
         Http::fake([
             '*/employees/resolve-qr' => Http::response([
@@ -32,7 +38,7 @@ class ClockInQrTest extends TestCase
                         'work_days' => [1, 2, 3, 4, 5],
                         'timezone' => 'Africa/Dakar',
                     ],
-                ]
+                ],
             ], 200),
         ]);
 
@@ -45,7 +51,7 @@ class ClockInQrTest extends TestCase
             ]);
 
         $response->assertStatus(201)
-            ->assertJsonStructure(['success', 'attendance', 'message']);
+            ->assertJsonStructure(['success', 'data', 'message']);
 
         $this->assertDatabaseHas('attendances', [
             'employee_id' => 'emp-123',

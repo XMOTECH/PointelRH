@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
+use App\Events\EventPublisher;
+use App\Services\RabbitMQService;
 use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
@@ -11,9 +15,13 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        // Prevent RabbitMQ connection timeouts during tests by mocking the service
-        $this->mock(\App\Services\RabbitMQService::class, function ($mock) {
+        // Prevent RabbitMQ connection timeouts during tests by mocking the services
+        $this->mock(RabbitMQService::class, function ($mock) {
             $mock->shouldReceive('publishEvent')->andReturnNull();
+        });
+
+        $this->mock(EventPublisher::class, function ($mock) {
+            $mock->shouldReceive('publish')->andReturnNull();
         });
     }
 

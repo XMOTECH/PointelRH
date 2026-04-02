@@ -14,7 +14,6 @@ class RabbitMQService
 
     public function __construct()
     {
-        dd(app()->environment());
         if (app()->environment('testing')) {
             return;
         }

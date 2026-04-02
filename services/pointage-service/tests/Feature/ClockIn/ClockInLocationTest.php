@@ -77,7 +77,7 @@ class ClockInLocationTest extends TestCase
                 ],
             ]);
 
-        $response->dump()->assertStatus(201);
+        $response->assertStatus(201);
         $this->assertDatabaseHas('attendances', [
             'employee_id' => 'emp-123',
             'location_id' => 'loc-abc',

@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\ClockIn;
 
 use App\Enums\AttendanceStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -13,6 +16,9 @@ class ClockInPinTest extends TestCase
 
     public function test_clock_in_pin_success(): void
     {
+        // Freeze time to 08:30 (before schedule start + grace) to ensure PRESENT status
+        Carbon::setTestNow(Carbon::today('Africa/Dakar')->setTime(8, 30));
+
         // Mocking the PinDriver Http lookup
         Http::fake([
             '*/employees/resolve-pin' => Http::response([
@@ -44,9 +50,6 @@ class ClockInPinTest extends TestCase
             ]);
 
         $response->assertStatus(201);
-
-        // Debug what actually got inserted
-        dd(\App\Models\Attendance::all()->toArray());
 
         $this->assertDatabaseHas('attendances', [
             'employee_id' => 'emp-pin-123',
