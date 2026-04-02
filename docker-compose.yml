@@ -290,6 +290,22 @@ services:
     networks:
       - pointel_net
 
+  # ─── FRONTEND ────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - kong
+    networks:
+      - pointel_net
+
   # ─── KONG API GATEWAY ──────────────────────────────────
   kong:
     image: kong:3.6
