@@ -7,7 +7,6 @@ import {
   Save, 
   Info,
   ShieldCheck,
-  Globe,
   MapPin
 } from 'lucide-react';
 import { settingsApi } from './api/settings.api';

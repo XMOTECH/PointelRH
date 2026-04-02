@@ -56,7 +56,7 @@ export function EmployeeFormModal({ open, onClose, onSubmit, isLoading, employee
         last_name: employee.last_name,
         email: employee.email,
         phone: employee.phone || '',
-        role: employee.role,
+        role: employee.role === 'super_admin' ? 'admin' : employee.role,
         contract_type: employee.contract_type || 'cdi',
         hire_date: employee.hire_date ? employee.hire_date.split('T')[0].split(' ')[0] : '',
         department_id: employee.department_id || '',

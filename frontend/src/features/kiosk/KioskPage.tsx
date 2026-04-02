@@ -79,7 +79,6 @@ export default function KioskPage() {
   // and determine if we should show checkout option
   useEffect(() => {
     if (clockInSuccess && clockInData) {
-      const employeeId = clockInData.employee_id;
       const firstName = clockInData.employee?.first_name || 'Employé';
       const timeStr = format(new Date(), 'HH:mm');
 
