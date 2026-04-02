@@ -16,7 +16,7 @@ class ClockInLocationTest extends TestCase
 
         // Mock constant response for Employee resolved from JWT (with 'data' wrapper)
         Http::fake([
-            '*/employees/emp-123' => Http::response([
+            '*/employees/by-user/emp-123' => Http::response([
                 'data' => [
                     'id' => 'emp-123',
                     'first_name' => 'John',
@@ -49,7 +49,7 @@ class ClockInLocationTest extends TestCase
                     ],
                 ],
             ], 200),
-            '*/employees/emp-123' => Http::response([
+            '*/employees/by-user/emp-123' => Http::response([
                 'data' => [
                     'id' => 'emp-123',
                     'first_name' => 'John',
@@ -66,6 +66,7 @@ class ClockInLocationTest extends TestCase
             ], 200),
         ]);
 
+        $this->withoutExceptionHandling();
         $response = $this->actingAsCompany('comp-123', 'emp-123')
             ->postJson('/api/pointage/clock-in', [
                 'channel' => 'qr_location',
@@ -76,7 +77,7 @@ class ClockInLocationTest extends TestCase
                 ],
             ]);
 
-        $response->assertStatus(201);
+        $response->dump()->assertStatus(201);
         $this->assertDatabaseHas('attendances', [
             'employee_id' => 'emp-123',
             'location_id' => 'loc-abc',
@@ -97,7 +98,7 @@ class ClockInLocationTest extends TestCase
                     ],
                 ],
             ], 200),
-            '*/employees/emp-123' => Http::response([
+            '*/employees/by-user/emp-123' => Http::response([
                 'data' => ['id' => 'emp-123'],
             ], 200),
         ]);
@@ -122,7 +123,7 @@ class ClockInLocationTest extends TestCase
             '*/locations/resolve/valid-wall-token' => Http::response([
                 'data' => ['location' => ['id' => 'loc-abc']],
             ], 200),
-            '*/employees/emp-123' => Http::response(['data' => ['id' => 'emp-123']], 200),
+            '*/employees/by-user/emp-123' => Http::response(['data' => ['id' => 'emp-123']], 200),
         ]);
 
         $response = $this->actingAsCompany('comp-123', 'emp-123')

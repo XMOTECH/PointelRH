@@ -1,0 +1,31 @@
+
+   FAIL  Tests\Feature\ClockIn\ClockInPinTest
+  ⨯ clock in pin success                            29.17s  
+  ────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ClockIn\ClockInPinTest > clock…    
+  Expected response status code [201] but received 500.
+Failed asserting that 500 is identical to 201.
+
+The following exception occurred during the last request:
+
+stream_socket_client(): Unable to connect to tcp://127.0.0.1:5672 (Aucune connexion n’a pu être établie car l’ordinateur cible l’a expressément refusée)
+
+----------------------------------------------------------------------------------
+
+stream_socket_client(): Unable to connect to tcp://127.0.0.1:5672 (Aucune connexion n’a pu être établie car l’ordinateur cible l’a expressément refusée)
+
+  at tests\Feature\ClockIn\ClockInPinTest.php:46
+     42▕                 'channel' => 'pin',
+     43▕                 'payload' => ['pin' => '1234'],
+     44▕             ]);
+     45▕ 
+  ➜  46▕         $response->assertStatus(201);
+     47▕ 
+     48▕         // Debug what actually got inserted
+     49▕         dd(\App\Models\Attendance::all()->toArray());
+     50▕
+
+
+  Tests:    1 failed (1 assertions)
+  Duration: 30.81s
+

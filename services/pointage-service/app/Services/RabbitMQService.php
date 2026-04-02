@@ -14,6 +14,10 @@ class RabbitMQService
 
     public function __construct()
     {
+        dd(app()->environment());
+        if (app()->environment('testing')) {
+            return;
+        }
         try {
             $this->connection = new AMQPStreamConnection(
                 env('RABBITMQ_HOST', 'rabbitmq'),

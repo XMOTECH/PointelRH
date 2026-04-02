@@ -20,6 +20,8 @@
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_KEY" value="base64:uS3YJvL8X+WfO8d7XvR0l7M6X5l4k3j2i1h0g9f8e7d="/>
+        <env name="JWT_SECRET" value="testing_secret_key_for_jwt_mocking_purposes_only"/>
+        <env name="RABBITMQ_HOST" value="127.0.0.1"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

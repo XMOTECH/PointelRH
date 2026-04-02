@@ -50,7 +50,7 @@ class ClockOutController extends BaseApiController
             ]);
 
             // Broadcast event to clear Analytics cache
-            (new RabbitMQService)->publishEvent('EmployeeCheckedOut', [
+            app(RabbitMQService::class)->publishEvent('EmployeeCheckedOut', [
                 'employee_id' => $attendance->employee_id,
                 'company_id' => $attendance->company_id,
                 'department_id' => $attendance->department_id,

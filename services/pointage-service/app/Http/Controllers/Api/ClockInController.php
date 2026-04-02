@@ -48,7 +48,7 @@ class ClockInController extends BaseApiController
             ]);
 
             // Broadcast event to clear Analytics cache AND generate snapshots
-            (new RabbitMQService)->publishEvent('EmployeeCheckedIn', [
+            app(RabbitMQService::class)->publishEvent('EmployeeCheckedIn', [
                 'employee_id' => $attendance->employee_id,
                 'company_id' => $attendance->company_id,
                 'department_id' => $attendance->department_id,

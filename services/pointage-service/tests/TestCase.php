@@ -7,6 +7,16 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Prevent RabbitMQ connection timeouts during tests by mocking the service
+        $this->mock(\App\Services\RabbitMQService::class, function ($mock) {
+            $mock->shouldReceive('publishEvent')->andReturnNull();
+        });
+    }
+
     /**
      * Generate a valid JWT for the given company and employee.
      */
