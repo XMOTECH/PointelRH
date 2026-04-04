@@ -144,6 +144,59 @@ class MissionController extends BaseApiController
     }
 
     /**
+     * Update a mission.
+     * PATCH /api/missions/{id}
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        try {
+            $mission = Mission::where('company_id', $request->auth_company_id)
+                ->findOrFail($id);
+
+            if ($request->has('filter_department_id') && $mission->department_id !== $request->filter_department_id) {
+                return $this->respondForbidden('Accès refusé à cette mission');
+            }
+
+            $validator = Validator::make($request->all(), [
+                'title' => 'sometimes|string|max:255',
+                'description' => 'nullable|string',
+                'location' => 'nullable|string|max:255',
+                'status' => 'sometimes|in:draft,active,completed,cancelled',
+                'start_date' => 'sometimes|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'department_id' => 'nullable|uuid|exists:departments,id',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->respondError($validator->errors()->first(), 422);
+            }
+
+            $data = $validator->validated();
+
+            if ($request->has('filter_department_id')) {
+                $data['department_id'] = $request->filter_department_id;
+            }
+
+            $mission->update($data);
+
+            LoggingService::info('Mission updated', [
+                'mission_id' => $mission->id,
+            ]);
+
+            return $this->respondSuccess(
+                new MissionResource($mission->load('employees')),
+                'Mission mise à jour avec succès'
+            );
+        } catch (ModelNotFoundException $e) {
+            return $this->respondNotFound('Mission non trouvée');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to update mission', $e);
+
+            return $this->respondServerError('Impossible de mettre à jour la mission');
+        }
+    }
+
+    /**
      * Assign employees to a mission.
      * POST /api/missions/{id}/assign
      */

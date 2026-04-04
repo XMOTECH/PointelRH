@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MissionController;
 use App\Http\Controllers\Api\PlanningController;
+use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,9 @@ Route::middleware(['auth.jwt'])->group(function () {
 
         Route::apiResource('missions', MissionController::class);
         Route::post('/missions/{id}/assign', [MissionController::class, 'assign']);
+
+        // ── Schedule Templates ────────────────────────────────
+        Route::apiResource('schedules', ScheduleController::class);
 
         // ── Operational Planning ──────────────────────────────
         Route::get('/planning', [PlanningController::class, 'index']);

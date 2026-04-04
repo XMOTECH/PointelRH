@@ -61,8 +61,8 @@ class ScheduleController extends BaseApiController
             $data = $request->validate([
                 'name' => 'required|string|max:255',
                 'work_days' => 'required|array',
-                'start_time' => 'required|date_format:H:i:s',
-                'end_time' => 'required|date_format:H:i:s',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i',
                 'grace_minutes' => 'integer|min:0',
                 'timezone' => 'string|max:100',
             ]);
@@ -127,8 +127,8 @@ class ScheduleController extends BaseApiController
             $data = $request->validate([
                 'name' => 'sometimes|string|max:255',
                 'work_days' => 'sometimes|array',
-                'start_time' => 'sometimes|date_format:H:i:s',
-                'end_time' => 'sometimes|date_format:H:i:s',
+                'start_time' => 'sometimes|date_format:H:i',
+                'end_time' => 'sometimes|date_format:H:i',
                 'grace_minutes' => 'sometimes|integer|min:0',
                 'timezone' => 'sometimes|string|max:100',
             ]);
