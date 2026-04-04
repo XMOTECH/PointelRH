@@ -5,6 +5,9 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
+// ── Health check (Docker / load balancer) ────────────────
+Route::get('/health', fn () => response()->json(['status' => 'ok', 'service' => 'auth']));
+
 Route::prefix('auth')->group(function () {
     // ── Routes publiques ───────────────────────────────────
     Route::post('/login', [AuthController::class, 'login']);

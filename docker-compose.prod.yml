@@ -1,0 +1,379 @@
+name: plateforme-rh
+
+networks:
+  pointel_net:
+    driver: bridge
+
+volumes:
+  auth_db_data:
+  redis_data:
+  employee_db_data:
+  pointage_db_data:
+  notif_db_data:
+  analytics_db_data:
+  rabbitmq_data:
+
+services:
+
+  # ─── AUTH SERVICE ─────────────────────────────────────────
+  auth-service:
+    image: ${REGISTRY}/auth-service:${TAG:-latest}
+    container_name: auth-service
+    restart: unless-stopped
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${AUTH_APP_KEY}
+      - DB_HOST=auth-db
+      - DB_DATABASE=auth_db
+      - DB_USERNAME=${AUTH_DB_USERNAME}
+      - DB_PASSWORD=${AUTH_DB_PASSWORD}
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - pointel_net
+
+  auth-db:
+    image: mysql:8.0
+    container_name: auth-db
+    command: --skip-name-resolve
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: auth_db
+      MYSQL_USER: ${AUTH_DB_USERNAME}
+      MYSQL_PASSWORD: ${AUTH_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${AUTH_DB_ROOT_PASSWORD}
+    volumes:
+      - auth_db_data:/var/lib/mysql
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── REDIS ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── EMPLOYEE SERVICE ────────────────────────────────────
+  employee-service:
+    image: ${REGISTRY}/employee-service:${TAG:-latest}
+    container_name: employee-service
+    restart: unless-stopped
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${EMPLOYEE_APP_KEY}
+      - DB_HOST=employee-db
+      - DB_DATABASE=employee_db
+      - DB_USERNAME=${EMPLOYEE_DB_USERNAME}
+      - DB_PASSWORD=${EMPLOYEE_DB_PASSWORD}
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    depends_on:
+      employee-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - pointel_net
+
+  employee-db:
+    image: mysql:8.0
+    container_name: employee-db
+    command: --skip-name-resolve
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: employee_db
+      MYSQL_USER: ${EMPLOYEE_DB_USERNAME}
+      MYSQL_PASSWORD: ${EMPLOYEE_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${EMPLOYEE_DB_ROOT_PASSWORD}
+    volumes:
+      - employee_db_data:/var/lib/mysql
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── POINTAGE SERVICE ────────────────────────────────────
+  pointage-service:
+    image: ${REGISTRY}/pointage-service:${TAG:-latest}
+    container_name: pointage-service
+    restart: unless-stopped
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${POINTAGE_APP_KEY}
+      - DB_HOST=pointage-db
+      - DB_DATABASE=pointage_db
+      - DB_USERNAME=${POINTAGE_DB_USERNAME}
+      - DB_PASSWORD=${POINTAGE_DB_PASSWORD}
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
+      - EMPLOYEE_SERVICE_URL=http://employee-service/api
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    depends_on:
+      pointage-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - pointel_net
+
+  pointage-db:
+    image: mysql:8.0
+    container_name: pointage-db
+    command: --skip-name-resolve
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: pointage_db
+      MYSQL_USER: ${POINTAGE_DB_USERNAME}
+      MYSQL_PASSWORD: ${POINTAGE_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${POINTAGE_DB_ROOT_PASSWORD}
+    volumes:
+      - pointage_db_data:/var/lib/mysql
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── RABBITMQ ─────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ─── NOTIFICATION SERVICE ────────────────────────────────
+  notif-service:
+    image: ${REGISTRY}/notif-service:${TAG:-latest}
+    container_name: notif-service
+    restart: unless-stopped
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${NOTIF_APP_KEY}
+      - DB_HOST=notif-db
+      - DB_DATABASE=notif_db
+      - DB_USERNAME=${NOTIF_DB_USERNAME}
+      - DB_PASSWORD=${NOTIF_DB_PASSWORD}
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service/api/auth/verify
+      - EMPLOYEE_SERVICE_URL=http://employee-service/api
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_QUEUE=pointel.notifications
+    depends_on:
+      notif-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - pointel_net
+
+  notif-db:
+    image: mysql:8.0
+    container_name: notif-db
+    command: --skip-name-resolve
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: notif_db
+      MYSQL_USER: ${NOTIF_DB_USERNAME}
+      MYSQL_PASSWORD: ${NOTIF_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${NOTIF_DB_ROOT_PASSWORD}
+    volumes:
+      - notif_db_data:/var/lib/mysql
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── ANALYTICS SERVICE ──────────────────────────────────
+  analytics-service:
+    image: ${REGISTRY}/analytics-service:${TAG:-latest}
+    container_name: analytics-service
+    restart: unless-stopped
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${ANALYTICS_APP_KEY}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=analytics-db
+      - DB_DATABASE=analytics_db
+      - DB_USERNAME=${ANALYTICS_DB_USERNAME}
+      - DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_QUEUE=pointel.analytics
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - pointel_net
+
+  analytics-db:
+    image: postgres:alpine
+    container_name: analytics-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: ${ANALYTICS_DB_USERNAME}
+      POSTGRES_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+    volumes:
+      - analytics_db_data:/var/lib/postgresql/data
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ANALYTICS_DB_USERNAME} -d analytics_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── FRONTEND ────────────────────────────────────────────
+  frontend:
+    image: ${REGISTRY}/frontend:${TAG:-latest}
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - kong
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ─── KONG API GATEWAY ──────────────────────────────────
+  kong:
+    image: kong:3.6
+    container_name: kong
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 127.0.0.1:8001
+      KONG_LOG_LEVEL: info
+    volumes:
+      - ./kong/kong.yml:/etc/kong/kong.yml:ro
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      employee-service:
+        condition: service_healthy
+      pointage-service:
+        condition: service_healthy
+      notif-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+    networks:
+      - pointel_net
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

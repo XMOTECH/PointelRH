@@ -1,9 +1,5 @@
 FROM php:8.4-fpm
 
-# Arguments
-ARG user=www-data
-ARG uid=1000
-
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
@@ -21,20 +17,25 @@ RUN apt-get update && apt-get install -y \
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip sockets
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip sockets opcache
 
 # Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www/html
 
+# Copy application code
+COPY . .
+
+# Install dependencies and set permissions
+ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer install --no-dev --optimize-autoloader \
+ && chown -R www-data:www-data storage bootstrap/cache
+
 # Copy configurations
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html
 
 EXPOSE 80
 

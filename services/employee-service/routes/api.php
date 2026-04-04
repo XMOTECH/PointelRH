@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 
 /* |-------------------------------------------------------------------------- | API Routes |-------------------------------------------------------------------------- | | Here is where you can register API routes for your application. These | routes are loaded by the RouteServiceProvider within a group which | is assigned the "api" middleware group. Enjoy building your API! | */
 
+// ── Health check (Docker / load balancer) ────────────────
+Route::get('/health', fn () => response()->json(['status' => 'ok', 'service' => 'employee']));
+
 // ── Internal Service Routes (No JWT for inter-service communication)
 Route::get('/employees/{id}/notification-context', [EmployeeNotificationController::class, 'getNotificationContext']);
 Route::get('/employees/by-user/{userId}', [EmployeeController::class, 'resolveByUser']);

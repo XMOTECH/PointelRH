@@ -41,6 +41,15 @@ stages:
     - cd frontend
     - npm ci --silent
 
+.ssh-base:
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | ssh-add -
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+
 # ═══════════════════════════════════════════════════════════
 # STAGE 1 : LINT
 # ═══════════════════════════════════════════════════════════
@@ -210,56 +219,97 @@ build:auth:
   script:
     - docker build -t $REGISTRY/auth-service:$CI_COMMIT_SHORT_SHA -t $REGISTRY/auth-service:latest services/auth-service
     - docker push $REGISTRY/auth-service --all-tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - services/auth-service/**/*
 
 build:employee:
   extends: .docker-build
   script:
     - docker build -t $REGISTRY/employee-service:$CI_COMMIT_SHORT_SHA -t $REGISTRY/employee-service:latest services/employee-service
     - docker push $REGISTRY/employee-service --all-tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - services/employee-service/**/*
 
 build:pointage:
   extends: .docker-build
   script:
     - docker build -t $REGISTRY/pointage-service:$CI_COMMIT_SHORT_SHA -t $REGISTRY/pointage-service:latest services/pointage-service
     - docker push $REGISTRY/pointage-service --all-tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - services/pointage-service/**/*
 
 build:analytics:
   extends: .docker-build
   script:
     - docker build -t $REGISTRY/analytics-service:$CI_COMMIT_SHORT_SHA -t $REGISTRY/analytics-service:latest services/analytics-service
     - docker push $REGISTRY/analytics-service --all-tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - services/analytics-service/**/*
 
 build:notif:
   extends: .docker-build
   script:
     - docker build -t $REGISTRY/notif-service:$CI_COMMIT_SHORT_SHA -t $REGISTRY/notif-service:latest services/notif-service
     - docker push $REGISTRY/notif-service --all-tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - services/notif-service/**/*
 
 build:frontend:
   extends: .docker-build
   script:
-    - docker build -t $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA -t $REGISTRY/frontend:latest frontend
+    - >
+      docker build
+      --build-arg VITE_API_URL="${VITE_API_URL}"
+      --build-arg VITE_GOOGLE_CLIENT_ID="${VITE_GOOGLE_CLIENT_ID}"
+      -t $REGISTRY/frontend:$CI_COMMIT_SHORT_SHA
+      -t $REGISTRY/frontend:latest
+      frontend
     - docker push $REGISTRY/frontend --all-tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - frontend/**/*
 
 # ═══════════════════════════════════════════════════════════
 # STAGE 4 : DEPLOY (SSH vers le serveur de production)
 # ═══════════════════════════════════════════════════════════
 
 deploy:production:
-  image: alpine:latest
+  extends: .ssh-base
   stage: deploy
-  before_script:
-    - apk add --no-cache openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | ssh-add -
-    - mkdir -p ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
   script:
+    # Copy production compose and Kong config to server
+    - scp docker-compose.prod.yml $SSH_USER@$SSH_HOST:/opt/pointel-rh/docker-compose.yml
+    - scp kong/kong.yml $SSH_USER@$SSH_HOST:/opt/pointel-rh/kong/kong.yml
+
+    # Deploy on server
     - ssh $SSH_USER@$SSH_HOST "
         cd /opt/pointel-rh &&
         docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
         docker compose pull &&
         docker compose up -d --remove-orphans &&
+        echo '--- Running migrations ---' &&
+        docker compose exec -T auth-service php artisan migrate --force &&
+        docker compose exec -T employee-service php artisan migrate --force &&
+        docker compose exec -T pointage-service php artisan migrate --force &&
+        docker compose exec -T notif-service php artisan migrate --force &&
+        docker compose exec -T analytics-service php artisan migrate --force &&
+        echo '--- Caching config ---' &&
+        docker compose exec -T auth-service php artisan config:cache &&
+        docker compose exec -T employee-service php artisan config:cache &&
+        docker compose exec -T pointage-service php artisan config:cache &&
+        docker compose exec -T notif-service php artisan config:cache &&
+        docker compose exec -T analytics-service php artisan config:cache &&
         docker image prune -f
       "
   rules:
@@ -267,4 +317,4 @@ deploy:production:
   when: manual
   environment:
     name: production
-    url: https://$SSH_HOST
+    url: $PRODUCTION_URL

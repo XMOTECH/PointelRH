@@ -7,6 +7,9 @@ use App\Http\Middleware\ScopeByDepartment;
 use App\Http\Middleware\ValidateJwtFromAuthService;
 use Illuminate\Support\Facades\Route;
 
+// ── Health check (Docker / load balancer) ────────────────
+Route::get('/health', fn () => response()->json(['status' => 'ok', 'service' => 'pointage']));
+
 Route::middleware([
     ValidateJwtFromAuthService::class,
     ScopeByDepartment::class,
