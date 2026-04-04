@@ -16,8 +16,8 @@ class ClockInQrTest extends TestCase
 
     public function test_clock_in_qr_success(): void
     {
-        // Freeze time to 08:30 (before schedule start + grace) to ensure PRESENT status
-        Carbon::setTestNow(Carbon::today('Africa/Dakar')->setTime(8, 30));
+        // Freeze time to a Wednesday at 08:30 (before schedule start + grace) to ensure PRESENT status
+        Carbon::setTestNow(Carbon::parse('next wednesday', 'Africa/Dakar')->setTime(8, 30));
 
         // Mock Employee Service
         Http::fake([
