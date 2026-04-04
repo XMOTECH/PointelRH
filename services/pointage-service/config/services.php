@@ -36,7 +36,7 @@ return [
     ],
 
     'employee' => [
-        'url' => env('EMPLOYEE_SERVICE_URL'),
+        'url' => env('EMPLOYEE_SERVICE_URL', 'http://employee-service/api'),
     ],
 
     'auth' => [
