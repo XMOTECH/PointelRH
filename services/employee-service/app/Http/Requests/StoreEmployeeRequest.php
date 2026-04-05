@@ -28,7 +28,12 @@ class StoreEmployeeRequest extends FormRequest
         return [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:employees,email',
+            'email' => [
+                'required',
+                'email',
+                \Illuminate\Validation\Rule::unique('employees', 'email')
+                    ->where('company_id', $this->auth_company_id),
+            ],
             'phone' => 'nullable|string|max:20',
             'department_id' => 'required|uuid|exists:departments,id',
             'schedule_id' => 'required|uuid|exists:schedules,id',

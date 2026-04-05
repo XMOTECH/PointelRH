@@ -40,10 +40,13 @@ services:
 
 # ─── Plugins globaux ──────────────────────────────────────────────
 plugins:
-  # CORS — autoriser React (localhost:5173)
+  # CORS — autoriser les origines frontend connues
   - name: cors
     config:
-      origins: ["*"]
+      origins:
+        - "http://localhost:5173"
+        - "http://localhost:3000"
+        - "https://app.pointelrh.com"
       methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
       headers: ["Authorization","Content-Type","X-Company-ID"]
       credentials: true

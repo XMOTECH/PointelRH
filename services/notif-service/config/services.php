@@ -51,4 +51,8 @@ return [
         'url' => env('EMPLOYEE_SERVICE_URL', 'http://employee-service/api'),
     ],
 
+    'auth' => [
+        'jwt_secret' => env('JWT_SECRET'),
+    ],
+
 ];

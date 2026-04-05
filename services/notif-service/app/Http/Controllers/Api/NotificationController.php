@@ -16,11 +16,14 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            // Note: Validation du JWT et récupération du company_id via le middleware Kong ou Auth
-            $companyId = $request->header('X-Company-Id', '00000000-0000-0000-0000-000000000001');
+            $companyId = $request->auth_company_id;
 
-            // Optionally, the frontend might send an employee_id or manager_id header
-            // to filter notifications specific to the authenticated user.
+            if (! $companyId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentification requise',
+                ], 401);
+            }
 
             $notifications = Notification::where('company_id', $companyId)
                 ->orderBy('created_at', 'desc')

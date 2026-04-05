@@ -25,7 +25,13 @@ class UpdateEmployeeRequest extends FormRequest
         return [
             'first_name' => 'sometimes|string|max:255',
             'last_name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:employees,email,'.$this->route('employee'),
+            'email' => [
+                'sometimes',
+                'email',
+                \Illuminate\Validation\Rule::unique('employees', 'email')
+                    ->where('company_id', $this->auth_company_id)
+                    ->ignore($this->route('employee')),
+            ],
             'phone' => 'nullable|string|max:20',
             'department_id' => 'sometimes|uuid|exists:departments,id',
             'schedule_id' => 'sometimes|uuid|exists:schedules,id',

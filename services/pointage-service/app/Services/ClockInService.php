@@ -86,6 +86,12 @@ class ClockInService
                 'latitude' => $data->latitude,
                 'longitude' => $data->longitude,
                 'is_within_zone' => $isWithinZone,
+                'schedule' => $employee->schedule ? [
+                    'start_time' => $employee->schedule['start_time'] ?? null,
+                    'end_time' => $employee->schedule['end_time'] ?? null,
+                    'grace_minutes' => $employee->schedule['grace_minutes'] ?? null,
+                    'timezone' => $employee->schedule['timezone'] ?? null,
+                ] : null,
             ],
         ]);
 

@@ -53,6 +53,7 @@ Route::middleware(['auth.jwt'])->group(function () {
         Route::post('/planning/override', [PlanningController::class, 'override']);
     });
 
+
     // ── Departments ────────────────────────────────────────
     Route::apiResource('departments', DepartmentController::class);
 

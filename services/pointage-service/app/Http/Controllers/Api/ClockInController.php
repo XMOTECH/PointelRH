@@ -11,7 +11,6 @@ use App\Http\Resources\AttendanceResource;
 use App\Services\ClockInService;
 use App\Services\DTOs\ClockInData;
 use App\Services\LoggingService;
-use App\Services\RabbitMQService;
 use Illuminate\Http\JsonResponse;
 
 class ClockInController extends BaseApiController
@@ -46,16 +45,6 @@ class ClockInController extends BaseApiController
                 'employee_id' => $attendance->employee_id,
                 'late_minutes' => $attendance->late_minutes,
             ]);
-
-            // Broadcast event to clear Analytics cache AND generate snapshots
-            app(RabbitMQService::class)->publishEvent('EmployeeCheckedIn', [
-                'employee_id' => $attendance->employee_id,
-                'company_id' => $attendance->company_id,
-                'department_id' => $attendance->department_id,
-                'late_minutes' => $attendance->late_minutes,
-                'checked_in_at' => now()->toIso8601String(),
-                'date' => now()->toDateString(),
-            ], 'pointage_events');
 
             return $this->respondSuccess(
                 new AttendanceResource($attendance),
