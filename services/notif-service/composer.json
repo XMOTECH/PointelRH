@@ -7,11 +7,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "firebase/php-jwt": "^6.10",
         "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^12.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
-        "firebase/php-jwt": "^6.10",
         "twilio/sdk": "^8.11",
         "vladimir-yuldashev/laravel-queue-rabbitmq": "^14.4"
     },

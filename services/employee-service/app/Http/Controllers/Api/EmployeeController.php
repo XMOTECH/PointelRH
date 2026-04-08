@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateEmployeeRequest;
 use App\Http\Resources\EmployeeCollection;
 use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
+use App\Models\FaceDescriptor;
 use App\Models\User;
 use App\Services\EmployeeService;
 use App\Services\LoggingService;
@@ -401,6 +402,88 @@ class EmployeeController extends BaseApiController
             LoggingService::error('Failed to generate PIN', $e);
 
             return $this->respondServerError('Impossible de générer le code PIN');
+        }
+    }
+
+    /**
+     * Résoudre un employé via son descripteur facial (inter-service)
+     * POST /api/employees/resolve-face
+     */
+    public function resolveFace(Request $request): JsonResponse
+    {
+        try {
+            $descriptor = $request->input('descriptor');
+            $companyId = $request->input('company_id');
+
+            if (! $descriptor || ! is_array($descriptor) || count($descriptor) !== 128 || ! $companyId) {
+                return $this->respondError('Les champs descriptor (array[128]) et company_id sont requis.', 422);
+            }
+
+            // Charger tous les descripteurs de la company
+            $faceDescriptors = FaceDescriptor::where('company_id', $companyId)
+                ->with(['employee' => function ($q) {
+                    $q->with(['schedule', 'department']);
+                }])
+                ->get();
+
+            if ($faceDescriptors->isEmpty()) {
+                return $this->respondNotFound('Aucune donnée faciale enregistrée pour cette entreprise');
+            }
+
+            $bestMatch = null;
+            $bestDistance = PHP_FLOAT_MAX;
+            $threshold = 0.6;
+
+            foreach ($faceDescriptors as $fd) {
+                $stored = $fd->descriptor;
+                if (! is_array($stored) || count($stored) !== 128) {
+                    continue;
+                }
+
+                // Distance euclidienne
+                $sum = 0.0;
+                for ($i = 0; $i < 128; $i++) {
+                    $diff = ($descriptor[$i] ?? 0) - ($stored[$i] ?? 0);
+                    $sum += $diff * $diff;
+                }
+                $distance = sqrt($sum);
+
+                if ($distance < $bestDistance) {
+                    $bestDistance = $distance;
+                    $bestMatch = $fd;
+                }
+            }
+
+            if (! $bestMatch || $bestDistance >= $threshold) {
+                LoggingService::warning('Face not recognized', [
+                    'company_id' => $companyId,
+                    'best_distance' => $bestDistance,
+                ]);
+
+                return $this->respondNotFound('Visage non reconnu');
+            }
+
+            $employee = $bestMatch->employee;
+
+            if (! $employee || ($employee->status?->value ?? $employee->status) !== 'active') {
+                return $this->respondNotFound('Employé introuvable ou inactif');
+            }
+
+            LoggingService::info('Employee resolved via face recognition', [
+                'employee_id' => $employee->id,
+                'distance' => round($bestDistance, 4),
+            ]);
+
+            return $this->respondSuccess([
+                'employee' => (new EmployeeResource($employee))->resolve(),
+                'schedule' => $employee->schedule,
+                'department' => $employee->department,
+                'match_distance' => round($bestDistance, 4),
+            ]);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to resolve face', $e);
+
+            return $this->respondServerError('Impossible de résoudre le visage');
         }
     }
 

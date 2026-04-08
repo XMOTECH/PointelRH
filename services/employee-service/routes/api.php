@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\EmployeeNotificationController;
+use App\Http\Controllers\Api\FaceEnrollmentController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MissionController;
@@ -25,6 +26,7 @@ Route::get('/locations/resolve/{token}', [LocationController::class, 'resolve'])
 Route::middleware(['throttle:resolve-employee'])->group(function () {
     Route::post('/employees/resolve-qr', [EmployeeController::class, 'resolveQr']);
     Route::post('/employees/resolve-pin', [EmployeeController::class, 'resolvePin']);
+    Route::post('/employees/resolve-face', [EmployeeController::class, 'resolveFace']);
 });
 
 // ── Routes protégées par JWT ──────────────────────────────
@@ -38,6 +40,11 @@ Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/employees/{id}/schedule', [EmployeeController::class, 'schedule']);
         Route::patch('/employees/{id}/status', [EmployeeController::class, 'updateStatus']);
         Route::post('/employees/{id}/generate-pin', [EmployeeController::class, 'generatePin']);
+
+        // ── Face Enrollment ──────────────────────────────────
+        Route::get('/employees/{id}/face-enrollment', [FaceEnrollmentController::class, 'show']);
+        Route::post('/employees/{id}/face-enrollment', [FaceEnrollmentController::class, 'store']);
+        Route::delete('/employees/{id}/face-enrollment', [FaceEnrollmentController::class, 'destroy']);
 
         Route::apiResource('leaves', LeaveRequestController::class);
         Route::patch('/leaves/{id}/status', [LeaveRequestController::class, 'update']);

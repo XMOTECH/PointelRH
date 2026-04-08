@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\FaceDescriptor;
 use Illuminate\Support\Facades\Hash;
 
 #[ObservedBy([EmployeeObserver::class])]
@@ -63,6 +64,11 @@ class Employee extends Model
     public function scheduleOverrides(): HasMany
     {
         return $this->hasMany(ScheduleOverride::class);
+    }
+
+    public function faceDescriptors(): HasMany
+    {
+        return $this->hasMany(FaceDescriptor::class);
     }
 
     public function missions(): BelongsToMany

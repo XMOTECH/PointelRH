@@ -7,6 +7,7 @@ use App\Repositories\AttendanceRepository;
 use App\Services\ClockInService;
 use App\Services\ClockOutService;
 use App\Services\DriverResolver;
+use App\Services\Drivers\FaceDriver;
 use App\Services\Drivers\LocationQrDriver;
 use App\Services\Drivers\PinDriver;
 use App\Services\Drivers\QrDriver;
@@ -39,12 +40,17 @@ class AppServiceProvider extends ServiceProvider
             return new WebDriver(config('services.employee.url'));
         });
 
+        $this->app->singleton(FaceDriver::class, function ($app) {
+            return new FaceDriver(config('services.employee.url'));
+        });
+
         $this->app->singleton(DriverResolver::class, function ($app) {
             $resolver = new DriverResolver;
             $resolver->register('qr', $app->make(QrDriver::class));
             $resolver->register('pin', $app->make(PinDriver::class));
             $resolver->register('qr_location', $app->make(LocationQrDriver::class));
             $resolver->register('web', $app->make(WebDriver::class));
+            $resolver->register('face', $app->make(FaceDriver::class));
 
             return $resolver;
         });

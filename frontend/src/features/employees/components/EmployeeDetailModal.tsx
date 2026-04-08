@@ -1,6 +1,9 @@
-import { X, User, Building2, Calendar, QrCode } from 'lucide-react';
+import { useState } from 'react';
+import { X, User, Building2, Calendar, QrCode, ScanFace } from 'lucide-react';
 import type { Employee } from '../types';
 import { Badge } from '../../../components/ui/Badge';
+import { FaceEnrollmentModal } from './FaceEnrollmentModal';
+import { useFaceEnrollmentStatus } from '../hooks/useFaceEnrollment';
 
 interface Props {
   open: boolean;
@@ -37,6 +40,9 @@ const roleLabels: Record<string, string> = {
 };
 
 export function EmployeeDetailModal({ open, onClose, employee }: Props) {
+  const [faceModalOpen, setFaceModalOpen] = useState(false);
+  const { data: faceStatus } = useFaceEnrollmentStatus(employee?.id);
+
   if (!open || !employee) return null;
 
   const sectionClass = 'flex flex-col gap-3';
@@ -147,6 +153,32 @@ export function EmployeeDetailModal({ open, onClose, employee }: Props) {
             </>
           )}
 
+          {/* Reconnaissance Faciale */}
+          <hr className="border-on-surface/5" />
+          <div className={sectionClass}>
+            <div className="flex items-center gap-2 text-primary mb-1">
+              <ScanFace size={14} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Reconnaissance Faciale</span>
+            </div>
+            <div className={fieldClass}>
+              <span className={labelClass}>Statut</span>
+              <span className={valueClass}>
+                {faceStatus?.enrolled ? (
+                  <Badge variant="success" className="uppercase tracking-tighter text-[9px]">Enregistré ({faceStatus.count})</Badge>
+                ) : (
+                  <Badge variant="default" className="uppercase tracking-tighter text-[9px]">Non enregistré</Badge>
+                )}
+              </span>
+            </div>
+            <button
+              onClick={() => setFaceModalOpen(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-primary/20 bg-primary/5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+            >
+              <ScanFace size={16} />
+              {faceStatus?.enrolled ? 'Gérer le visage' : 'Enregistrer le visage'}
+            </button>
+          </div>
+
           {/* Close button */}
           <div className="flex justify-end pt-2">
             <button
@@ -157,6 +189,14 @@ export function EmployeeDetailModal({ open, onClose, employee }: Props) {
             </button>
           </div>
         </div>
+
+        {/* Face Enrollment Modal */}
+        <FaceEnrollmentModal
+          open={faceModalOpen}
+          onClose={() => setFaceModalOpen(false)}
+          employeeId={employee.id}
+          employeeName={`${employee.first_name} ${employee.last_name}`}
+        />
       </div>
     </div>
   );

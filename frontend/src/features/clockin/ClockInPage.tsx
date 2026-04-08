@@ -1,24 +1,30 @@
 /**
  * ClockInPage
- * Page principale pour le pointage avec horloge en temps réel et QR Code
+ * Page principale pour le pointage avec horloge en temps réel, QR Code et reconnaissance faciale
  *
  * Responsabilités:
  * - Orchestrer les composants de l'UI
  * - Gérer l'état du pointage (entrée + sortie)
  * - Afficher les messages de statut
+ * - Permettre le choix du mode de pointage (Web / Reconnaissance Faciale)
  */
 
+import { useState } from 'react';
+import { Monitor, ScanFace } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useClockIn } from './hooks/useClockIn';
 import { useClockOut } from './hooks/useClockOut';
 import { useRealTimeClock, useTodayStatus } from './hooks/hooks';
-import { ClockCard, SuccessMessage, ClockOutSuccessMessage, ErrorMessage } from './components';
+import { ClockCard, FaceRecognitionCard, SuccessMessage, ClockOutSuccessMessage, ErrorMessage } from './components';
 import { CLOCK_IN_MESSAGES, SPACING, LAYOUT } from './constants';
+
+type ClockInMode = 'web' | 'face';
 
 export default function ClockInPage() {
   const { user } = useAuth();
   const currentTime = useRealTimeClock();
   const { todayAttendance, isCheckedIn, isCheckedOut } = useTodayStatus(user?.employee_id);
+  const [mode, setMode] = useState<ClockInMode>('web');
 
   const {
     mutate: clockIn,
@@ -49,6 +55,13 @@ export default function ClockInPage() {
   const clockInErrorMessage = (clockInErrorObj as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Une erreur est survenue.';
   const clockOutErrorMessage = (clockOutErrorObj as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Une erreur est survenue lors du pointage de sortie.';
 
+  const handleFaceClockIn = (descriptor: number[]) => {
+    clockIn({
+      channel: 'face',
+      payload: { descriptor },
+    });
+  };
+
   return (
     <div className="clock-in-container" style={{ maxWidth: LAYOUT.containerMaxWidth, margin: '0 auto' }}>
       {/* En-tête */}
@@ -65,6 +78,61 @@ export default function ClockInPage() {
         </p>
       </div>
 
+      {/* Sélecteur de mode */}
+      {clockState === 'idle' && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: SPACING.lg,
+          }}
+        >
+          <button
+            onClick={() => setMode('web')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 20px',
+              borderRadius: '999px',
+              border: '2px solid',
+              borderColor: mode === 'web' ? 'var(--primary)' : 'var(--border-light)',
+              backgroundColor: mode === 'web' ? 'var(--primary)' : 'transparent',
+              color: mode === 'web' ? 'white' : 'var(--text-muted)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            <Monitor size={16} />
+            Web
+          </button>
+          <button
+            onClick={() => setMode('face')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 20px',
+              borderRadius: '999px',
+              border: '2px solid',
+              borderColor: mode === 'face' ? 'var(--primary)' : 'var(--border-light)',
+              backgroundColor: mode === 'face' ? 'var(--primary)' : 'transparent',
+              color: mode === 'face' ? 'white' : 'var(--text-muted)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            <ScanFace size={16} />
+            Reconnaissance Faciale
+          </button>
+        </div>
+      )}
+
       <div
         style={{
           display: 'grid',
@@ -72,21 +140,29 @@ export default function ClockInPage() {
           gap: LAYOUT.gridGap,
         }}
       >
-        <ClockCard
-          currentTime={currentTime}
-          onClockIn={() => clockIn({
-            channel: 'web',
-            payload: { user_id: user?.id || '' },
-          })}
-          onClockOut={() => {
-            if (user?.employee_id) {
-              clockOut({ employee_id: user.employee_id });
-            }
-          }}
-          isPending={isPending}
-          clockState={clockState}
-          todayAttendance={todayAttendance}
-        />
+        {mode === 'web' || clockState !== 'idle' ? (
+          <ClockCard
+            currentTime={currentTime}
+            onClockIn={() => clockIn({
+              channel: 'web',
+              payload: { user_id: user?.id || '' },
+            })}
+            onClockOut={() => {
+              if (user?.employee_id) {
+                clockOut({ employee_id: user.employee_id });
+              }
+            }}
+            isPending={isPending}
+            clockState={clockState}
+            todayAttendance={todayAttendance}
+          />
+        ) : (
+          <FaceRecognitionCard
+            onFaceDetected={handleFaceClockIn}
+            isPending={isPending}
+            disabled={clockState !== 'idle'}
+          />
+        )}
       </div>
 
       {/* Messages de statut */}
