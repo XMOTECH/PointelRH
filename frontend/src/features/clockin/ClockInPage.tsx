@@ -10,13 +10,15 @@
  */
 
 import { useState } from 'react';
-import { Monitor, ScanFace } from 'lucide-react';
+import { Monitor, ScanFace, UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useClockIn } from './hooks/useClockIn';
 import { useClockOut } from './hooks/useClockOut';
 import { useRealTimeClock, useTodayStatus } from './hooks/hooks';
 import { ClockCard, FaceRecognitionCard, SuccessMessage, ClockOutSuccessMessage, ErrorMessage } from './components';
 import { CLOCK_IN_MESSAGES, SPACING, LAYOUT } from './constants';
+import { useFaceEnrollmentStatus } from '@/features/employees/hooks/useFaceEnrollment';
+import { FaceEnrollmentModal } from '@/features/employees/components/FaceEnrollmentModal';
 
 type ClockInMode = 'web' | 'face';
 
@@ -25,6 +27,9 @@ export default function ClockInPage() {
   const currentTime = useRealTimeClock();
   const { todayAttendance, isCheckedIn, isCheckedOut } = useTodayStatus(user?.employee_id);
   const [mode, setMode] = useState<ClockInMode>('web');
+  const { data: faceStatus } = useFaceEnrollmentStatus(user?.employee_id);
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+  const needsEnrollment = mode === 'face' && faceStatus && !faceStatus.enrolled;
 
   const {
     mutate: clockIn,
@@ -156,6 +161,57 @@ export default function ClockInPage() {
             clockState={clockState}
             todayAttendance={todayAttendance}
           />
+        ) : needsEnrollment ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '20px',
+              padding: '40px 24px',
+              borderRadius: '20px',
+              border: '2px dashed var(--border-light)',
+              backgroundColor: 'var(--surface-container-low, #f8f9fa)',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--primary) 0%, #00897B 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ScanFace size={32} color="white" />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 8px' }}>
+                Configurez la reconnaissance faciale
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0, maxWidth: 360 }}>
+                Pour pointer par reconnaissance faciale, vous devez d'abord enregistrer votre visage. Cela ne prend que quelques secondes.
+              </p>
+            </div>
+            <button
+              onClick={() => setEnrollModalOpen(true)}
+              className="btn btn-primary"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 28px',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+              }}
+            >
+              <UserPlus size={18} />
+              Enregistrer mon visage
+            </button>
+          </div>
         ) : (
           <FaceRecognitionCard
             onFaceDetected={handleFaceClockIn}
@@ -179,6 +235,16 @@ export default function ClockInPage() {
         {clockInError && <ErrorMessage message={clockInErrorMessage} />}
         {clockOutError && <ErrorMessage message={clockOutErrorMessage} />}
       </div>
+
+      {/* Face Enrollment Modal */}
+      {user?.employee_id && (
+        <FaceEnrollmentModal
+          open={enrollModalOpen}
+          onClose={() => setEnrollModalOpen(false)}
+          employeeId={user.employee_id}
+          employeeName={`${user.first_name || ''} ${user.last_name || ''}`}
+        />
+      )}
     </div>
   );
 }

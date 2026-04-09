@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, Building2, Briefcase, Calendar, Clock, QrCode } from 'lucide-react';
+import { User, Mail, Phone, Building2, Briefcase, Calendar, Clock, QrCode, ScanFace, CheckCircle2, XCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useMyProfile } from './hooks/useMyProfile';
+import { useAuth } from '@/hooks/useAuth';
+import { useFaceEnrollmentStatus } from '@/features/employees/hooks/useFaceEnrollment';
+import { FaceEnrollmentModal } from '@/features/employees/components/FaceEnrollmentModal';
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
   return (
@@ -15,7 +19,11 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 }
 
 export default function MyProfilePage() {
+  const { user } = useAuth();
   const { data: profile, isLoading } = useMyProfile();
+  const employeeId = user?.employee_id;
+  const { data: faceStatus } = useFaceEnrollmentStatus(employeeId);
+  const [faceModalOpen, setFaceModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -113,8 +121,56 @@ export default function MyProfilePage() {
               </CardContent>
             </Card>
           )}
+          {/* Face Enrollment */}
+          {employeeId && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Reconnaissance Faciale</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ScanFace size={18} className="text-on-surface-variant/60" />
+                    <div>
+                      <p className="text-sm font-medium text-on-surface">
+                        {faceStatus?.enrolled ? 'Visage enregistre' : 'Non enregistre'}
+                      </p>
+                      <p className="text-xs text-on-surface-variant">
+                        {faceStatus?.enrolled
+                          ? `${faceStatus.count} capture(s) - Pointage facial actif`
+                          : 'Enregistrez votre visage pour pointer par reconnaissance faciale'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {faceStatus?.enrolled ? (
+                      <CheckCircle2 size={20} className="text-green-600" />
+                    ) : (
+                      <XCircle size={20} className="text-on-surface-variant/40" />
+                    )}
+                    <button
+                      onClick={() => setFaceModalOpen(true)}
+                      className="btn btn-primary text-sm px-4 py-2"
+                    >
+                      {faceStatus?.enrolled ? 'Gerer' : 'Enregistrer'}
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
+
+      {/* Face Enrollment Modal */}
+      {employeeId && (
+        <FaceEnrollmentModal
+          open={faceModalOpen}
+          onClose={() => setFaceModalOpen(false)}
+          employeeId={employeeId}
+          employeeName={`${profile?.first_name || ''} ${profile?.last_name || ''}`}
+        />
+      )}
     </motion.div>
   );
 }
