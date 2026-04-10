@@ -34,6 +34,7 @@ Route::middleware(['auth.jwt'])->group(function () {
 
     // ── Employees ──────────────────────────────────────────
     Route::get('/employee/me', [EmployeeController::class, 'me']);
+    Route::get('/employee/my-missions', [MissionController::class, 'myMissions']);
 
     Route::middleware(['scoped.department'])->group(function () {
         Route::apiResource('employees', EmployeeController::class);

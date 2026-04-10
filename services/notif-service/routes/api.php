@@ -9,4 +9,7 @@ Route::get('/health', fn () => response()->json(['status' => 'ok', 'service' => 
 // ── Routes protégées par JWT ──────────────────────────────
 Route::middleware(['auth.jwt'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 });

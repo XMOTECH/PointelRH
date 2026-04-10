@@ -35,7 +35,10 @@ export const Header: React.FC = () => {
       {/* Right Side Actions */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <button className="p-3 text-on-surface-variant/60 hover:bg-surface-container hover:text-primary rounded-2xl transition-all relative group">
+          <button
+            onClick={() => navigate('/notifications')}
+            className="p-3 text-on-surface-variant/60 hover:bg-surface-container hover:text-primary rounded-2xl transition-all relative group"
+          >
             <Bell size={22} strokeWidth={1.5} />
             <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-primary rounded-full ring-4 ring-surface shadow-lg group-hover:scale-125 transition-transform" />
           </button>

@@ -38,7 +38,7 @@ class UpdateEmployeeRequest extends FormRequest
             'contract_type' => 'sometimes|in:cdi,cdd,freelance,intern',
             'hire_date' => 'sometimes|date',
             'status' => 'sometimes|in:active,inactive,suspended',
-            'role' => 'sometimes|in:manager,employee',
+            'role' => 'sometimes|in:admin,manager,employee',
         ];
     }
 }

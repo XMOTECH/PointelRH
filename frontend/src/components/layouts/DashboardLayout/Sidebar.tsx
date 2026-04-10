@@ -45,7 +45,9 @@ export const Sidebar: React.FC = () => {
     { icon: <Clock size={20} />, label: 'Pointage', path: '/clock-in', roles: ['employee'] },
     { icon: <User size={20} />, label: 'Mon Profil', path: '/my-profile', roles: ['employee'] },
     { icon: <History size={20} />, label: 'Historique', path: '/my-attendance', roles: ['employee'] },
+    { icon: <Briefcase size={20} />, label: 'Mes Missions', path: '/my-missions', roles: ['employee'] },
     { icon: <CalendarDays size={20} />, label: 'Mon Planning', path: '/my-schedule', roles: ['employee'] },
+    { icon: <Bell size={20} />, label: 'Notifications', path: '/notifications', roles: ['employee', 'admin', 'manager'] },
   ];
 
   const filteredNavItems = navItems.filter(item =>

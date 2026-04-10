@@ -7,10 +7,6 @@ use App\Services\LoggingService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 
-/**
- * EmployeeNotificationController
- * Récupère les informations contextuelles pour les notifications
- */
 class EmployeeNotificationController extends BaseApiController
 {
     /**
@@ -20,36 +16,40 @@ class EmployeeNotificationController extends BaseApiController
     public function getNotificationContext(string $employeeId): JsonResponse
     {
         try {
-            $employee = Employee::with(['department', 'company'])->findOrFail($employeeId);
+            $employee = Employee::with('department')->findOrFail($employeeId);
 
-            LoggingService::info('Notification context retrieved', [
-                'employee_id' => $employeeId,
-                'department_id' => $employee->department_id,
-            ]);
+            // Chercher le manager du meme departement ou de la meme entreprise
+            $manager = Employee::where('company_id', $employee->company_id)
+                ->where('role', 'manager')
+                ->where('status', 'active')
+                ->when($employee->department_id, function ($q) use ($employee) {
+                    $q->where('department_id', $employee->department_id);
+                })
+                ->first();
 
-            // In a real app, we'd find the manager of the department
-            // For this demo, we'll assume the first employee with 'manager' role in the same company/dept
-            // or just return some mock data if not found.
+            // Si pas de manager dans le departement, chercher un admin
+            if (! $manager) {
+                $manager = Employee::where('company_id', $employee->company_id)
+                    ->where('role', 'admin')
+                    ->where('status', 'active')
+                    ->first();
+            }
 
             return $this->respondSuccess([
-                'employee_name' => $employee->first_name.' '.$employee->last_name,
-                'manager_id' => '00000000-0000-0000-0000-000000000001', // Mock
-                'manager_name' => 'Jean Dupont',
-                'manager_email' => 'manager@pointel.sn',
-                'manager_phone' => '221770000000',
+                'employee_name' => $employee->first_name . ' ' . $employee->last_name,
+                'manager_id' => $manager?->user_id,
+                'manager_name' => $manager ? $manager->first_name . ' ' . $manager->last_name : null,
+                'manager_email' => $manager?->email,
+                'manager_phone' => $manager?->phone,
                 'manager_preferences' => [
                     'email_enabled' => true,
-                    'whatsapp_enabled' => true,
+                    'whatsapp_enabled' => false,
                     'inapp_enabled' => true,
                     'quiet_hours_start' => '22:00:00',
                     'quiet_hours_end' => '06:00:00',
                 ],
             ]);
         } catch (ModelNotFoundException $e) {
-            LoggingService::warning('Employee not found for notification context', [
-                'employee_id' => $employeeId,
-            ]);
-
             return $this->respondError('Employee not found', 404);
         } catch (\Exception $e) {
             LoggingService::error('Failed to get notification context', $e);

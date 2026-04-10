@@ -117,16 +117,15 @@ export function EmployeeFormModal({ open, onClose, onSubmit, isLoading, employee
               <input {...register('phone')} className={inputClass} placeholder="+212 6..." />
             </div>
 
-            {/* Rôle — masqué en édition */}
-            {!isEdit && (
-              <div>
-                <label className={labelClass}>Rôle (Système)</label>
-                <select {...register('role')} className={selectClass}>
-                  <option value="employee">Employé</option>
-                  <option value="manager">Manager</option>
-                </select>
-              </div>
-            )}
+            {/* Rôle */}
+            <div>
+              <label className={labelClass}>Rôle</label>
+              <select {...register('role')} className={selectClass}>
+                <option value="employee">Employe</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Administrateur</option>
+              </select>
+            </div>
 
             {/* Type de contrat */}
             <div>

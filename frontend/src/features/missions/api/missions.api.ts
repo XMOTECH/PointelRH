@@ -30,6 +30,20 @@ export interface CreateMissionDTO {
   employee_ids?: string[];
 }
 
+export interface MyMission {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  status: 'draft' | 'active' | 'completed' | 'cancelled';
+  start_date: string;
+  end_date: string | null;
+  department: string | null;
+  assignment_status: 'assigned' | 'seen' | 'completed';
+  comment: string | null;
+  assigned_at: string;
+}
+
 export const missionsApi = {
   getMissions: (params?: any) => 
     api.get<{ data: Mission[] }>('/api/missions', { params }),
@@ -46,6 +60,9 @@ export const missionsApi = {
   assignEmployees: (id: string, employeeIds: string[], comment?: string) => 
     api.post(`/api/missions/${id}/assign`, { employee_ids: employeeIds, comment }),
   
-  deleteMission: (id: string) => 
+  deleteMission: (id: string) =>
     api.delete(`/api/missions/${id}`),
+
+  getMyMissions: () =>
+    api.get<{ data: MyMission[] }>('/api/employee/my-missions'),
 };

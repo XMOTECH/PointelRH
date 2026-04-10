@@ -21,6 +21,7 @@ import { AdminLeaveRequestsPage } from '../features/leaves';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { MissionsPage } from '../features/missions/MissionsPage';
 import { MissionTrackingPage } from '../features/missions/MissionTrackingPage';
+import { MyMissionsPage } from '../features/missions/MyMissionsPage';
 import { CompanyListPage } from '../features/admin/companies/CompanyListPage';
 
 function RoleBasedRedirect() {
@@ -84,6 +85,7 @@ export function AppRoutes() {
           <Route path="/clock-in" element={<ClockInPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/my-profile" element={<MyProfilePage />} />
+          <Route path="/my-missions" element={<MyMissionsPage />} />
           <Route path="/my-attendance" element={<MyAttendancePage />} />
           <Route path="/my-schedule" element={<MySchedulePage />} />
         </Route>

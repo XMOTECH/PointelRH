@@ -25,6 +25,7 @@ class EmployeeResource extends JsonResource
             'qr_token' => $this->qr_token,
             'hire_date' => $this->hire_date,
             'status' => $this->status,
+            'role' => $this->role,
             'company_id' => $this->company_id,
             'department_id' => $this->department_id,
             'schedule_id' => $this->schedule_id,

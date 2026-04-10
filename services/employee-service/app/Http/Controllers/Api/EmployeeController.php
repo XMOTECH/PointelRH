@@ -317,13 +317,14 @@ class EmployeeController extends BaseApiController
                 return $this->respondUnauthorized('Utilisateur non authentifié');
             }
 
-            // Un utilisateur peut avoir un employee_id lié
-            $user = User::find($request->auth_user_id);
-            if (! $user || ! $user->employee_id) {
+            $employee = Employee::where('user_id', $request->auth_user_id)
+                ->where('company_id', $request->auth_company_id)
+                ->with(['department', 'schedule'])
+                ->first();
+
+            if (! $employee) {
                 return $this->respondNotFound('Aucun profil employé lié à cet utilisateur');
             }
-
-            $employee = $this->employeeService->getById($user->employee_id);
 
             return $this->respondSuccess(
                 new EmployeeResource($employee),

@@ -50,4 +50,5 @@ export interface UpdateEmployeePayload {
   schedule_id?: string;
   contract_type?: 'cdi' | 'cdd' | 'freelance' | 'intern';
   hire_date?: string;
+  role?: 'admin' | 'manager' | 'employee';
 }

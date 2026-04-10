@@ -17,6 +17,49 @@ use Illuminate\Support\Str;
 class MissionController extends BaseApiController
 {
     /**
+     * List missions assigned to the authenticated employee.
+     * GET /api/employee/my-missions
+     */
+    public function myMissions(Request $request): JsonResponse
+    {
+        try {
+            $employee = Employee::where('user_id', $request->auth_user_id)
+                ->where('company_id', $request->auth_company_id)
+                ->first();
+
+            if (! $employee) {
+                return $this->respondNotFound('Profil employé introuvable');
+            }
+
+            $missions = $employee->missions()
+                ->with('department')
+                ->orderBy('start_date', 'desc')
+                ->get()
+                ->map(function ($mission) {
+                    return [
+                        'id' => $mission->id,
+                        'title' => $mission->title,
+                        'description' => $mission->description,
+                        'location' => $mission->location,
+                        'status' => $mission->status,
+                        'start_date' => $mission->start_date?->toDateString(),
+                        'end_date' => $mission->end_date?->toDateString(),
+                        'department' => $mission->department?->name,
+                        'assignment_status' => $mission->pivot->status,
+                        'comment' => $mission->pivot->comment,
+                        'assigned_at' => $mission->pivot->assigned_at,
+                    ];
+                });
+
+            return $this->respondSuccess($missions);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to list employee missions', $e);
+
+            return $this->respondServerError('Impossible de récupérer vos missions');
+        }
+    }
+
+    /**
      * Display a listing of missions.
      * GET /api/missions
      */
