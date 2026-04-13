@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { X, User, Building2, Calendar, QrCode, ScanFace } from 'lucide-react';
+import { X, User, Building2, Calendar, QrCode, ScanFace, KeyRound, Mail, Loader2 } from 'lucide-react';
 import type { Employee } from '../types';
 import { Badge } from '../../../components/ui/Badge';
 import { FaceEnrollmentModal } from './FaceEnrollmentModal';
 import { useFaceEnrollmentStatus } from '../hooks/useFaceEnrollment';
+import { useGeneratePin } from '../hooks/useGeneratePin';
 
 interface Props {
   open: boolean;
@@ -42,6 +43,7 @@ const roleLabels: Record<string, string> = {
 export function EmployeeDetailModal({ open, onClose, employee }: Props) {
   const [faceModalOpen, setFaceModalOpen] = useState(false);
   const { data: faceStatus } = useFaceEnrollmentStatus(employee?.id);
+  const generatePin = useGeneratePin();
 
   if (!open || !employee) return null;
 
@@ -152,6 +154,33 @@ export function EmployeeDetailModal({ open, onClose, employee }: Props) {
               </div>
             </>
           )}
+
+          {/* Acces & Credentials */}
+          <hr className="border-on-surface/5" />
+          <div className={sectionClass}>
+            <div className="flex items-center gap-2 text-primary mb-1">
+              <KeyRound size={14} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Acces & Identifiants</span>
+            </div>
+            <p className="text-xs text-on-surface-variant">
+              Generer un nouveau code PIN et mot de passe, puis les envoyer par email a l'employe.
+            </p>
+            <button
+              onClick={() => generatePin.mutate(employee.id)}
+              disabled={generatePin.isPending || !employee.email}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-primary/20 bg-primary/5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {generatePin.isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Mail size={16} />
+              )}
+              {generatePin.isPending ? 'Envoi en cours...' : 'Envoyer PIN & mot de passe par email'}
+            </button>
+            {!employee.email && (
+              <p className="text-xs text-red-500">Cet employe n'a pas d'adresse email configuree.</p>
+            )}
+          </div>
 
           {/* Reconnaissance Faciale */}
           <hr className="border-on-surface/5" />

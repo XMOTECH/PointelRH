@@ -173,4 +173,26 @@ class AuthController extends BaseApiController
             return $this->respondUnauthorized('Token invalide ou expiré');
         }
     }
+
+    public function changePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = auth('api')->user();
+
+        if (! \Hash::check($request->current_password, $user->password)) {
+            return $this->respondError('Le mot de passe actuel est incorrect', 422);
+        }
+
+        $user->update([
+            'password' => \Hash::make($request->new_password),
+        ]);
+
+        LoggingService::info('User changed password', ['user_id' => $user->id]);
+
+        return $this->respondSuccess(null, 'Mot de passe modifie avec succes');
+    }
 }

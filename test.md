@@ -133,3 +133,30 @@
 
   Ordre d'exécution recommandé : 1 → 2 → 3 → 4 → 7 → 6 → 8. Les étapes 3-4 valident
   les routes, 7 valide la DB, 6 fait les tests end-to-end inter-services.
+
+
+  Le probleme est visible dans la sortie Docker : seul frontend a ete "Recreated", tous les autres services montrent "Running" (pas
+  redemarres). Le code PHP et le kong.yml ne sont pas pris en compte.
+                                                                                                                                          
+  Tu dois :                                                                                                                               
+                                                                                                                                          
+  1. Reconstruire et redemarrer employee-service et kong pour charger les nouvelles routes :                                              
+                                                                                                                                        
+  docker compose up -d --build employee-service kong
+
+  2. Executer les migrations dans le container :
+
+  docker exec employee-service php artisan migrate
+
+  3. Executer le seeder :
+
+  docker exec employee-service php artisan db:seed --class=LeaveTypeSeeder
+
+  4. Redemarrer notif-service pour le nouveau consumer :
+
+  docker compose up -d --build notif-service
+
+  Le --build force la reconstruction de l'image avec le code mis a jour. Sans ca, les containers reutilisent l'ancienne image en cache.
+
+● Ran 1 stop hook (ctrl+o to expand)
+  ⎿  Stop hook error: Failed with non-blocking status code: /usr/bin/bash: line 1: C:Program: command not found

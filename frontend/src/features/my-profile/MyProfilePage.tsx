@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, Building2, Briefcase, Calendar, Clock, QrCode, ScanFace, CheckCircle2, XCircle } from 'lucide-react';
+import { User, Mail, Phone, Building2, Briefcase, Calendar, Clock, QrCode, ScanFace, CheckCircle2, XCircle, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useMyProfile } from './hooks/useMyProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useFaceEnrollmentStatus } from '@/features/employees/hooks/useFaceEnrollment';
 import { FaceEnrollmentModal } from '@/features/employees/components/FaceEnrollmentModal';
+import { useMutation } from '@tanstack/react-query';
+import { profileApi } from './api/profile.api';
+import { toast } from 'sonner';
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null }) {
   return (
@@ -24,6 +27,20 @@ export default function MyProfilePage() {
   const employeeId = user?.employee_id;
   const { data: faceStatus } = useFaceEnrollmentStatus(employeeId);
   const [faceModalOpen, setFaceModalOpen] = useState(false);
+  const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
+  const [showPasswords, setShowPasswords] = useState(false);
+
+  const changePasswordMutation = useMutation({
+    mutationFn: () => profileApi.changePassword(pwForm),
+    onSuccess: () => {
+      toast.success('Mot de passe modifie avec succes');
+      setPwForm({ current_password: '', new_password: '', new_password_confirmation: '' });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Erreur lors du changement de mot de passe';
+      toast.error(msg);
+    },
+  });
 
   if (isLoading) {
     return (
@@ -121,6 +138,85 @@ export default function MyProfilePage() {
               </CardContent>
             </Card>
           )}
+          {/* Change Password */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Changer le mot de passe</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (pwForm.new_password !== pwForm.new_password_confirmation) {
+                    toast.error('Les mots de passe ne correspondent pas');
+                    return;
+                  }
+                  if (pwForm.new_password.length < 8) {
+                    toast.error('Le mot de passe doit contenir au moins 8 caracteres');
+                    return;
+                  }
+                  changePasswordMutation.mutate();
+                }}
+                className="space-y-3"
+              >
+                <div className="relative">
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40" />
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    placeholder="Mot de passe actuel"
+                    value={pwForm.current_password}
+                    onChange={(e) => setPwForm(p => ({ ...p, current_password: e.target.value }))}
+                    className="w-full h-10 pl-9 pr-10 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(!showPasswords)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-on-surface-variant"
+                  >
+                    {showPasswords ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40" />
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    placeholder="Nouveau mot de passe (min. 8 caracteres)"
+                    value={pwForm.new_password}
+                    onChange={(e) => setPwForm(p => ({ ...p, new_password: e.target.value }))}
+                    className="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    required
+                    minLength={8}
+                  />
+                </div>
+                <div className="relative">
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40" />
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    placeholder="Confirmer le nouveau mot de passe"
+                    value={pwForm.new_password_confirmation}
+                    onChange={(e) => setPwForm(p => ({ ...p, new_password_confirmation: e.target.value }))}
+                    className="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    required
+                    minLength={8}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={changePasswordMutation.isPending}
+                  className="btn btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2"
+                >
+                  {changePasswordMutation.isPending ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Lock size={16} />
+                  )}
+                  {changePasswordMutation.isPending ? 'Modification...' : 'Modifier le mot de passe'}
+                </button>
+              </form>
+            </CardContent>
+          </Card>
+
           {/* Face Enrollment */}
           {employeeId && (
             <Card>

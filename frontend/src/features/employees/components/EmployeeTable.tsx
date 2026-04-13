@@ -173,7 +173,7 @@ export function EmployeeTable({ employees, isLoading, onView, onEdit, onDelete, 
             <button
               onClick={() => generatePin.mutate(emp.id)}
               disabled={generatePin.isPending}
-              title="Envoyer PIN par SMS"
+              title="Envoyer PIN & mot de passe par email"
               className="p-2 hover:bg-primary/10 rounded-xl transition-colors text-primary opacity-60 hover:opacity-100 disabled:opacity-30"
             >
               {generatePin.isPending ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}

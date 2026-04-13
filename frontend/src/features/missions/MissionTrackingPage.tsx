@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  MapPin, 
-  Users, 
-  Clock, 
-  Activity, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  MapPin,
+  Users,
+  Clock,
+  Activity,
+  CheckCircle2,
   AlertCircle,
   MoreVertical,
   TrendingUp,
@@ -18,13 +18,17 @@ import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 export const MissionTrackingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [mission, setMission] = useState<Mission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
+  const [incidentData, setIncidentData] = useState({ title: '', description: '', severity: 'medium' });
 
   useEffect(() => {
     if (id) {
@@ -54,18 +58,27 @@ export const MissionTrackingPage: React.FC = () => {
 
   if (!mission) return <div>Mission non trouvée</div>;
 
+  const formatElapsed = (startDate: string) => {
+    const start = new Date(startDate);
+    const now = new Date();
+    const diff = Math.abs(now.getTime() - start.getTime());
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    return `${hours}h ${minutes}m`;
+  };
+
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto min-h-screen bg-surface">
       {/* Header */}
       <div className="flex flex-col gap-4">
-        <button 
+        <button
           onClick={() => navigate('/missions')}
           className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors w-fit font-medium text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           Retour aux missions
         </button>
-        
+
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
@@ -92,10 +105,17 @@ export const MissionTrackingPage: React.FC = () => {
           </div>
 
           <div className="flex gap-3">
-            <Button variant="secondary" className="rounded-xl px-6 h-12">
+            <Button
+              variant="secondary"
+              className="rounded-xl px-6 h-12"
+              onClick={() => setShowIncidentModal(true)}
+            >
               Rapport d'incident
             </Button>
-            <Button className="btn-primary rounded-xl px-6 h-12">
+            <Button
+              className="btn-primary rounded-xl px-6 h-12"
+              onClick={() => toast.success('Moniteur live activé')}
+            >
               <Activity className="w-4 h-4 mr-2" />
               Live Monitor
             </Button>
@@ -105,32 +125,32 @@ export const MissionTrackingPage: React.FC = () => {
 
       {/* Grid Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
+        <StatCard
           icon={<Users className="w-6 h-6" />}
           label="Équipe mobilisée"
           value={mission.employees?.length.toString() || '0'}
           subValue="Sur le terrain"
           color="blue"
         />
-        <StatCard 
+        <StatCard
           icon={<Target className="w-6 h-6" />}
           label="Progression"
-          value="65%"
-          subValue="+12% vs prévu"
+          value={mission.stats ? `${mission.stats.progression_percentage}%` : '0%'}
+          subValue={`${mission.stats?.completed_tasks || 0} / ${mission.stats?.total_tasks || 0} tâches`}
           color="emerald"
         />
-        <StatCard 
+        <StatCard
           icon={<Clock className="w-6 h-6" />}
           label="Temps écoulé"
-          value="4h 12m"
-          subValue="Démarré à 08:30"
+          value={mission.status === 'active' ? formatElapsed(mission.start_date) : '-'}
+          subValue={`Démarré le ${format(new Date(mission.start_date), 'dd/MM')}`}
           color="amber"
         />
-        <StatCard 
+        <StatCard
           icon={<TrendingUp className="w-6 h-6" />}
           label="Productivité"
-          value="Optimale"
-          subValue="Stabilité 98%"
+          value={mission.stats && mission.stats.progression_percentage > 50 ? "Optimale" : "En cours"}
+          subValue="Basé sur les tâches"
           color="indigo"
         />
       </div>
@@ -143,14 +163,14 @@ export const MissionTrackingPage: React.FC = () => {
               <h3 className="text-xl font-space font-bold">Personnel assigné</h3>
               <Button variant="tertiary" size="sm">Tout voir</Button>
             </div>
-            
+
             <div className="space-y-1">
               {mission.employees?.map((emp, i) => (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  key={emp.id} 
+                  key={emp.id}
                   className="flex items-center justify-between p-5 rounded-2xl hover:bg-white/5 transition-all group border border-transparent hover:border-white/10"
                 >
                   <div className="flex items-center gap-4">
@@ -168,11 +188,14 @@ export const MissionTrackingPage: React.FC = () => {
                       <span className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Statut local</span>
                       <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                         <CheckCircle2 className="w-3 h-3" />
-                         Check-in à 08:45
+                        Check-in à 08:45
                       </div>
                     </div>
-                    
-                    <button className="p-2 hover:bg-white/10 rounded-full transition-colors opacity-0 group-hover:opacity-100 italic">
+
+                    <button
+                      className="p-2 hover:bg-white/10 rounded-full transition-colors opacity-0 group-hover:opacity-100 italic"
+                      onClick={() => toast.success(`Contacter ${emp.first_name}...`)}
+                    >
                       <MoreVertical className="w-5 h-5 text-on-surface-variant" />
                     </button>
                   </div>
@@ -191,7 +214,14 @@ export const MissionTrackingPage: React.FC = () => {
                 <h4 className="font-bold text-lg">Suivi Géographique</h4>
                 <p className="text-sm text-on-surface-variant font-medium">Dernière position connue à 10:30</p>
               </div>
-              <Button size="sm" variant="secondary" className="rounded-full px-8 bg-white/50 backdrop-blur-md border-white/20">Agrandir la carte</Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-full px-8 bg-white/50 backdrop-blur-md border-white/20"
+                onClick={() => toast('Carte temps réel en cours de chargement...')}
+              >
+                Agrandir la carte
+              </Button>
             </div>
           </div>
         </div>
@@ -201,31 +231,20 @@ export const MissionTrackingPage: React.FC = () => {
           <div className="glass p-8 rounded-3xl border-white/20">
             <h3 className="text-xl font-space font-bold mb-8">Journal d'activité</h3>
             <div className="relative space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-outline-variant">
-              <TimelineItem 
-                time="10:15" 
-                title="Rapport photo reçu" 
-                description="Awa a envoyé 3 photos du site" 
-                color="blue"
-              />
-              <TimelineItem 
-                time="09:30" 
-                title="Début des travaux" 
-                description="L'équipe a validé la check-list sécurité" 
-                color="emerald"
-                isCurrent
-              />
-              <TimelineItem 
-                time="08:45" 
-                title="Check-in GPS" 
-                description="Arrivée confirmée sur zone" 
-                color="indigo"
-              />
-              <TimelineItem 
-                time="08:00" 
-                title="Mission initialisée" 
-                description="Notification envoyée aux agents" 
-                color="slate"
-              />
+              {mission.activity_log && mission.activity_log.length > 0 ? (
+                mission.activity_log.map((item, idx) => (
+                  <TimelineItem
+                    key={idx}
+                    time={item.time}
+                    title={item.title}
+                    description={item.description}
+                    color={item.color}
+                    isCurrent={idx === 0}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-10 opacity-40 italic text-sm">Aucune activité enregistrée</div>
+              )}
             </div>
           </div>
 
@@ -235,12 +254,120 @@ export const MissionTrackingPage: React.FC = () => {
             <p className="text-sm opacity-80 leading-relaxed mb-6 font-medium">
               Veuillez vous assurer que tous les équipements de protection individuelle sont portés avant le début de l'intervention.
             </p>
-            <Button className="w-full bg-white text-primary border-none hover:bg-white/90 rounded-2xl h-12">
+            <Button
+              className="w-full bg-white text-primary border-none hover:bg-white/90 rounded-2xl h-12"
+              onClick={() => toast.error('Documents non disponibles pour cette mission')}
+            >
               Consulter les docs
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Incident Modal */}
+      <AnimatePresence>
+        {showIncidentModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowIncidentModal(false)}
+              className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-surface p-8 rounded-[32px] shadow-2xl space-y-6 border border-outline-variant"
+            >
+              <div className="space-y-2">
+                <h3 className="text-2xl font-space font-bold">Signaler un Incident</h3>
+                <p className="text-sm text-on-surface-variant">Décrivez la situation pour alerter les responsables.</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest opacity-60">Titre de l'incident</label>
+                  <input
+                    type="text"
+                    className="w-full bg-surface-container-highest border border-outline-variant rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="Ex: Panne matériel, Obstruction..."
+                    value={incidentData.title}
+                    onChange={(e) => setIncidentData({ ...incidentData, title: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest opacity-60">Sévérité</label>
+                  <div className="flex gap-2">
+                    {['low', 'medium', 'high', 'critical'].map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setIncidentData({ ...incidentData, severity: s })}
+                        className={cn(
+                          "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all",
+                          incidentData.severity === s
+                            ? "bg-primary text-white border-primary"
+                            : "bg-surface-container border-outline-variant text-on-surface-variant"
+                        )}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest opacity-60">Description détaillée</label>
+                  <textarea
+                    className="w-full h-32 bg-surface-container-highest border border-outline-variant rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                    placeholder="Décrivez précisément ce qui se passe..."
+                    value={incidentData.description}
+                    onChange={(e) => setIncidentData({ ...incidentData, description: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="tertiary"
+                  className="flex-1 rounded-2xl h-12"
+                  onClick={() => setShowIncidentModal(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  className="flex-1 btn-primary rounded-2xl h-12"
+                  isLoading={isReporting}
+                  onClick={async () => {
+                    if (!incidentData.title || !incidentData.description) {
+                      toast.error('Veuillez remplir tous les champs');
+                      return;
+                    }
+                    try {
+                      setIsReporting(true);
+                      await missionsApi.reportIncident({
+                        mission_id: id,
+                        ...incidentData
+                      });
+                      toast.success('Incident signalé avec succès');
+                      setShowIncidentModal(false);
+                      setIncidentData({ title: '', description: '', severity: 'medium' });
+                    } catch (error) {
+                      toast.error('Erreur lors du signalement');
+                    } finally {
+                      setIsReporting(false);
+                    }
+                  }}
+                >
+                  Envoyer le rapport
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -252,7 +379,7 @@ const StatCard = ({ icon, label, value, subValue, color }: any) => {
     amber: "bg-amber-500/10 text-amber-600",
     indigo: "bg-indigo-500/10 text-indigo-600",
   };
-  
+
   return (
     <div className="glass p-6 rounded-3xl border-white/20 flex flex-col gap-4 group hover:translate-y-[-4px] transition-transform duration-300">
       <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center ring-4 ring-white shadow-sm", colors[color])}>

@@ -6,7 +6,10 @@ use App\Http\Resources\MissionCollection;
 use App\Http\Resources\MissionResource;
 use App\Models\Employee;
 use App\Models\Mission;
+use App\Services\ConflictService;
 use App\Services\LoggingService;
+use App\Services\RabbitMQService;
+use App\Services\MissionService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +26,11 @@ class MissionController extends BaseApiController
     public function myMissions(Request $request): JsonResponse
     {
         try {
+            LoggingService::info('Debugging myMissions lookup', [
+                'auth_user_id' => $request->auth_user_id,
+                'auth_company_id' => $request->auth_company_id
+            ]);
+
             $employee = Employee::where('user_id', $request->auth_user_id)
                 ->where('company_id', $request->auth_company_id)
                 ->first();
@@ -122,29 +130,29 @@ class MissionController extends BaseApiController
             $mission = Mission::create($data);
 
             if (! empty($employeeIds)) {
-                // Ensure all employees belong to the same company/department context
-                $validEmployees = Employee::whereIn('id', $employeeIds)
-                    ->where('company_id', $request->auth_company_id);
-
-                if ($request->has('filter_department_id')) {
-                    $validEmployees->where('department_id', $request->filter_department_id);
-                }
-
-                $finalIds = $validEmployees->pluck('id')->toArray();
-
-                if (count($finalIds) !== count($employeeIds)) {
-                    DB::rollBack();
-
-                    return $this->respondError('Certains employés ne sont pas éligibles pour cette mission', 422);
-                }
-
-                $mission->employees()->syncWithPivotValues($finalIds, [
-                    'status' => 'assigned',
-                    'assigned_at' => now(),
-                ]);
+                $missionService = app(MissionService::class);
+                $missionService->assignEmployees($mission, $employeeIds);
             }
 
             DB::commit();
+
+            // Publier événement pour chaque employé assigné
+            if (! empty($finalIds)) {
+                $employees = Employee::whereIn('id', $finalIds)->get();
+                $rabbitMQ = new RabbitMQService();
+                foreach ($employees as $employee) {
+                    $rabbitMQ->publishEvent('MissionAssigned', [
+                        'employee_id' => $employee->id,
+                        'user_id' => $employee->user_id,
+                        'employee_name' => $employee->first_name.' '.$employee->last_name,
+                        'company_id' => $mission->company_id,
+                        'mission_id' => $mission->id,
+                        'mission_title' => $mission->title,
+                        'mission_location' => $mission->location,
+                        'mission_start_date' => $mission->start_date?->toDateString(),
+                    ], 'employee_events');
+                }
+            }
 
             LoggingService::info('Mission created with assignments', [
                 'mission_id' => $mission->id,
@@ -168,6 +176,7 @@ class MissionController extends BaseApiController
     {
         try {
             $mission = Mission::with(['department', 'employees'])
+                ->withCount('tasks')
                 ->where('company_id', $request->auth_company_id)
                 ->findOrFail($id);
 
@@ -260,33 +269,35 @@ class MissionController extends BaseApiController
                 'comment' => 'nullable|string',
             ]);
 
-            // Ensure all employees belong to the same company/department context
-            $employeeIds = $request->employee_ids;
-            $validEmployees = Employee::whereIn('id', $employeeIds)
-                ->where('company_id', $request->auth_company_id);
-
-            if ($request->has('filter_department_id')) {
-                $validEmployees->where('department_id', $request->filter_department_id);
+            // Vérifier les conflits de congé (warning non bloquant)
+            $leaveWarnings = [];
+            if ($mission->start_date && $mission->end_date) {
+                $conflictService = app(ConflictService::class);
+                foreach ($request->employee_ids as $empId) {
+                    $conflicts = $conflictService->checkLeaveConflicts($empId, $mission->start_date, $mission->end_date);
+                    foreach ($conflicts as $c) {
+                        $emp = Employee::find($empId);
+                        $leaveWarnings[] = ($emp?->full_name ?? $empId) . ' : ' . $c['title'];
+                    }
+                }
             }
 
-            $finalIds = $validEmployees->pluck('id')->toArray();
-
-            if (count($finalIds) !== count($employeeIds)) {
-                return $this->respondError('Certains employés ne sont pas éligibles pour cette mission', 422);
-            }
-
-            $mission->employees()->syncWithPivotValues($finalIds, [
-                'status' => 'assigned',
-                'comment' => $request->comment,
-                'assigned_at' => now(),
-            ]);
+            $missionService = app(MissionService::class);
+            $missionService->assignEmployees($mission, $request->employee_ids, $request->comment);
 
             LoggingService::info('Employees assigned to mission', [
                 'mission_id' => $id,
-                'count' => count($finalIds),
+                'count' => count($request->employee_ids),
             ]);
 
-            return $this->respondSuccess(null, 'Employés assignés avec succès');
+            $message = ! empty($leaveWarnings)
+                ? 'Employés assignés — attention : certains sont en congé'
+                : 'Employés assignés avec succès';
+
+            return $this->respondSuccess(
+                ! empty($leaveWarnings) ? ['warnings' => $leaveWarnings] : null,
+                $message
+            );
         } catch (ModelNotFoundException $e) {
             return $this->respondNotFound('Mission non trouvée');
         } catch (\Exception $e) {

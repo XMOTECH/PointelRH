@@ -1,14 +1,16 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  ChevronLeft,
+  ChevronRight,
   Calendar as CalendarIcon,
   Clock,
   Plus,
   Search,
-  AlertTriangle,
-  Info
+  CheckCircle,
+  AlertCircle,
+  TrendingUp,
+  Briefcase
 } from 'lucide-react';
 import { schedulesApi } from './api/schedules.api';
 import { Button } from '@/components/ui/Button';
@@ -24,7 +26,7 @@ export function WeeklyPlanningPage() {
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [searchQuery, setSearchQuery] = React.useState('');
-  
+
   // Modal state
   const [selectedCell, setSelectedCell] = React.useState<{
     employeeId: string;
@@ -38,10 +40,10 @@ export function WeeklyPlanningPage() {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const { data: planning, isLoading } = useQuery({
-    queryKey: ['planning', format(weekStart, 'yyyy-MM-dd')],
-    queryFn: () => schedulesApi.getPlanning({
-      start_date: format(weekStart, 'yyyy-MM-dd'),
-      end_date: format(weekEnd, 'yyyy-MM-dd'),
+    queryKey: ['timeline', format(weekStart, 'yyyy-MM-dd')],
+    queryFn: () => schedulesApi.getTimeline({
+      start: format(weekStart, 'yyyy-MM-dd'),
+      end: format(weekEnd, 'yyyy-MM-dd'),
     }),
   });
 
@@ -71,34 +73,34 @@ export function WeeklyPlanningPage() {
             Planning Hebdomadaire
           </h1>
           <div className="flex items-center gap-2 mt-1">
-             <CalendarIcon size={16} className="text-primary" />
-             <span className="text-sm font-bold text-on-surface-variant">
-               Semaine du {format(weekStart, 'dd MMMM', { locale: fr })} au {format(weekEnd, 'dd MMMM yyyy', { locale: fr })}
-             </span>
+            <CalendarIcon size={16} className="text-primary" />
+            <span className="text-sm font-bold text-on-surface-variant">
+              Semaine du {format(weekStart, 'dd MMMM', { locale: fr })} au {format(weekEnd, 'dd MMMM yyyy', { locale: fr })}
+            </span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <div className="flex items-center bg-surface-container rounded-xl p-1 border border-outline-variant">
-             <Button variant="tertiary" size="sm" onClick={() => setCurrentDate(addDays(currentDate, -7))} className="!p-2"><ChevronLeft size={18} /></Button>
-             <button 
+            <Button variant="tertiary" size="sm" onClick={() => setCurrentDate(addDays(currentDate, -7))} className="!p-2"><ChevronLeft size={18} /></Button>
+            <button
               onClick={() => setCurrentDate(new Date())}
               className="px-4 py-1.5 text-xs font-black uppercase tracking-widest hover:text-primary transition-colors"
-             >
-                Aujourd'hui
-             </button>
-             <Button variant="tertiary" size="sm" onClick={() => setCurrentDate(addDays(currentDate, 7))} className="!p-2"><ChevronRight size={18} /></Button>
+            >
+              Aujourd'hui
+            </button>
+            <Button variant="tertiary" size="sm" onClick={() => setCurrentDate(addDays(currentDate, 7))} className="!p-2"><ChevronRight size={18} /></Button>
           </div>
 
           <div className="relative flex-1 min-w-[200px]">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-40" size={16} />
-             <input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-container rounded-xl text-sm border-none focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-             />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-40" size={16} />
+            <input
+              type="text"
+              placeholder="Rechercher..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-surface-container rounded-xl text-sm border-none focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+            />
           </div>
         </div>
       </div>
@@ -129,72 +131,96 @@ export function WeeklyPlanningPage() {
                 <tr key={emp.employee_id} className="group hover:bg-primary/5 transition-colors">
                   <td className="sticky left-0 z-10 bg-surface-container-lowest group-hover:bg-primary/[0.02] px-6 py-4 border-r border-outline-variant/50">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-primary border border-outline-variant shadow-sm text-sm">
-                        {emp.first_name[0]}{emp.last_name[0]}
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center font-bold text-primary border border-primary/20 shadow-sm text-sm overflow-hidden">
+                          {emp.first_name?.[0] || '?'}{emp.last_name?.[0] || '?'}
+                        </div>
+                        {emp.occupancy_rate > 90 && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+                        )}
                       </div>
-                      <div>
-                        <p className="font-bold text-on-surface leading-tight">{emp.first_name} {emp.last_name}</p>
-                        <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest mt-0.5">
-                          {emp.department_name || 'Collaborateur'}
-                        </p>
+                      <div className="flex flex-col gap-1">
+                        <p className="font-bold text-on-surface leading-tight text-sm">{(emp.first_name || 'Inconnu') + ' ' + (emp.last_name || '')}</p>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black text-on-surface-variant/50 uppercase tracking-widest">Charge</span>
+                            <span className={`text-[9px] font-black ${emp.occupancy_rate > 90 ? 'text-red-500' : 'text-primary'}`}>{Math.round(emp.occupancy_rate)}%</span>
+                          </div>
+                          <div className="w-24 h-1 bg-surface-container rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${emp.occupancy_rate > 90 ? 'bg-red-500' : 'bg-primary'}`}
+                              style={{ width: `${Math.min(100, emp.occupancy_rate)}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </td>
-                  {emp.days.map((day: any) => {
-                    const isWork = day.status === 'work';
-                    const isLeave = day.status === 'leave';
-                    
+                  {weekDays.map((day) => {
+                    const dayStr = format(day, 'yyyy-MM-dd');
+                    const dayShifts = emp.shifts?.filter((s: any) => s.date === dayStr) || [];
+
                     return (
-                      <td key={day.date} className="p-2 border-r border-outline-variant/10">
-                        {isWork ? (
-                          <div 
-                            onClick={() => setSelectedCell({ 
-                              employeeId: emp.employee_id, 
-                              employeeName: `${emp.first_name} ${emp.last_name}`,
-                              date: day.date,
-                              dayData: day
-                            })}
-                            className={`
-                              cursor-pointer rounded-xl p-3 space-y-2 group/card relative overflow-hidden transition-all hover:shadow-lg
-                              ${day.is_override ? 'bg-amber-50 border border-amber-200' : 'bg-primary/10 border border-primary/20'}
-                            `}
-                          >
-                            <div className="flex items-center justify-between">
-                               <div className="flex items-center gap-1.5">
-                                  <Clock size={12} className={day.is_override ? 'text-amber-600' : 'text-primary'} />
-                                  <span className={`text-xs font-black uppercase tracking-tighter ${day.is_override ? 'text-amber-700' : 'text-primary'}`}>
-                                    {day.start_time.substring(0, 5)} - {day.end_time.substring(0, 5)}
-                                  </span>
-                               </div>
-                               {day.is_override && <Info size={12} className="text-amber-400" />}
+                      <td key={dayStr} className="p-2 border-r border-outline-variant/10 align-top">
+                        <div className="flex flex-col gap-2">
+                          {dayShifts.length > 0 ? dayShifts.map((shift: any) => (
+                            <div
+                              key={shift.id}
+                              onClick={() => setSelectedCell({
+                                employeeId: emp.employee_id,
+                                employeeName: `${emp.first_name} ${emp.last_name}`,
+                                date: dayStr,
+                                dayData: shift
+                              })}
+                              className={`
+                                cursor-pointer rounded-xl p-3 space-y-2 group/card relative overflow-hidden transition-all hover:shadow-lg glass
+                                ${shift.status === 'pending'
+                                  ? 'bg-amber-50/80 border border-amber-200 text-amber-900'
+                                  : shift.mission_title
+                                    ? 'bg-indigo-50/80 border border-indigo-200 text-indigo-900'
+                                    : 'bg-primary/5 border border-primary/20 text-primary-900'}
+                              `}
+                            >
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Clock size={10} className="opacity-60 flex-shrink-0" />
+                                    <span className="text-[10px] font-bold uppercase tracking-tighter truncate">
+                                      {shift.start.split('T')[1].substring(0, 5)} - {shift.end.split('T')[1].substring(0, 5)}
+                                    </span>
+                                  </div>
+                                  {shift.status === 'pending' ? (
+                                    <AlertCircle size={14} className="text-amber-500 animate-pulse flex-shrink-0" />
+                                  ) : (
+                                    <CheckCircle size={14} className="text-primary opacity-40 flex-shrink-0" />
+                                  )}
+                                </div>
+                                {shift.mission_title && (
+                                  <div className="flex items-center gap-1 mt-1 text-primary">
+                                    <Briefcase size={10} className="flex-shrink-0" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest truncate">
+                                      {shift.mission_title}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className={`absolute left-0 top-0 bottom-0 w-1 ${shift.status === 'pending' ? 'bg-amber-500' : shift.mission_title ? 'bg-indigo-500' : 'bg-primary'}`} />
                             </div>
-                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${day.is_override ? 'bg-amber-500' : 'bg-primary'}`} />
-                          </div>
-                        ) : isLeave ? (
-                          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex flex-col items-center justify-center gap-1 opacity-80 ring-1 ring-indigo-200/50 italic">
-                             <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">Congés</span>
-                             <span className="text-[9px] text-indigo-500 truncate w-full text-center">{day.reason || 'Saisis'}</span>
-                          </div>
-                        ) : (
-                          <div 
-                            onClick={() => setSelectedCell({ 
-                              employeeId: emp.employee_id, 
-                              employeeName: `${emp.first_name} ${emp.last_name}`,
-                              date: day.date,
-                              dayData: day
-                            })}
-                            className="h-20 border-2 border-dashed border-outline-variant/20 rounded-xl flex items-center justify-center group/empty hover:border-primary/30 transition-all cursor-pointer bg-surface-container-lowest/50"
-                          >
-                             {day.is_override ? (
-                               <div className="flex flex-col items-center gap-1 animate-pulse">
-                                  <AlertTriangle size={16} className="text-amber-400" />
-                                  <span className="text-[10px] font-bold text-amber-500 uppercase">REPOS (FORCÉ)</span>
-                               </div>
-                             ) : (
-                               <Plus size={16} className="text-on-surface-variant opacity-0 group-hover/empty:opacity-40 transition-all" />
-                             )}
-                          </div>
-                        )}
+                          )) : (
+                            <div
+                              onClick={() => setSelectedCell({
+                                employeeId: emp.employee_id,
+                                employeeName: `${emp.first_name} ${emp.last_name}`,
+                                date: dayStr,
+                                dayData: { status: 'off' }
+                              })}
+                              className="h-12 border-2 border-dashed border-outline-variant/20 rounded-xl flex items-center justify-center group/empty hover:border-primary/30 transition-all cursor-pointer bg-surface-container-lowest/50 opacity-40 hover:opacity-100"
+                            >
+                              <Plus size={16} className="text-on-surface-variant opacity-0 group-hover/empty:opacity-40 transition-all" />
+                            </div>
+                          )}
+                        </div>
                       </td>
                     );
                   })}
@@ -207,22 +233,24 @@ export function WeeklyPlanningPage() {
 
       {/* Info Legend */}
       <div className="flex flex-wrap items-center gap-6 px-4">
-         <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-primary" />
-            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Contrat (Template)</span>
-         </div>
-         <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Exception (Manuel)</span>
-         </div>
-         <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-indigo-400" />
-            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Congés validés</span>
-         </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-surface-container-highest border-2 border-dashed border-outline-variant" />
-            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Repos / Libre</span>
-         </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-primary/20 border border-primary/40" />
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Shift Confirmé</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Conflit Détecté</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-indigo-400" />
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Mission Assignée</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <TrendingUp size={12} className="text-primary" />
+            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Taux d'occupation</span>
+          </div>
+        </div>
       </div>
 
       {/* Override Modal */}

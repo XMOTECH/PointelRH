@@ -149,6 +149,9 @@ class NotificationController extends Controller
             'leave_approved' => 'success',
             'leave_rejected' => 'error',
             'report' => 'info',
+            'mission_assigned' => 'info',
+            'task_assigned' => 'info',
+            'task_completed' => 'success',
         ];
 
         return [

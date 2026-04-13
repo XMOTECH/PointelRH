@@ -71,6 +71,16 @@ class Employee extends Model
         return $this->hasMany(FaceDescriptor::class);
     }
 
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function leaveBalances(): HasMany
+    {
+        return $this->hasMany(LeaveBalance::class);
+    }
+
     public function missions(): BelongsToMany
     {
         return $this->belongsToMany(Mission::class, 'mission_assignments')

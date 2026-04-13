@@ -16,6 +16,7 @@ import {
   CalendarRange,
   PlaneTakeoff,
   ShieldCheck,
+  ListTodo,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export const Sidebar: React.FC = () => {
     { icon: <Clock size={20} />, label: 'Modèles Plannings', path: '/schedules', roles: ['admin'] },
     { icon: <PlaneTakeoff size={20} />, label: 'Congés', path: '/leaves', roles: ['admin', 'manager'] },
     { icon: <Briefcase size={20} />, label: 'Missions', path: '/missions', roles: ['admin', 'manager'] },
+    { icon: <ListTodo size={20} />, label: 'Taches Equipe', path: '/team-tasks', roles: ['admin', 'manager'] },
     { icon: <MapIcon size={20} />, label: 'Sites & QR', path: '/locations', roles: ['admin'] },
     { icon: <Bell size={20} />, label: 'Live Monitor', path: '/monitor', roles: ['admin', 'manager'] },
     { icon: <ShieldCheck size={20} />, label: 'Utilisateurs', path: '/admin/users', roles: ['admin'] },
@@ -46,6 +48,8 @@ export const Sidebar: React.FC = () => {
     { icon: <User size={20} />, label: 'Mon Profil', path: '/my-profile', roles: ['employee'] },
     { icon: <History size={20} />, label: 'Historique', path: '/my-attendance', roles: ['employee'] },
     { icon: <Briefcase size={20} />, label: 'Mes Missions', path: '/my-missions', roles: ['employee'] },
+    { icon: <ListTodo size={20} />, label: 'Mes Taches', path: '/my-tasks', roles: ['employee'] },
+    { icon: <PlaneTakeoff size={20} />, label: 'Mes Congés', path: '/my-leaves', roles: ['employee'] },
     { icon: <CalendarDays size={20} />, label: 'Mon Planning', path: '/my-schedule', roles: ['employee'] },
     { icon: <Bell size={20} />, label: 'Notifications', path: '/notifications', roles: ['employee', 'admin', 'manager'] },
   ];

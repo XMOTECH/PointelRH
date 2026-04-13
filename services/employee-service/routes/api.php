@@ -4,10 +4,13 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\EmployeeNotificationController;
 use App\Http\Controllers\Api\FaceEnrollmentController;
+use App\Http\Controllers\Api\IncidentController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MissionController;
 use App\Http\Controllers\Api\PlanningController;
+use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\TimelineController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -32,9 +35,30 @@ Route::middleware(['throttle:resolve-employee'])->group(function () {
 // ── Routes protégées par JWT ──────────────────────────────
 Route::middleware(['auth.jwt'])->group(function () {
 
+    Route::get('/debug-auth', function (Request $request) {
+        return response()->json([
+            'auth_user_id' => $request->auth_user_id,
+            'auth_company_id' => $request->auth_company_id,
+            'auth_role' => $request->auth_role,
+            'headers' => $request->headers->all(),
+        ]);
+    });
+
     // ── Employees ──────────────────────────────────────────
     Route::get('/employee/me', [EmployeeController::class, 'me']);
     Route::get('/employee/my-missions', [MissionController::class, 'myMissions']);
+    Route::get('/employee/my-tasks', [TaskController::class, 'myTasks']);
+    Route::patch('/employee/my-tasks/{id}/status', [TaskController::class, 'updateStatus']);
+    Route::post('/employee/my-tasks/{id}/timer', [TaskController::class, 'logTime']);
+
+    // ── Employee Leave Self-Service ──────────────────────
+    Route::get('/employee/my-leaves', [LeaveRequestController::class, 'myLeaves']);
+    Route::get('/employee/my-balance', [LeaveRequestController::class, 'myBalance']);
+    Route::post('/employee/my-leaves', [LeaveRequestController::class, 'storeMyLeave']);
+    Route::delete('/employee/my-leaves/{id}', [LeaveRequestController::class, 'cancelMyLeave']);
+
+    // ── Leave Types ──────────────────────────────────────
+    Route::get('/leave-types', [LeaveRequestController::class, 'leaveTypes']);
 
     Route::middleware(['scoped.department'])->group(function () {
         Route::apiResource('employees', EmployeeController::class);
@@ -53,12 +77,25 @@ Route::middleware(['auth.jwt'])->group(function () {
         Route::apiResource('missions', MissionController::class);
         Route::post('/missions/{id}/assign', [MissionController::class, 'assign']);
 
+        Route::apiResource('tasks', TaskController::class)->except(['show']);
+        Route::post('/tasks/{id}/comments', [TaskController::class, 'addComment']);
+
+        // ── Incidents ─────────────────────────────────────────
+        Route::get('/incidents', [IncidentController::class, 'index']);
+        Route::post('/incidents', [IncidentController::class, 'store']);
+        Route::patch('/incidents/{id}/status', [IncidentController::class, 'updateStatus']);
+
         // ── Schedule Templates ────────────────────────────────
         Route::apiResource('schedules', ScheduleController::class);
 
         // ── Operational Planning ──────────────────────────────
         Route::get('/planning', [PlanningController::class, 'index']);
         Route::post('/planning/override', [PlanningController::class, 'override']);
+
+        // ── Unified Timeline ───────────────────────────────────
+        Route::get('/timeline/team', [TimelineController::class, 'team']);
+        Route::get('/timeline/employee/{id}', [TimelineController::class, 'employee']);
+        Route::get('/timeline/occupancy', [TimelineController::class, 'occupancy']);
     });
 
 

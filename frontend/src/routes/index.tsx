@@ -17,11 +17,13 @@ import MyAttendancePage from '../features/my-attendance/MyAttendancePage';
 import MySchedulePage from '../features/my-schedule/MySchedulePage';
 import { DepartmentListPage } from '../features/departments';
 import { ScheduleListPage, WeeklyPlanningPage } from '../features/schedules';
-import { AdminLeaveRequestsPage } from '../features/leaves';
+import { AdminLeaveRequestsPage, MyLeavesPage } from '../features/leaves';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { MissionsPage } from '../features/missions/MissionsPage';
 import { MissionTrackingPage } from '../features/missions/MissionTrackingPage';
 import { MyMissionsPage } from '../features/missions/MyMissionsPage';
+import { MyTasksPage } from '../features/tasks/MyTasksPage';
+import { TeamTasksPage } from '../features/tasks/TeamTasksPage';
 import { CompanyListPage } from '../features/admin/companies/CompanyListPage';
 
 function RoleBasedRedirect() {
@@ -78,6 +80,7 @@ export function AppRoutes() {
           <Route path="/leaves" element={<AdminLeaveRequestsPage />} />
           <Route path="/missions" element={<MissionsPage />} />
           <Route path="/missions/:id/tracking" element={<MissionTrackingPage />} />
+          <Route path="/team-tasks" element={<TeamTasksPage />} />
           <Route path="/admin/users" element={<div className="p-8"><h1 className="text-2xl font-bold mb-4">Gestion des Utilisateurs</h1><p className="text-on-surface-variant">Chargement du module...</p></div>} />
           <Route path="/settings" element={<SettingsPage />} />
 
@@ -86,6 +89,8 @@ export function AppRoutes() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/my-profile" element={<MyProfilePage />} />
           <Route path="/my-missions" element={<MyMissionsPage />} />
+          <Route path="/my-tasks" element={<MyTasksPage />} />
+          <Route path="/my-leaves" element={<MyLeavesPage />} />
           <Route path="/my-attendance" element={<MyAttendancePage />} />
           <Route path="/my-schedule" element={<MySchedulePage />} />
         </Route>

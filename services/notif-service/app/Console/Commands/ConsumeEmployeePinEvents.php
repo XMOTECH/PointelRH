@@ -77,7 +77,7 @@ class ConsumeEmployeePinEvents extends Command
         $email = $data['email'] ?? null;
         $pin = $data['pin'] ?? null;
         $password = $data['password'] ?? null;
-        $employeeName = $data['employee_name'] ?? 'Employé';
+        $employeeName = $data['employee_name'] ?? 'Employe';
         $employeeId = $data['employee_id'] ?? '';
         $companyId = $data['company_id'] ?? '';
 
@@ -87,20 +87,19 @@ class ConsumeEmployeePinEvents extends Command
             return;
         }
 
-        try {
-            // Persist notification record
-            Notification::create([
-                'id' => Str::uuid(),
-                'recipient_id' => $employeeId,
-                'company_id' => $companyId,
-                'type' => 'pin_generated',
-                'channel' => 'email',
-                'title' => 'Code PIN',
-                'body' => 'Code PIN envoyé par email',
-                'status' => 'pending',
-                'metadata' => ['employee_name' => $employeeName],
-            ]);
+        $notification = Notification::create([
+            'id' => Str::uuid(),
+            'recipient_id' => $employeeId,
+            'company_id' => $companyId,
+            'type' => 'pin_generated',
+            'channel' => 'email',
+            'title' => 'Code PIN et identifiants',
+            'body' => "Code PIN et mot de passe envoyes par email a {$email}",
+            'status' => 'pending',
+            'metadata' => ['employee_name' => $employeeName],
+        ]);
 
+        $this->sendWithRetry($notification, $email, function () use ($email, $employeeName, $pin, $password) {
             Mail::to($email)->send(new EmployeeCredentialsMail(
                 employeeName: $employeeName,
                 credentialType: 'pin',
@@ -108,11 +107,7 @@ class ConsumeEmployeePinEvents extends Command
                 password: $password,
                 email: $email,
             ));
-
-            $this->info(" [v] PIN email sent for employee: {$employeeId}");
-        } catch (\Exception $e) {
-            $this->error(" [x] Failed to send PIN email for employee {$employeeId}: ".$e->getMessage());
-        }
+        }, "PIN email for {$employeeId}");
     }
 
     private function handleUserCreated(array $data): void
@@ -120,7 +115,7 @@ class ConsumeEmployeePinEvents extends Command
         $email = $data['email'] ?? null;
         $tempPassword = $data['temp_password'] ?? null;
         $pin = $data['pin'] ?? null;
-        $employeeName = $data['employee_name'] ?? 'Employé';
+        $employeeName = $data['employee_name'] ?? 'Employe';
         $employeeId = $data['employee_id'] ?? '';
         $companyId = $data['company_id'] ?? '';
 
@@ -130,20 +125,20 @@ class ConsumeEmployeePinEvents extends Command
             return;
         }
 
-        try {
-            Notification::create([
-                'id' => Str::uuid(),
-                'recipient_id' => $employeeId,
-                'company_id' => $companyId,
-                'type' => 'user_created',
-                'channel' => 'email',
-                'title' => 'Identifiants de connexion',
-                'body' => 'Identifiants envoyés par email',
-                'status' => 'pending',
-                'metadata' => ['employee_name' => $employeeName],
-            ]);
+        $notification = Notification::create([
+            'id' => Str::uuid(),
+            'recipient_id' => $employeeId,
+            'company_id' => $companyId,
+            'type' => 'user_created',
+            'channel' => 'email',
+            'title' => 'Identifiants de connexion',
+            'body' => "Identifiants de connexion envoyes par email a {$email}",
+            'status' => 'pending',
+            'metadata' => ['employee_name' => $employeeName],
+        ]);
 
-            if ($pin) {
+        if ($pin) {
+            $this->sendWithRetry($notification, $email, function () use ($email, $employeeName, $pin, $tempPassword) {
                 Mail::to($email)->send(new EmployeeCredentialsMail(
                     employeeName: $employeeName,
                     credentialType: 'pin',
@@ -151,18 +146,52 @@ class ConsumeEmployeePinEvents extends Command
                     password: $tempPassword,
                     email: $email,
                 ));
-                $this->info(" [v] Combined credentials email (PIN + password) sent to {$employeeId}");
-            } else {
+            }, "Combined credentials for {$employeeId}");
+        } else {
+            $this->sendWithRetry($notification, $email, function () use ($email, $employeeName, $tempPassword) {
                 Mail::to($email)->send(new EmployeeCredentialsMail(
                     employeeName: $employeeName,
                     credentialType: 'password',
                     credentialValue: $tempPassword,
                     email: $email,
                 ));
-                $this->info(" [v] Password-only credentials email sent to {$employeeId}");
-            }
-        } catch (\Exception $e) {
-            $this->error(' [x] Failed to send credentials email: '.$e->getMessage());
+            }, "Password credentials for {$employeeId}");
         }
+    }
+
+    /**
+     * Envoyer un email avec 3 tentatives et mettre a jour le statut de la notification.
+     */
+    private function sendWithRetry(Notification $notification, string $email, callable $sendFn, string $label, int $maxRetries = 3): void
+    {
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            try {
+                $sendFn();
+
+                $notification->update([
+                    'status' => 'sent',
+                    'sent_at' => now(),
+                ]);
+
+                $this->info(" [v] {$label} sent to {$email} (attempt {$attempt})");
+
+                return;
+            } catch (\Exception $e) {
+                $this->error(" [x] Attempt {$attempt}/{$maxRetries} failed for {$label}: ".$e->getMessage());
+
+                if ($attempt < $maxRetries) {
+                    sleep(2 * $attempt);
+                }
+            }
+        }
+
+        $notification->update([
+            'status' => 'failed',
+            'metadata' => array_merge($notification->metadata ?? [], [
+                'error' => 'Email send failed after '.$maxRetries.' attempts',
+            ]),
+        ]);
+
+        $this->error(" [X] FINAL FAILURE: {$label} to {$email}");
     }
 }

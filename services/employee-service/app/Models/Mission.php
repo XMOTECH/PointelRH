@@ -40,4 +40,9 @@ class Mission extends Model
             ->withPivot(['id', 'status', 'comment', 'assigned_at'])
             ->withTimestamps();
     }
+
+    public function tasks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
 }

@@ -1,6 +1,6 @@
 FROM php:8.4-fpm-alpine
 
-# 1. Installer les dépendances d'exécution (conservées dans l'image finale)
+# 1. Installer toutes les dépendances, compiler les extensions, nettoyer
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -12,10 +12,8 @@ RUN apk add --no-cache \
     libjpeg-turbo \
     libpng \
     libwebp \
-    oniguruma
-
-# 2. Installer les dépendances de compilation, compiler, puis nettoyer
-RUN apk add --no-cache --virtual .build-deps \
+    oniguruma \
+ && apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS \
     linux-headers \
     libzip-dev \
@@ -26,11 +24,9 @@ RUN apk add --no-cache --virtual .build-deps \
     oniguruma-dev \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
  && docker-php-ext-install -j$(nproc) gd pdo_mysql bcmath sockets \
- # Opcache est installé séparément sans -j$(nproc) pour éviter le plantage
  && docker-php-ext-install opcache \
  && pecl install redis \
  && docker-php-ext-enable redis \
- # Nettoyage des outils de compilation pour alléger l'image
  && apk del .build-deps \
  && rm -rf /tmp/pear
 
