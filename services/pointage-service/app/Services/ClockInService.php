@@ -9,6 +9,7 @@ use App\Events\EmployeeCheckedIn;
 use App\Events\EventPublisher;
 use App\Events\LateArrivalDetected;
 use App\Exceptions\AlreadyClockedInException;
+use App\Exceptions\MissingScheduleException;
 use App\Exceptions\NotAWorkDayException;
 use App\Models\Attendance;
 use App\Models\Location;
@@ -30,7 +31,14 @@ class ClockInService
         $driver = $this->driverResolver->resolve($data->channel);
         $employee = $driver->resolve($data->payload, $data->companyId);
 
-        // Etape 2 — Verifier l'unicite du pointage
+        // Etape 2 — Verifier que l'employe a un planning assigne
+        if (! $employee->schedule) {
+            throw new MissingScheduleException(
+                "{$employee->first_name} {$employee->last_name} n'a aucun planning assigné. Contactez votre responsable.",
+            );
+        }
+
+        // Etape 3 — Verifier l'unicite du pointage
         if ($this->attendances->existsForToday($employee->id)) {
             throw new AlreadyClockedInException(
                 "{$employee->first_name} {$employee->last_name} a deja pointe aujourd'hui",
@@ -38,12 +46,12 @@ class ClockInService
             );
         }
 
-        // Etape 3 — Verifier le jour de travail
+        // Etape 4 — Verifier le jour de travail
         if (! LateMatcher::isWorkDay(now(), $employee->schedule['work_days'])) {
             throw new NotAWorkDayException("Aujourd'hui n'est pas un jour de travail");
         }
 
-        // Etape 4 — Calculer le retard (domaine pur)
+        // Etape 5 — Calculer le retard (domaine pur)
         $lateMinutes = LateMatcher::calculate(
             clockIn: now(),
             startTime: $employee->schedule['start_time'],
@@ -51,7 +59,7 @@ class ClockInService
             timezone: $employee->schedule['timezone'],
         );
 
-        // Etape 4.5 — Verifier le géo-fencing (si coordonnées fournies)
+        // Etape 6 — Verifier le geo-fencing (si coordonnees fournies)
         $isWithinZone = true;
         if ($data->latitude && $data->longitude && $employee->location_id) {
             $location = Location::find($employee->location_id);
@@ -66,12 +74,12 @@ class ClockInService
             }
         }
 
-        // Etape 5 — Persister
+        // Etape 7 — Persister
         $attendance = $this->attendances->create([
             'id' => (string) Str::uuid(),
             'employee_id' => $employee->id,
             'employee_name' => trim($employee->first_name.' '.$employee->last_name),
-            'company_id' => $employee->company_id, // Utiliser la company_id renvoyée par l'employé
+            'company_id' => $employee->company_id,
             'department_id' => $employee->department_id,
             'location_id' => $employee->location_id,
             'location_name' => $employee->location_name,
@@ -81,21 +89,21 @@ class ClockInService
             'late_minutes' => $lateMinutes,
             'status' => $isWithinZone
                                ? ($lateMinutes > 0 ? AttendanceStatus::LATE : AttendanceStatus::PRESENT)
-                               : AttendanceStatus::BAD_LOCATION, // Need to add this enum?
+                               : AttendanceStatus::BAD_LOCATION,
             'metadata' => [
                 'latitude' => $data->latitude,
                 'longitude' => $data->longitude,
                 'is_within_zone' => $isWithinZone,
-                'schedule' => $employee->schedule ? [
-                    'start_time' => $employee->schedule['start_time'] ?? null,
+                'schedule' => [
+                    'start_time' => $employee->schedule['start_time'],
                     'end_time' => $employee->schedule['end_time'] ?? null,
-                    'grace_minutes' => $employee->schedule['grace_minutes'] ?? null,
-                    'timezone' => $employee->schedule['timezone'] ?? null,
-                ] : null,
+                    'grace_minutes' => $employee->schedule['grace_minutes'],
+                    'timezone' => $employee->schedule['timezone'],
+                ],
             ],
         ]);
 
-        // Etape 6 — Publier evenements RabbitMQ
+        // Etape 8 — Publier evenements RabbitMQ
         $this->publisher->publish(new EmployeeCheckedIn($attendance, $employee));
         if ($lateMinutes > 0) {
             $this->publisher->publish(new LateArrivalDetected($attendance, $employee, $lateMinutes));

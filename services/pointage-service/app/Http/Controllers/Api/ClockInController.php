@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\AttendanceStatus;
 use App\Exceptions\AlreadyClockedInException;
 use App\Exceptions\InvalidTokenException;
+use App\Exceptions\MissingScheduleException;
 use App\Exceptions\NotAWorkDayException;
 use App\Http\Requests\ClockInRequest;
 use App\Http\Resources\AttendanceResource;
@@ -68,6 +69,10 @@ class ClockInController extends BaseApiController
             LoggingService::warning('Clock-in failed: invalid token', ['error' => $e->getMessage()]);
 
             return $this->respondNotFound($e->getMessage());
+        } catch (MissingScheduleException $e) {
+            LoggingService::warning('Clock-in failed: no schedule assigned', ['error' => $e->getMessage()]);
+
+            return $this->respondError($e->getMessage(), 422);
         } catch (NotAWorkDayException $e) {
             LoggingService::warning('Clock-in failed: not a work day', ['error' => $e->getMessage()]);
 

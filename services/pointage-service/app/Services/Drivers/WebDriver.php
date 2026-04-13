@@ -54,6 +54,7 @@ class WebDriver implements ClockInDriver
             'schedule' => $scheduleData ? [
                 'id' => $scheduleData['id'],
                 'start_time' => $scheduleData['start_time'],
+                'end_time' => $scheduleData['end_time'],
                 'grace_minutes' => $scheduleData['grace_minutes'],
                 'work_days' => $scheduleData['work_days'],
                 'timezone' => $scheduleData['timezone'] ?? env('APP_TIMEZONE', 'Africa/Dakar'),

@@ -6,14 +6,20 @@ use App\Models\Employee;
 use App\Models\Shift;
 use App\Models\Task;
 use App\Models\Mission;
+use App\Services\PlanningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class TimelineController extends BaseApiController
 {
+    public function __construct(
+        private readonly PlanningService $planningService,
+    ) {}
+
     /**
      * Get team timeline (Gantt/Calendar format).
+     * Fusionne le planning effectif (template + overrides + conges) avec les shifts reels.
      * GET /api/timeline/team
      */
     public function team(Request $request): JsonResponse
@@ -22,13 +28,15 @@ class TimelineController extends BaseApiController
         $end = $request->has('end') ? Carbon::parse($request->end) : now()->endOfWeek();
         $companyId = $request->auth_company_id;
 
-        $employees = Employee::where('company_id', $companyId)
+        $employees = Employee::with(['schedule', 'department'])
+            ->where('company_id', $companyId)
             ->when($request->department_id, fn($q) => $q->where('department_id', $request->department_id))
             ->get();
 
         $conflictService = app(\App\Services\ConflictService::class);
 
         $data = $employees->map(function ($employee) use ($start, $end, $conflictService) {
+            // 1. Recuperer les shifts reels (missions, etc.)
             $shifts = Shift::with('mission:id,title')
                 ->where('employee_id', $employee->id)
                 ->whereBetween('start_at', [$start, $end])
@@ -39,16 +47,54 @@ class TimelineController extends BaseApiController
                     'start' => $s->start_at->toIso8601String(),
                     'end' => $s->end_at->toIso8601String(),
                     'status' => $s->status,
+                    'type' => 'shift',
                     'date' => $s->start_at->toDateString(),
                 ]);
+
+            // 2. Recuperer le planning effectif (template + overrides + conges)
+            $planning = $this->planningService->getEmployeePlanning(
+                $employee->id,
+                $start->toDateString(),
+                $end->toDateString()
+            );
+
+            // 3. Pour chaque jour, fusionner : shift reel prioritaire, sinon planning effectif
+            $mergedShifts = collect();
+            foreach ($planning as $day) {
+                $dateStr = $day['date'];
+                $dayShifts = $shifts->where('date', $dateStr);
+
+                if ($dayShifts->isNotEmpty()) {
+                    // Des shifts reels existent pour ce jour — les garder
+                    foreach ($dayShifts as $shift) {
+                        $mergedShifts->push($shift);
+                    }
+                } else {
+                    // Pas de shift reel — generer un bloc virtuel depuis le planning effectif
+                    $mergedShifts->push([
+                        'id' => "plan_{$employee->id}_{$dateStr}",
+                        'mission_title' => null,
+                        'start' => "{$dateStr}T{$day['start_time']}",
+                        'end' => "{$dateStr}T{$day['end_time']}",
+                        'start_time' => $day['start_time'],
+                        'end_time' => $day['end_time'],
+                        'status' => $day['status'],
+                        'type' => $day['type'],
+                        'reason' => $day['reason'],
+                        'is_override' => $day['is_override'],
+                        'date' => $dateStr,
+                    ]);
+                }
+            }
 
             return [
                 'employee_id' => $employee->id,
                 'first_name' => $employee->first_name,
                 'last_name' => $employee->last_name,
                 'department_name' => $employee->department?->name,
-                'occupancy_rate' => $conflictService->getOccupancyRate($employee->id, $start), // simplified to range start or check logic
-                'shifts' => $shifts,
+                'schedule_name' => $employee->schedule?->name,
+                'occupancy_rate' => $conflictService->getOccupancyRate($employee->id, $start),
+                'shifts' => $mergedShifts->values(),
             ];
         });
 
@@ -108,7 +154,7 @@ class TimelineController extends BaseApiController
     {
         $date = $request->has('date') ? Carbon::parse($request->date) : now();
         $companyId = $request->auth_company_id;
-        
+
         $conflictService = app(\App\Services\ConflictService::class);
 
         $employees = Employee::where('company_id', $companyId)

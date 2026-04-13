@@ -57,6 +57,8 @@ class EmployeeService
             throw new ResourceNotFoundException('Employee');
         }
 
+        $employee->load(['schedule', 'department']);
+
         return $employee;
     }
 
@@ -71,6 +73,7 @@ class EmployeeService
         try {
             $employee = $this->getById($id);
             $employee->update($data);
+            $employee->load(['schedule', 'department']);
 
             LoggingService::info('Employee updated via service', [
                 'employee_id' => $id,

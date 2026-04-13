@@ -256,10 +256,15 @@ class EmployeeController extends BaseApiController
         try {
             $employee = Employee::with('schedule')->findOrFail($id);
 
+            if (! $employee->schedule) {
+                return $this->respondError('Aucun planning assigné à cet employé', 404);
+            }
+
             return $this->respondSuccess([
                 'schedule' => $employee->schedule,
                 'work_days' => $employee->schedule->work_days,
                 'start_time' => $employee->schedule->start_time,
+                'end_time' => $employee->schedule->end_time,
                 'grace_minutes' => $employee->schedule->grace_minutes,
                 'timezone' => $employee->schedule->timezone,
             ]);

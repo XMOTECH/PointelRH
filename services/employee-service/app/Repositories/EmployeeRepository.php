@@ -86,7 +86,8 @@ class EmployeeRepository
      */
     public function search(string $companyId, array $filters): Collection
     {
-        $query = Employee::where('company_id', $companyId);
+        $query = Employee::with(['schedule', 'department'])
+            ->where('company_id', $companyId);
 
         if (! empty($filters['department_id'])) {
             $query->where('department_id', $filters['department_id']);

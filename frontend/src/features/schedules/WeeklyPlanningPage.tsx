@@ -10,7 +10,10 @@ import {
   CheckCircle,
   AlertCircle,
   TrendingUp,
-  Briefcase
+  Briefcase,
+  Moon,
+  Palmtree,
+  CalendarOff
 } from 'lucide-react';
 import { schedulesApi } from './api/schedules.api';
 import { Button } from '@/components/ui/Button';
@@ -22,12 +25,122 @@ import { toast } from 'sonner';
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
+function ShiftCell({ shift, onClick }: { shift: any; onClick: () => void }) {
+  // Jour de repos (template)
+  if (shift.status === 'rest') {
+    return (
+      <div
+        onClick={onClick}
+        className="cursor-pointer rounded-xl p-3 space-y-1 bg-gray-50 border border-gray-200/50 text-gray-400 transition-all hover:shadow-md"
+      >
+        <div className="flex items-center gap-1.5">
+          <Moon size={12} />
+          <span className="text-[10px] font-bold uppercase tracking-tighter">Repos</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Conge approuve
+  if (shift.status === 'leave') {
+    return (
+      <div
+        onClick={onClick}
+        className="cursor-pointer rounded-xl p-3 space-y-1 bg-emerald-50/80 border border-emerald-200 text-emerald-700 transition-all hover:shadow-md relative overflow-hidden"
+      >
+        <div className="flex items-center gap-1.5">
+          <Palmtree size={12} />
+          <span className="text-[10px] font-bold uppercase tracking-tighter">Congé</span>
+        </div>
+        {shift.reason && (
+          <span className="text-[9px] font-medium opacity-70 block truncate">{shift.reason}</span>
+        )}
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+      </div>
+    );
+  }
+
+  // Override jour off
+  if (shift.status === 'off') {
+    return (
+      <div
+        onClick={onClick}
+        className="cursor-pointer rounded-xl p-3 space-y-1 bg-rose-50/80 border border-rose-200 text-rose-600 transition-all hover:shadow-md relative overflow-hidden"
+      >
+        <div className="flex items-center gap-1.5">
+          <CalendarOff size={12} />
+          <span className="text-[10px] font-bold uppercase tracking-tighter">Absent</span>
+        </div>
+        {shift.reason && (
+          <span className="text-[9px] font-medium opacity-70 block truncate">{shift.reason}</span>
+        )}
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500" />
+      </div>
+    );
+  }
+
+  // Jour de travail (template, override ou shift reel)
+  const startTime = shift.start_time || shift.start?.split('T')[1]?.substring(0, 5) || '';
+  const endTime = shift.end_time || shift.end?.split('T')[1]?.substring(0, 5) || '';
+  const isRealShift = shift.type === 'shift';
+  const isOverride = shift.is_override;
+  const isMission = !!shift.mission_title;
+  const isPending = shift.status === 'pending';
+
+  let classes = 'bg-primary/5 border border-primary/20 text-primary-900';
+  if (isPending) classes = 'bg-amber-50/80 border border-amber-200 text-amber-900';
+  else if (isMission) classes = 'bg-indigo-50/80 border border-indigo-200 text-indigo-900';
+  else if (isOverride) classes = 'bg-orange-50/80 border border-orange-200 text-orange-900';
+
+  let barColor = 'bg-primary';
+  if (isPending) barColor = 'bg-amber-500';
+  else if (isMission) barColor = 'bg-indigo-500';
+  else if (isOverride) barColor = 'bg-orange-500';
+
+  return (
+    <div
+      onClick={onClick}
+      className={`cursor-pointer rounded-xl p-3 space-y-2 group/card relative overflow-hidden transition-all hover:shadow-lg glass ${classes}`}
+    >
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Clock size={10} className="opacity-60 flex-shrink-0" />
+            <span className="text-[10px] font-bold uppercase tracking-tighter truncate">
+              {startTime} - {endTime}
+            </span>
+          </div>
+          {isPending ? (
+            <AlertCircle size={14} className="text-amber-500 animate-pulse flex-shrink-0" />
+          ) : (
+            <CheckCircle size={14} className="text-primary opacity-40 flex-shrink-0" />
+          )}
+        </div>
+        {isMission && (
+          <div className="flex items-center gap-1 mt-1 text-primary">
+            <Briefcase size={10} className="flex-shrink-0" />
+            <span className="text-[9px] font-black uppercase tracking-widest truncate">
+              {shift.mission_title}
+            </span>
+          </div>
+        )}
+        {isOverride && !isRealShift && (
+          <span className="text-[9px] font-bold text-orange-500 uppercase tracking-widest">Modifié</span>
+        )}
+        {!isRealShift && !isOverride && (
+          <span className="text-[9px] font-medium text-on-surface-variant/40 uppercase tracking-widest">Planning</span>
+        )}
+      </div>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${barColor}`} />
+    </div>
+  );
+}
+
 export function WeeklyPlanningPage() {
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [searchQuery, setSearchQuery] = React.useState('');
 
-  // Modal state
   const [selectedCell, setSelectedCell] = React.useState<{
     employeeId: string;
     employeeName: string;
@@ -50,7 +163,7 @@ export function WeeklyPlanningPage() {
   const overrideMutation = useMutation({
     mutationFn: schedulesApi.saveOverride,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['planning'] });
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
       toast.success('Planning mis à jour');
       setSelectedCell(null);
     },
@@ -141,6 +254,9 @@ export function WeeklyPlanningPage() {
                       </div>
                       <div className="flex flex-col gap-1">
                         <p className="font-bold text-on-surface leading-tight text-sm">{(emp.first_name || 'Inconnu') + ' ' + (emp.last_name || '')}</p>
+                        {emp.schedule_name && (
+                          <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">{emp.schedule_name}</span>
+                        )}
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black text-on-surface-variant/50 uppercase tracking-widest">Charge</span>
@@ -163,57 +279,24 @@ export function WeeklyPlanningPage() {
                     return (
                       <td key={dayStr} className="p-2 border-r border-outline-variant/10 align-top">
                         <div className="flex flex-col gap-2">
-                          {dayShifts.length > 0 ? dayShifts.map((shift: any) => (
-                            <div
-                              key={shift.id}
+                          {dayShifts.length > 0 ? dayShifts.map((shift: any, idx: number) => (
+                            <ShiftCell
+                              key={shift.id || `${dayStr}-${idx}`}
+                              shift={shift}
                               onClick={() => setSelectedCell({
                                 employeeId: emp.employee_id,
                                 employeeName: `${emp.first_name} ${emp.last_name}`,
                                 date: dayStr,
-                                dayData: shift
+                                dayData: shift,
                               })}
-                              className={`
-                                cursor-pointer rounded-xl p-3 space-y-2 group/card relative overflow-hidden transition-all hover:shadow-lg glass
-                                ${shift.status === 'pending'
-                                  ? 'bg-amber-50/80 border border-amber-200 text-amber-900'
-                                  : shift.mission_title
-                                    ? 'bg-indigo-50/80 border border-indigo-200 text-indigo-900'
-                                    : 'bg-primary/5 border border-primary/20 text-primary-900'}
-                              `}
-                            >
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <Clock size={10} className="opacity-60 flex-shrink-0" />
-                                    <span className="text-[10px] font-bold uppercase tracking-tighter truncate">
-                                      {shift.start.split('T')[1].substring(0, 5)} - {shift.end.split('T')[1].substring(0, 5)}
-                                    </span>
-                                  </div>
-                                  {shift.status === 'pending' ? (
-                                    <AlertCircle size={14} className="text-amber-500 animate-pulse flex-shrink-0" />
-                                  ) : (
-                                    <CheckCircle size={14} className="text-primary opacity-40 flex-shrink-0" />
-                                  )}
-                                </div>
-                                {shift.mission_title && (
-                                  <div className="flex items-center gap-1 mt-1 text-primary">
-                                    <Briefcase size={10} className="flex-shrink-0" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest truncate">
-                                      {shift.mission_title}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className={`absolute left-0 top-0 bottom-0 w-1 ${shift.status === 'pending' ? 'bg-amber-500' : shift.mission_title ? 'bg-indigo-500' : 'bg-primary'}`} />
-                            </div>
+                            />
                           )) : (
                             <div
                               onClick={() => setSelectedCell({
                                 employeeId: emp.employee_id,
                                 employeeName: `${emp.first_name} ${emp.last_name}`,
                                 date: dayStr,
-                                dayData: { status: 'off' }
+                                dayData: { status: 'rest' },
                               })}
                               className="h-12 border-2 border-dashed border-outline-variant/20 rounded-xl flex items-center justify-center group/empty hover:border-primary/30 transition-all cursor-pointer bg-surface-container-lowest/50 opacity-40 hover:opacity-100"
                             >
@@ -235,21 +318,31 @@ export function WeeklyPlanningPage() {
       <div className="flex flex-wrap items-center gap-6 px-4">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-primary/20 border border-primary/40" />
-          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Shift Confirmé</span>
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Travail (Planning)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Conflit Détecté</span>
+          <div className="w-3 h-3 rounded-full bg-orange-400" />
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Override</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-emerald-400" />
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Congé</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-gray-300" />
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Repos</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-indigo-400" />
-          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Mission Assignée</span>
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Mission</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <TrendingUp size={12} className="text-primary" />
-            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Taux d'occupation</span>
-          </div>
+          <div className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">En attente</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <TrendingUp size={12} className="text-primary" />
+          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Taux d'occupation</span>
         </div>
       </div>
 
@@ -262,9 +355,9 @@ export function WeeklyPlanningPage() {
           date={new Date(selectedCell.date)}
           isLoading={overrideMutation.isPending}
           initialData={{
-            is_off: selectedCell.dayData.status === 'off',
-            start_time: selectedCell.dayData.start_time?.substring(0, 5) || '08:00',
-            end_time: selectedCell.dayData.end_time?.substring(0, 5) || '17:00',
+            is_off: selectedCell.dayData.status === 'off' || selectedCell.dayData.status === 'rest',
+            start_time: selectedCell.dayData.start_time?.substring(0, 5) || selectedCell.dayData.start?.split('T')[1]?.substring(0, 5) || '08:00',
+            end_time: selectedCell.dayData.end_time?.substring(0, 5) || selectedCell.dayData.end?.split('T')[1]?.substring(0, 5) || '17:00',
             reason: selectedCell.dayData.reason || '',
           }}
           onSubmit={(data) => overrideMutation.mutate({

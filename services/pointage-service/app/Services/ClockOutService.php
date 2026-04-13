@@ -31,26 +31,37 @@ class ClockOutService
         $now = now();
         $attendance->checked_out_at = $now;
 
-        // Calcul de la durée de travail en minutes
+        // Calcul de la duree de travail en minutes
         $workMinutes = (int) $attendance->checked_in_at->diffInMinutes($now);
         $attendance->work_minutes = $workMinutes;
 
-        // Calcul heures sup basé sur le planning (metadata.schedule) ou 480min par défaut
-        $standardWorkMinutes = 480;
+        // Calcul heures sup base sur le planning stocke au clock-in
         $schedule = $attendance->metadata['schedule'] ?? null;
-        if ($schedule && isset($schedule['start_time'], $schedule['end_time'])) {
-            $start = Carbon::parse($schedule['start_time']);
-            $end = Carbon::parse($schedule['end_time']);
-            $standardWorkMinutes = (int) $start->diffInMinutes($end);
-        }
+        $standardWorkMinutes = $this->resolveStandardWorkMinutes($schedule);
 
         $attendance->overtime_minutes = max(0, $workMinutes - $standardWorkMinutes);
 
         $attendance->save();
 
-        // Publier l'événement
         $this->publisher->publish(new EmployeeCheckedOut($attendance));
 
         return $attendance;
+    }
+
+    private function resolveStandardWorkMinutes(?array $schedule): int
+    {
+        if (! $schedule || empty($schedule['start_time']) || empty($schedule['end_time'])) {
+            return 480; // 8h par defaut si aucun schedule (cas legacy)
+        }
+
+        $start = Carbon::parse($schedule['start_time']);
+        $end = Carbon::parse($schedule['end_time']);
+
+        // Gerer le cas ou end < start (travail de nuit)
+        if ($end->lte($start)) {
+            $end->addDay();
+        }
+
+        return (int) $start->diffInMinutes($end);
     }
 }
