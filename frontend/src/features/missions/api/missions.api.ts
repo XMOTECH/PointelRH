@@ -1,6 +1,16 @@
 import api from '../../../lib/axios';
 import type { Employee } from '../../employees/types';
 
+export interface MissionDocument {
+  id: string;
+  file_name: string;
+  file_type: 'image' | 'pdf' | 'video' | 'document';
+  file_size: number;
+  url: string;
+  uploaded_by_name: string | null;
+  created_at: string;
+}
+
 export interface Mission {
   id: string;
   title: string;
@@ -15,6 +25,7 @@ export interface Mission {
     name: string;
   };
   employees?: Employee[];
+  documents?: MissionDocument[];
   stats?: {
     total_tasks: number;
     completed_tasks: number;
@@ -22,6 +33,7 @@ export interface Mission {
   };
   activity_log?: Array<{
     time: string;
+    datetime: string;
     title: string;
     description: string;
     color: string;
@@ -55,6 +67,19 @@ export interface MyMission {
   assigned_at: string;
 }
 
+export interface AttendanceRecord {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  status: string;
+  status_label: string;
+  checked_in_at: string | null;
+  checked_out_at: string | null;
+  late_minutes: number;
+  work_minutes: number;
+  channel: string;
+}
+
 export const missionsApi = {
   getMissions: (params?: any) =>
     api.get<{ data: Mission[] }>('/api/missions', { params }),
@@ -76,6 +101,24 @@ export const missionsApi = {
 
   getMyMissions: () =>
     api.get<{ data: MyMission[] }>('/api/employee/my-missions'),
+
+  // Documents
+  uploadDocuments: (missionId: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach(f => formData.append('documents[]', f));
+    return api.post<{ data: MissionDocument[] }>(`/api/missions/${missionId}/documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  deleteDocument: (missionId: string, docId: string) =>
+    api.delete(`/api/missions/${missionId}/documents/${docId}`),
+
+  // Attendance (cross-service via Kong)
+  getAttendanceByEmployees: (employeeIds: string[], date?: string) =>
+    api.get<{ data: AttendanceRecord[] }>('/api/pointage/attendances/by-employees', {
+      params: { ids: employeeIds.join(','), date },
+    }),
 
   reportIncident: (data: { mission_id?: string; title: string; description: string; severity: string }) =>
     api.post('/api/incidents', data),

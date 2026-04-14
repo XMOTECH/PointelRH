@@ -49,7 +49,10 @@ Route::middleware(['auth.jwt'])->group(function () {
     Route::get('/employee/my-missions', [MissionController::class, 'myMissions']);
     Route::get('/employee/my-tasks', [TaskController::class, 'myTasks']);
     Route::patch('/employee/my-tasks/{id}/status', [TaskController::class, 'updateStatus']);
+    Route::patch('/employee/my-tasks/{id}', [TaskController::class, 'updateMyTask']);
     Route::post('/employee/my-tasks/{id}/timer', [TaskController::class, 'logTime']);
+    Route::post('/employee/my-tasks/{id}/comments', [TaskController::class, 'addMyComment']);
+    Route::post('/employee/my-missions/{id}/tasks', [TaskController::class, 'storeForMission']);
 
     // ── Employee Leave Self-Service ──────────────────────
     Route::get('/employee/my-leaves', [LeaveRequestController::class, 'myLeaves']);
@@ -76,6 +79,8 @@ Route::middleware(['auth.jwt'])->group(function () {
 
         Route::apiResource('missions', MissionController::class);
         Route::post('/missions/{id}/assign', [MissionController::class, 'assign']);
+        Route::post('/missions/{id}/documents', [MissionController::class, 'uploadDocuments']);
+        Route::delete('/missions/{id}/documents/{docId}', [MissionController::class, 'deleteDocument']);
 
         Route::apiResource('tasks', TaskController::class)->except(['show']);
         Route::post('/tasks/{id}/comments', [TaskController::class, 'addComment']);

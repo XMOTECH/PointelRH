@@ -6,6 +6,7 @@ use App\Http\Resources\MissionCollection;
 use App\Http\Resources\MissionResource;
 use App\Models\Employee;
 use App\Models\Mission;
+use App\Models\MissionDocument;
 use App\Services\ConflictService;
 use App\Services\LoggingService;
 use App\Services\RabbitMQService;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -175,7 +177,7 @@ class MissionController extends BaseApiController
     public function show(Request $request, string $id): JsonResponse
     {
         try {
-            $mission = Mission::with(['department', 'employees'])
+            $mission = Mission::with(['department', 'employees', 'documents'])
                 ->withCount('tasks')
                 ->where('company_id', $request->auth_company_id)
                 ->findOrFail($id);
@@ -331,5 +333,100 @@ class MissionController extends BaseApiController
 
             return $this->respondServerError('Impossible de supprimer la mission');
         }
+    }
+
+    /**
+     * Upload documents to a mission.
+     * POST /api/missions/{id}/documents
+     */
+    public function uploadDocuments(Request $request, string $id): JsonResponse
+    {
+        try {
+            $mission = Mission::where('company_id', $request->auth_company_id)
+                ->findOrFail($id);
+
+            if ($request->has('filter_department_id') && $mission->department_id !== $request->filter_department_id) {
+                return $this->respondForbidden('Accès refusé');
+            }
+
+            $request->validate([
+                'documents' => 'required|array|max:10',
+                'documents.*' => 'file|max:20480|mimes:jpg,jpeg,png,gif,pdf,mp4,mov,avi,webm,doc,docx,xls,xlsx,ppt,pptx,txt',
+            ]);
+
+            $employee = Employee::where('user_id', $request->auth_user_id)
+                ->where('company_id', $request->auth_company_id)
+                ->first();
+
+            $uploaded = [];
+            foreach ($request->file('documents') as $file) {
+                $path = $file->store("mission-documents/{$mission->id}", 'public');
+                $doc = MissionDocument::create([
+                    'id' => (string) Str::uuid(),
+                    'mission_id' => $mission->id,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => $this->resolveDocFileType($file->getMimeType()),
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'uploaded_by' => $employee?->id,
+                    'uploaded_by_name' => $employee ? $employee->first_name . ' ' . $employee->last_name : null,
+                ]);
+                $uploaded[] = [
+                    'id' => $doc->id,
+                    'file_name' => $doc->file_name,
+                    'file_type' => $doc->file_type,
+                    'file_size' => $doc->file_size,
+                    'url' => asset('storage/' . $doc->file_path),
+                    'uploaded_by_name' => $doc->uploaded_by_name,
+                    'created_at' => $doc->created_at->toIso8601String(),
+                ];
+            }
+
+            return $this->respondSuccess($uploaded, 'Documents uploades', 201);
+        } catch (ModelNotFoundException $e) {
+            return $this->respondNotFound('Mission non trouvée');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to upload mission documents', $e);
+
+            return $this->respondServerError('Impossible d\'uploader les documents');
+        }
+    }
+
+    /**
+     * Delete a mission document.
+     * DELETE /api/missions/{id}/documents/{docId}
+     */
+    public function deleteDocument(Request $request, string $id, string $docId): JsonResponse
+    {
+        try {
+            $mission = Mission::where('company_id', $request->auth_company_id)
+                ->findOrFail($id);
+
+            if ($request->has('filter_department_id') && $mission->department_id !== $request->filter_department_id) {
+                return $this->respondForbidden('Accès refusé');
+            }
+
+            $doc = MissionDocument::where('mission_id', $mission->id)->findOrFail($docId);
+
+            Storage::disk('public')->delete($doc->file_path);
+            $doc->delete();
+
+            return $this->respondSuccess(null, 'Document supprime');
+        } catch (ModelNotFoundException $e) {
+            return $this->respondNotFound('Document non trouve');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to delete mission document', $e);
+
+            return $this->respondServerError('Impossible de supprimer le document');
+        }
+    }
+
+    private function resolveDocFileType(string $mimeType): string
+    {
+        if (str_starts_with($mimeType, 'image/')) return 'image';
+        if ($mimeType === 'application/pdf') return 'pdf';
+        if (str_starts_with($mimeType, 'video/')) return 'video';
+        return 'document';
     }
 }

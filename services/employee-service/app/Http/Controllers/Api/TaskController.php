@@ -31,7 +31,7 @@ class TaskController extends BaseApiController
                 return $this->respondNotFound('Profil employe introuvable');
             }
 
-            $query = Task::with(['creator:id,first_name,last_name', 'mission:id,title', 'comments'])
+            $query = Task::with(['creator:id,first_name,last_name', 'mission:id,title', 'comments.attachments'])
                 ->where('assigned_to', $employee->id)
                 ->where('company_id', $request->auth_company_id);
 
@@ -64,7 +64,7 @@ class TaskController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Task::with(['assignee:id,first_name,last_name', 'creator:id,first_name,last_name', 'mission:id,title', 'comments'])
+            $query = Task::with(['assignee:id,first_name,last_name', 'creator:id,first_name,last_name', 'mission:id,title', 'comments.attachments'])
                 ->where('company_id', $request->auth_company_id);
 
             if ($request->has('filter_department_id')) {
@@ -279,7 +279,7 @@ class TaskController extends BaseApiController
             }
 
             return $this->respondSuccess(
-                $this->formatTask($task->load(['assignee:id,first_name,last_name', 'creator:id,first_name,last_name', 'mission:id,title', 'comments'])),
+                $this->formatTask($task->load(['assignee:id,first_name,last_name', 'creator:id,first_name,last_name', 'mission:id,title', 'comments.attachments'])),
                 'Tache mise a jour'
             );
         } catch (\Exception $e) {
@@ -349,7 +349,7 @@ class TaskController extends BaseApiController
             }
 
             return $this->respondSuccess(
-                $this->formatTask($task->load(['creator:id,first_name,last_name', 'mission:id,title', 'comments'])),
+                $this->formatTask($task->load(['creator:id,first_name,last_name', 'mission:id,title', 'comments.attachments'])),
                 'Statut mis a jour'
             );
         } catch (\Exception $e) {
@@ -378,6 +378,8 @@ class TaskController extends BaseApiController
 
             $request->validate([
                 'content' => 'required|string|max:1000',
+                'attachments' => 'nullable|array|max:5',
+                'attachments.*' => 'file|max:20480|mimes:jpg,jpeg,png,gif,pdf,mp4,mov,avi,webm,doc,docx,xls,xlsx',
             ]);
 
             $comment = TaskComment::create([
@@ -387,10 +389,35 @@ class TaskController extends BaseApiController
                 'content' => $request->content,
             ]);
 
+            // Handle file attachments
+            $attachments = [];
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $file) {
+                    $path = $file->store("task-attachments/{$task->id}", 'public');
+                    $attachment = \App\Models\TaskCommentAttachment::create([
+                        'id' => (string) Str::uuid(),
+                        'task_comment_id' => $comment->id,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $path,
+                        'file_type' => $this->resolveFileType($file->getMimeType()),
+                        'file_size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                    ]);
+                    $attachments[] = $attachment;
+                }
+            }
+
             return $this->respondSuccess([
                 'id' => $comment->id,
                 'content' => $comment->content,
                 'employee_name' => $employee->first_name.' '.$employee->last_name,
+                'attachments' => collect($attachments)->map(fn ($a) => [
+                    'id' => $a->id,
+                    'file_name' => $a->file_name,
+                    'file_type' => $a->file_type,
+                    'file_size' => $a->file_size,
+                    'url' => asset('storage/' . $a->file_path),
+                ]),
                 'created_at' => $comment->created_at->toISOString(),
             ], 'Commentaire ajoute', 201);
         } catch (\Exception $e) {
@@ -456,6 +483,215 @@ class TaskController extends BaseApiController
         }
     }
 
+    /**
+     * Employee creates a task on their own mission.
+     * POST /api/employee/my-missions/{id}/tasks
+     */
+    public function storeForMission(Request $request, string $id): JsonResponse
+    {
+        try {
+            $employee = Employee::where('user_id', $request->auth_user_id)
+                ->where('company_id', $request->auth_company_id)
+                ->first();
+
+            if (! $employee) {
+                return $this->respondNotFound('Profil employe introuvable');
+            }
+
+            // Verify employee is assigned to this mission
+            $mission = Mission::where('id', $id)
+                ->where('company_id', $request->auth_company_id)
+                ->whereHas('employees', fn ($q) => $q->where('employee_id', $employee->id))
+                ->first();
+
+            if (! $mission) {
+                return $this->respondError('Vous n\'etes pas assigne a cette mission', 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'priority' => 'nullable|in:low,medium,high',
+                'due_date' => 'nullable|date',
+                'estimated_minutes' => 'nullable|integer|min:1',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->respondError($validator->errors()->first(), 422);
+            }
+
+            $data = $validator->validated();
+            $data['id'] = (string) Str::uuid();
+            $data['company_id'] = $request->auth_company_id;
+            $data['department_id'] = $employee->department_id;
+            $data['mission_id'] = $mission->id;
+            $data['assigned_to'] = $employee->id;
+            $data['created_by'] = $employee->id;
+
+            $task = Task::create($data);
+
+            return $this->respondSuccess(
+                $this->formatTask($task->load(['assignee:id,first_name,last_name', 'creator:id,first_name,last_name', 'mission:id,title'])),
+                'Tache creee avec succes',
+                201
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to create task for mission', $e);
+
+            return $this->respondServerError('Impossible de creer la tache');
+        }
+    }
+
+    /**
+     * Employee updates their own task (title, description, status, estimated_minutes).
+     * PATCH /api/employee/my-tasks/{id}
+     */
+    public function updateMyTask(Request $request, string $id): JsonResponse
+    {
+        try {
+            $employee = Employee::where('user_id', $request->auth_user_id)
+                ->where('company_id', $request->auth_company_id)
+                ->first();
+
+            if (! $employee) {
+                return $this->respondNotFound('Profil employe introuvable');
+            }
+
+            $task = Task::where('assigned_to', $employee->id)->findOrFail($id);
+
+            $validator = Validator::make($request->all(), [
+                'title' => 'sometimes|string|max:255',
+                'description' => 'nullable|string',
+                'priority' => 'sometimes|in:low,medium,high',
+                'status' => 'sometimes|in:todo,in_progress,done',
+                'due_date' => 'nullable|date',
+                'estimated_minutes' => 'nullable|integer|min:1',
+                'actual_minutes' => 'nullable|integer|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->respondError($validator->errors()->first(), 422);
+            }
+
+            $data = $validator->validated();
+
+            // Dependency check
+            if (isset($data['status']) && $data['status'] === 'done' && $task->isBlocked()) {
+                return $this->respondError("Cette tache est bloquee par une autre tache non terminee.", 422);
+            }
+
+            // Auto-set completed_at
+            if (isset($data['status']) && $data['status'] === 'done' && ! $task->completed_at) {
+                $data['completed_at'] = now();
+            } elseif (isset($data['status']) && $data['status'] !== 'done') {
+                $data['completed_at'] = null;
+            }
+
+            $task->update($data);
+
+            // Notify creator when task is done
+            if (isset($data['status']) && $data['status'] === 'done') {
+                $creator = Employee::find($task->created_by);
+                if ($creator && $creator->id !== $employee->id) {
+                    $rabbitMQ = new RabbitMQService();
+                    $rabbitMQ->publishEvent('TaskCompleted', [
+                        'employee_id' => $creator->id,
+                        'user_id' => $creator->user_id,
+                        'company_id' => $task->company_id,
+                        'task_id' => $task->id,
+                        'task_title' => $task->title,
+                        'completed_by' => $employee->first_name . ' ' . $employee->last_name,
+                    ], 'employee_events');
+                }
+            }
+
+            return $this->respondSuccess(
+                $this->formatTask($task->load(['assignee:id,first_name,last_name', 'creator:id,first_name,last_name', 'mission:id,title', 'comments.attachments'])),
+                'Tache mise a jour'
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to update employee task', $e);
+
+            return $this->respondServerError('Impossible de mettre a jour la tache');
+        }
+    }
+
+    /**
+     * Employee adds a comment with optional attachments on their own task.
+     * POST /api/employee/my-tasks/{id}/comments
+     */
+    public function addMyComment(Request $request, string $id): JsonResponse
+    {
+        try {
+            $employee = Employee::where('user_id', $request->auth_user_id)
+                ->where('company_id', $request->auth_company_id)
+                ->first();
+
+            if (! $employee) {
+                return $this->respondNotFound('Profil employe introuvable');
+            }
+
+            $task = Task::where('assigned_to', $employee->id)->findOrFail($id);
+
+            $request->validate([
+                'content' => 'required|string|max:1000',
+                'attachments' => 'nullable|array|max:5',
+                'attachments.*' => 'file|max:20480|mimes:jpg,jpeg,png,gif,pdf,mp4,mov,avi,webm,doc,docx,xls,xlsx',
+            ]);
+
+            $comment = TaskComment::create([
+                'id' => (string) Str::uuid(),
+                'task_id' => $task->id,
+                'employee_id' => $employee->id,
+                'content' => $request->content,
+            ]);
+
+            // Handle file attachments
+            $attachments = [];
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $file) {
+                    $path = $file->store("task-attachments/{$task->id}", 'public');
+                    $attachment = \App\Models\TaskCommentAttachment::create([
+                        'id' => (string) Str::uuid(),
+                        'task_comment_id' => $comment->id,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $path,
+                        'file_type' => $this->resolveFileType($file->getMimeType()),
+                        'file_size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                    ]);
+                    $attachments[] = $attachment;
+                }
+            }
+
+            return $this->respondSuccess([
+                'id' => $comment->id,
+                'content' => $comment->content,
+                'employee_name' => $employee->first_name . ' ' . $employee->last_name,
+                'attachments' => collect($attachments)->map(fn ($a) => [
+                    'id' => $a->id,
+                    'file_name' => $a->file_name,
+                    'file_type' => $a->file_type,
+                    'file_size' => $a->file_size,
+                    'url' => asset('storage/' . $a->file_path),
+                ]),
+                'created_at' => $comment->created_at->toISOString(),
+            ], 'Commentaire ajoute', 201);
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to add employee task comment', $e);
+
+            return $this->respondServerError('Impossible d\'ajouter le commentaire');
+        }
+    }
+
+    private function resolveFileType(string $mimeType): string
+    {
+        if (str_starts_with($mimeType, 'image/')) return 'image';
+        if ($mimeType === 'application/pdf') return 'pdf';
+        if (str_starts_with($mimeType, 'video/')) return 'video';
+        return 'document';
+    }
+
     private function formatTask(Task $task): array
     {
         return [
@@ -485,6 +721,13 @@ class TaskController extends BaseApiController
                 'content' => $c->content,
                 'employee_name' => $c->employee ? $c->employee->first_name.' '.$c->employee->last_name : null,
                 'attachment_path' => $c->attachment_path,
+                'attachments' => ($c->attachments ?? collect())->map(fn ($a) => [
+                    'id' => $a->id,
+                    'file_name' => $a->file_name,
+                    'file_type' => $a->file_type,
+                    'file_size' => $a->file_size,
+                    'url' => asset('storage/' . $a->file_path),
+                ]),
                 'created_at' => $c->created_at->toISOString(),
             ]),
             'created_at' => $task->created_at->toISOString(),

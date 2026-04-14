@@ -1,5 +1,13 @@
 import api from '../../../lib/axios';
 
+export interface TaskAttachment {
+  id: string;
+  file_name: string;
+  file_type: 'image' | 'pdf' | 'video' | 'document';
+  file_size: number;
+  url: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -28,6 +36,7 @@ export interface TaskComment {
   content: string;
   employee_name: string | null;
   attachment_path: string | null;
+  attachments: TaskAttachment[];
   created_at: string;
 }
 
@@ -42,6 +51,23 @@ export interface CreateTaskDTO {
   estimated_minutes?: number;
 }
 
+export interface CreateMyTaskDTO {
+  title: string;
+  description?: string;
+  priority?: 'low' | 'medium' | 'high';
+  due_date?: string;
+  estimated_minutes?: number;
+}
+
+export interface UpdateMyTaskDTO {
+  title?: string;
+  description?: string;
+  priority?: 'low' | 'medium' | 'high';
+  status?: Task['status'];
+  due_date?: string;
+  estimated_minutes?: number;
+}
+
 export const tasksApi = {
   // Employee endpoints
   getMyTasks: (params?: Record<string, string>) =>
@@ -52,6 +78,23 @@ export const tasksApi = {
 
   logTime: (id: string, minutes: number) =>
     api.post<{ data: { actual_minutes: number } }>(`/api/employee/my-tasks/${id}/timer`, { minutes }),
+
+  createMyTask: (missionId: string, data: CreateMyTaskDTO) =>
+    api.post<{ data: Task }>(`/api/employee/my-missions/${missionId}/tasks`, data),
+
+  updateMyTask: (id: string, data: UpdateMyTaskDTO) =>
+    api.patch<{ data: Task }>(`/api/employee/my-tasks/${id}`, data),
+
+  addMyComment: (taskId: string, content: string, attachments?: File[]) => {
+    const formData = new FormData();
+    formData.append('content', content);
+    if (attachments?.length) {
+      attachments.forEach(file => formData.append('attachments[]', file));
+    }
+    return api.post<{ data: TaskComment }>(`/api/employee/my-tasks/${taskId}/comments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 
   // Manager endpoints
   getTasks: (params?: Record<string, string>) =>
@@ -66,6 +109,14 @@ export const tasksApi = {
   deleteTask: (id: string) =>
     api.delete(`/api/tasks/${id}`),
 
-  addComment: (taskId: string, content: string) =>
-    api.post<{ data: TaskComment }>(`/api/tasks/${taskId}/comments`, { content }),
+  addComment: (taskId: string, content: string, attachments?: File[]) => {
+    const formData = new FormData();
+    formData.append('content', content);
+    if (attachments?.length) {
+      attachments.forEach(file => formData.append('attachments[]', file));
+    }
+    return api.post<{ data: TaskComment }>(`/api/tasks/${taskId}/comments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };

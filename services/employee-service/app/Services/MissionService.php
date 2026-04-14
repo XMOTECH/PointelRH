@@ -13,11 +13,12 @@ class MissionService
 {
     public function __construct(
         private readonly ConflictService $conflictService,
+        private readonly PlanningService $planningService,
         private readonly RabbitMQService $rabbitMQ
     ) {}
 
     /**
-     * Assign employees to a mission and generate shifts.
+     * Assign employees to a mission and generate shifts based on their actual schedule.
      */
     public function assignEmployees(Mission $mission, array $employeeIds, ?string $comment = null): void
     {
@@ -29,48 +30,67 @@ class MissionService
                 'assigned_at' => now(),
             ]);
 
-            // 2. Generate Shifts for the mission duration
+            // 2. Generate shifts for the mission duration using each employee's real schedule
             $startDate = Carbon::parse($mission->start_date);
             $endDate = $mission->end_date ? Carbon::parse($mission->end_date) : $startDate;
 
-            $currentDate = $startDate->copy();
-            while ($currentDate->lte($endDate)) {
-                foreach ($employeeIds as $employeeId) {
-                    // Check for conflicts before creating shift
-                    $conflicts = $this->conflictService->checkOverlap($employeeId, $currentDate->startOfDay(), $currentDate->endOfDay());
-                    
-                    // Even with conflicts, we might want to create it but mark it as 'pending' or flag it
-                    // For now, let's create it as 'confirmed' but log the conflict
-                    $shift = Shift::create([
+            $employees = Employee::with('schedule')->whereIn('id', $employeeIds)->get()->keyBy('id');
+
+            foreach ($employeeIds as $employeeId) {
+                $employee = $employees->get($employeeId);
+                if (! $employee) {
+                    continue;
+                }
+
+                // Get the effective planning (template + overrides + leaves)
+                $planning = $this->planningService->getEmployeePlanning(
+                    $employeeId,
+                    $startDate->toDateString(),
+                    $endDate->toDateString()
+                );
+
+                foreach ($planning as $day) {
+                    // Skip non-work days (rest, leave, off)
+                    if ($day['status'] !== 'work') {
+                        continue;
+                    }
+
+                    $dayDate = Carbon::parse($day['date']);
+                    $dayStartTime = $day['start_time'] ?? '09:00';
+                    $dayEndTime = $day['end_time'] ?? '17:00';
+
+                    // Parse hours from schedule
+                    $shiftStart = $dayDate->copy()->setTimeFromTimeString($dayStartTime);
+                    $shiftEnd = $dayDate->copy()->setTimeFromTimeString($dayEndTime);
+
+                    // Check for conflicts
+                    $conflicts = $this->conflictService->checkOverlap(
+                        $employeeId,
+                        $shiftStart,
+                        $shiftEnd
+                    );
+
+                    Shift::create([
                         'id' => (string) Str::uuid(),
                         'company_id' => $mission->company_id,
                         'employee_id' => $employeeId,
                         'mission_id' => $mission->id,
-                        'start_at' => $currentDate->copy()->setHour(9)->setMinute(0), // Default 9:00
-                        'end_at' => $currentDate->copy()->setHour(17)->setMinute(0),  // Default 17:00
+                        'start_at' => $shiftStart,
+                        'end_at' => $shiftEnd,
                         'status' => empty($conflicts) ? 'confirmed' : 'pending',
-                        'comment' => !empty($conflicts) ? 'Conflit détecté lors de la génération automatique' : null,
-                        'type' => 'regular'
+                        'comment' => ! empty($conflicts) ? 'Conflit detecte lors de la generation automatique' : null,
+                        'type' => 'regular',
                     ]);
-
-                    $this->rabbitMQ->publishEvent('ShiftCreated', [
-                        'shift_id' => $shift->id,
-                        'employee_id' => $employeeId,
-                        'start' => $shift->start_at->toIso8601String(),
-                        'end' => $shift->end_at->toIso8601String(),
-                        'status' => $shift->status,
-                    ], 'employee_events');
                 }
-                $currentDate->addDay();
             }
 
-            // 3. Notify
+            // 3. Notify assigned employees
             $employees = Employee::whereIn('id', $employeeIds)->get();
             foreach ($employees as $employee) {
                 $this->rabbitMQ->publishEvent('MissionAssigned', [
                     'employee_id' => $employee->id,
                     'user_id' => $employee->user_id,
-                    'employee_name' => $employee->first_name.' '.$employee->last_name,
+                    'employee_name' => $employee->first_name . ' ' . $employee->last_name,
                     'company_id' => $mission->company_id,
                     'mission_id' => $mission->id,
                     'mission_title' => $mission->title,

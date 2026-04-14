@@ -26,6 +26,7 @@ Route::middleware([
             Route::get('/today', [AttendanceController::class, 'today']);
             Route::get('/live', [AttendanceController::class, 'live']);
             Route::get('/employee/{id}', [AttendanceController::class, 'byEmployee']);
+            Route::get('/by-employees', [AttendanceController::class, 'byEmployees']);
         });
     });
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -17,9 +17,18 @@ import {
   ArrowRight,
   Sparkles,
   Briefcase,
+  Paperclip,
+  X,
+  FileText,
+  Image as ImageIcon,
+  Video,
+  File,
+  Download,
+  Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { tasksApi, type Task } from './api/tasks.api';
+import { tasksApi, type Task, type TaskAttachment, type CreateMyTaskDTO } from './api/tasks.api';
+import { missionsApi, type MyMission } from '../missions/api/missions.api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -40,6 +49,26 @@ const STATUS_FLOW: Record<string, Task['status']> = {
   in_progress: 'done',
 };
 
+const FILE_TYPE_ICONS: Record<string, typeof FileText> = {
+  image: ImageIcon,
+  pdf: FileText,
+  video: Video,
+  document: File,
+};
+
+const FILE_TYPE_COLORS: Record<string, string> = {
+  image: 'bg-blue-100 text-blue-600',
+  pdf: 'bg-red-100 text-red-600',
+  video: 'bg-purple-100 text-purple-600',
+  document: 'bg-amber-100 text-amber-600',
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
 function formatMinutes(m: number): string {
   if (m < 60) return `${m}min`;
   const h = Math.floor(m / 60);
@@ -47,13 +76,153 @@ function formatMinutes(m: number): string {
   return rest ? `${h}h${rest}m` : `${h}h`;
 }
 
+function AttachmentChip({ attachment }: { attachment: TaskAttachment }) {
+  const Icon = FILE_TYPE_ICONS[attachment.file_type] || File;
+  const colorClass = FILE_TYPE_COLORS[attachment.file_type] || 'bg-gray-100 text-gray-600';
+
+  return (
+    <a
+      href={attachment.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium ${colorClass} hover:brightness-95 transition-all`}
+    >
+      <Icon size={12} />
+      <span className="max-w-[120px] truncate">{attachment.file_name}</span>
+      <span className="opacity-60">{formatBytes(attachment.file_size)}</span>
+      <Download size={10} className="opacity-60" />
+    </a>
+  );
+}
+
+function FilePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const isImage = file.type.startsWith('image/');
+  const isPdf = file.type === 'application/pdf';
+  const isVideo = file.type.startsWith('video/');
+  const Icon = isImage ? ImageIcon : isPdf ? FileText : isVideo ? Video : File;
+  const colorClass = isImage ? 'border-blue-200 bg-blue-50' : isPdf ? 'border-red-200 bg-red-50' : isVideo ? 'border-purple-200 bg-purple-50' : 'border-amber-200 bg-amber-50';
+
+  return (
+    <div className={`relative inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] ${colorClass}`}>
+      <Icon size={12} />
+      <span className="max-w-[100px] truncate">{file.name}</span>
+      <span className="opacity-60">{formatBytes(file.size)}</span>
+      <button onClick={onRemove} className="hover:bg-black/10 rounded-full p-0.5 transition-colors">
+        <X size={10} />
+      </button>
+    </div>
+  );
+}
+
+function CreateTaskModal({ missionId, onClose }: { missionId: string; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<CreateMyTaskDTO>({ title: '' });
+
+  const create = useMutation({
+    mutationFn: () => tasksApi.createMyTask(missionId, form),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
+      toast.success('Tache creee');
+      onClose();
+    },
+    onError: () => toast.error('Impossible de creer la tache'),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-outline-variant">
+          <h2 className="text-lg font-display font-bold text-on-surface">Nouvelle tache</h2>
+          <p className="text-xs text-on-surface-variant mt-1">Ajouter une tache sur votre mission</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-on-surface-variant mb-1 block">Titre *</label>
+            <input
+              value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              className="w-full h-10 px-3 text-sm rounded-xl border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              placeholder="Ex: Verifier les equipements"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-on-surface-variant mb-1 block">Description</label>
+            <textarea
+              value={form.description || ''}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              className="w-full h-20 px-3 py-2 text-sm rounded-xl border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"
+              placeholder="Details de la tache..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-on-surface-variant mb-1 block">Priorite</label>
+              <select
+                value={form.priority || 'medium'}
+                onChange={e => setForm(f => ({ ...f, priority: e.target.value as 'low' | 'medium' | 'high' }))}
+                className="w-full h-10 px-3 text-sm rounded-xl border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              >
+                <option value="low">Basse</option>
+                <option value="medium">Moyenne</option>
+                <option value="high">Haute</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-on-surface-variant mb-1 block">Echeance</label>
+              <input
+                type="date"
+                value={form.due_date || ''}
+                onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
+                className="w-full h-10 px-3 text-sm rounded-xl border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-on-surface-variant mb-1 block">Estimation (minutes)</label>
+            <input
+              type="number"
+              value={form.estimated_minutes || ''}
+              onChange={e => setForm(f => ({ ...f, estimated_minutes: e.target.value ? Number(e.target.value) : undefined }))}
+              className="w-full h-10 px-3 text-sm rounded-xl border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              placeholder="60"
+            />
+          </div>
+        </div>
+        <div className="p-5 border-t border-outline-variant flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-all"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => form.title.trim() && create.mutate()}
+            disabled={!form.title.trim() || create.isPending}
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-primary text-on-primary hover:brightness-110 transition-all disabled:opacity-40"
+          >
+            {create.isPending ? 'Creation...' : 'Creer'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 function TaskCard({ task }: { task: Task }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [comment, setComment] = useState('');
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useState<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const priority = PRIORITY_CONFIG[task.priority];
   const status = STATUS_CONFIG[task.status];
@@ -71,12 +240,15 @@ function TaskCard({ task }: { task: Task }) {
   });
 
   const addComment = useMutation({
-    mutationFn: (content: string) => tasksApi.addComment(task.id, content),
+    mutationFn: ({ content, files }: { content: string; files: File[] }) =>
+      tasksApi.addMyComment(task.id, content, files.length > 0 ? files : undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
       setComment('');
+      setAttachments([]);
       toast.success('Commentaire ajoute');
     },
+    onError: () => toast.error('Impossible d\'ajouter le commentaire'),
   });
 
   const logTime = useMutation({
@@ -89,7 +261,6 @@ function TaskCard({ task }: { task: Task }) {
 
   const handleTimerToggle = () => {
     if (timerRunning) {
-      // Stop timer
       if (timerRef[0]) clearInterval(timerRef[0]);
       timerRef[1](null);
       setTimerRunning(false);
@@ -97,11 +268,35 @@ function TaskCard({ task }: { task: Task }) {
       logTime.mutate(minutes);
       setTimerSeconds(0);
     } else {
-      // Start timer
       setTimerRunning(true);
       const interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
       timerRef[1](interval);
     }
+  };
+
+  const handleSubmitComment = () => {
+    if (comment.trim() || attachments.length > 0) {
+      addComment.mutate({ content: comment.trim() || '(piece jointe)', files: attachments });
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const maxFiles = 5 - attachments.length;
+    const newFiles = files.slice(0, maxFiles);
+
+    const oversized = newFiles.filter(f => f.size > 20 * 1024 * 1024);
+    if (oversized.length > 0) {
+      toast.error(`Fichier(s) trop volumineux (max 20 MB): ${oversized.map(f => f.name).join(', ')}`);
+      return;
+    }
+
+    setAttachments(prev => [...prev, ...newFiles.filter(f => f.size <= 20 * 1024 * 1024)]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   const timerDisplay = `${String(Math.floor(timerSeconds / 60)).padStart(2, '0')}:${String(timerSeconds % 60).padStart(2, '0')}`;
@@ -247,29 +442,65 @@ function TaskCard({ task }: { task: Task }) {
                           </span>
                         </div>
                         <p className="text-xs text-on-surface-variant mt-0.5">{c.content}</p>
+                        {/* Attachments */}
+                        {c.attachments && c.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {c.attachments.map(a => (
+                              <AttachmentChip key={a.id} attachment={a} />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Add comment */}
+              {/* Add comment with file upload */}
               {!isDone && (
-                <div className="flex gap-2">
-                  <input
-                    value={comment}
-                    onChange={e => setComment(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && comment.trim() && addComment.mutate(comment.trim())}
-                    placeholder="Ajouter un commentaire..."
-                    className="flex-1 h-8 px-3 text-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                  />
-                  <button
-                    onClick={() => comment.trim() && addComment.mutate(comment.trim())}
-                    disabled={!comment.trim() || addComment.isPending}
-                    className="h-8 w-8 rounded-lg bg-primary text-on-primary flex items-center justify-center hover:brightness-110 transition-all disabled:opacity-40"
-                  >
-                    <Send size={12} />
-                  </button>
+                <div className="space-y-2">
+                  {/* File previews */}
+                  {attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {attachments.map((file, i) => (
+                        <FilePreview key={`${file.name}-${i}`} file={file} onRemove={() => removeAttachment(i)} />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Comment input + actions */}
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,application/pdf,video/*,.doc,.docx,.xls,.xlsx"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={attachments.length >= 5}
+                      className="h-8 w-8 shrink-0 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant flex items-center justify-center transition-all disabled:opacity-40"
+                      title="Joindre un fichier (max 5)"
+                    >
+                      <Paperclip size={14} />
+                    </button>
+                    <input
+                      value={comment}
+                      onChange={e => setComment(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmitComment()}
+                      placeholder="Commentaire ou rapport..."
+                      className="flex-1 h-8 px-3 text-xs rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    />
+                    <button
+                      onClick={handleSubmitComment}
+                      disabled={(!comment.trim() && attachments.length === 0) || addComment.isPending}
+                      className="h-8 w-8 shrink-0 rounded-lg bg-primary text-on-primary flex items-center justify-center hover:brightness-110 transition-all disabled:opacity-40"
+                    >
+                      {addComment.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -282,10 +513,16 @@ function TaskCard({ task }: { task: Task }) {
 
 export function MyTasksPage() {
   const [filter, setFilter] = useState<'all' | 'todo' | 'in_progress' | 'done'>('all');
+  const [createModal, setCreateModal] = useState<string | null>(null);
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ['my-tasks'],
     queryFn: () => tasksApi.getMyTasks().then(r => r.data?.data ?? r.data),
+  });
+
+  const { data: missions } = useQuery({
+    queryKey: ['my-missions'],
+    queryFn: () => missionsApi.getMyMissions().then(r => r.data?.data ?? r.data),
   });
 
   if (isLoading) {
@@ -303,6 +540,7 @@ export function MyTasksPage() {
 
   const allTasks = tasks || [];
   const filteredTasks = filter === 'all' ? allTasks : allTasks.filter((t: Task) => t.status === filter);
+  const activeMissions = (missions || []).filter((m: MyMission) => m.status === 'active');
 
   const todoCount = allTasks.filter((t: Task) => t.status === 'todo').length;
   const inProgressCount = allTasks.filter((t: Task) => t.status === 'in_progress').length;
@@ -329,6 +567,31 @@ export function MyTasksPage() {
             </p>
           </div>
         </div>
+
+        {/* Create task dropdown */}
+        {activeMissions.length > 0 && (
+          <div className="relative group">
+            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:brightness-110 transition-all shadow-sm">
+              <Plus size={16} />
+              Nouvelle tache
+            </button>
+            <div className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-20">
+              <div className="p-2">
+                <p className="px-2 py-1.5 text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Choisir une mission</p>
+                {activeMissions.map((m: MyMission) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setCreateModal(m.id)}
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-on-surface hover:bg-surface-container transition-colors flex items-center gap-2"
+                  >
+                    <Briefcase size={14} className="text-primary shrink-0" />
+                    <span className="truncate">{m.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick stats */}
@@ -411,7 +674,9 @@ export function MyTasksPage() {
             {filter === 'all' ? 'Aucune tache' : `Aucune tache "${STATUS_CONFIG[filter as keyof typeof STATUS_CONFIG]?.label}"`}
           </p>
           <p className="text-sm text-on-surface-variant/60 mt-1">
-            Vos taches apparaitront ici quand votre manager vous en assignera.
+            {activeMissions.length > 0
+              ? 'Creez une tache depuis le bouton "Nouvelle tache" ou attendez une assignation.'
+              : 'Vos taches apparaitront ici quand votre manager vous en assignera.'}
           </p>
         </div>
       ) : (
@@ -423,6 +688,13 @@ export function MyTasksPage() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Create task modal */}
+      <AnimatePresence>
+        {createModal && (
+          <CreateTaskModal missionId={createModal} onClose={() => setCreateModal(null)} />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

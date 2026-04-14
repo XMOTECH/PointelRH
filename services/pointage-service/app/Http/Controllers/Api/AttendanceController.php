@@ -111,4 +111,34 @@ class AttendanceController extends BaseApiController
             return $this->respondServerError("Impossible de récupérer l'historique");
         }
     }
+
+    /**
+     * Récupérer les pointages du jour pour une liste d'employés.
+     * GET /pointage/attendances/by-employees?ids=uuid1,uuid2,...
+     */
+    public function byEmployees(Request $request)
+    {
+        try {
+            $ids = $request->query('ids');
+            if (! $ids) {
+                return $this->respondError('ids est requis (liste de UUID séparés par des virgules)', 422);
+            }
+
+            $employeeIds = explode(',', $ids);
+
+            $date = $request->query('date') ?? Carbon::today()->toDateString();
+
+            $attendances = Attendance::whereIn('employee_id', $employeeIds)
+                ->where('work_date', $date)
+                ->get();
+
+            return $this->respondSuccess(
+                AttendanceResource::collection($attendances)
+            );
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve bulk attendance', $e);
+
+            return $this->respondServerError('Impossible de récupérer les pointages');
+        }
+    }
 }
