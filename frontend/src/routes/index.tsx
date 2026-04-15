@@ -22,6 +22,7 @@ import { SettingsPage } from '../features/settings/SettingsPage';
 import { MissionsPage } from '../features/missions/MissionsPage';
 import { MissionTrackingPage } from '../features/missions/MissionTrackingPage';
 import { MyMissionsPage } from '../features/missions/MyMissionsPage';
+import { MyMissionDetailPage } from '../features/missions/MyMissionDetailPage';
 import { MyTasksPage } from '../features/tasks/MyTasksPage';
 import { TeamTasksPage } from '../features/tasks/TeamTasksPage';
 import { CompanyListPage } from '../features/admin/companies/CompanyListPage';
@@ -89,6 +90,7 @@ export function AppRoutes() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/my-profile" element={<MyProfilePage />} />
           <Route path="/my-missions" element={<MyMissionsPage />} />
+          <Route path="/my-missions/:id" element={<MyMissionDetailPage />} />
           <Route path="/my-tasks" element={<MyTasksPage />} />
           <Route path="/my-leaves" element={<MyLeavesPage />} />
           <Route path="/my-attendance" element={<MyAttendancePage />} />

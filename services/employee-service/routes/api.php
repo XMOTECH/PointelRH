@@ -20,6 +20,18 @@ use Illuminate\Support\Facades\Route;
 // ── Health check (Docker / load balancer) ────────────────
 Route::get('/health', fn () => response()->json(['status' => 'ok', 'service' => 'employee']));
 
+// ── Serve storage files (accessible via Kong) ────────────
+Route::get('/files/{path}', function (string $path) {
+    $disk = \Illuminate\Support\Facades\Storage::disk('public');
+    if (! $disk->exists($path)) {
+        abort(404);
+    }
+    return response()->file($disk->path($path), [
+        'Content-Type' => $disk->mimeType($path),
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->where('path', '.*');
+
 // ── Internal Service Routes (No JWT for inter-service communication)
 Route::get('/employees/{id}/notification-context', [EmployeeNotificationController::class, 'getNotificationContext']);
 Route::get('/employees/by-user/{userId}', [EmployeeController::class, 'resolveByUser']);
@@ -47,6 +59,7 @@ Route::middleware(['auth.jwt'])->group(function () {
     // ── Employees ──────────────────────────────────────────
     Route::get('/employee/me', [EmployeeController::class, 'me']);
     Route::get('/employee/my-missions', [MissionController::class, 'myMissions']);
+    Route::get('/employee/my-missions/{id}', [MissionController::class, 'myMissionDetail']);
     Route::get('/employee/my-tasks', [TaskController::class, 'myTasks']);
     Route::patch('/employee/my-tasks/{id}/status', [TaskController::class, 'updateStatus']);
     Route::patch('/employee/my-tasks/{id}', [TaskController::class, 'updateMyTask']);

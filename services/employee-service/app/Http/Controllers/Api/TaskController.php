@@ -416,7 +416,7 @@ class TaskController extends BaseApiController
                     'file_name' => $a->file_name,
                     'file_type' => $a->file_type,
                     'file_size' => $a->file_size,
-                    'url' => asset('storage/' . $a->file_path),
+                    'url' => '/api/files/' . $a->file_path,
                 ]),
                 'created_at' => $comment->created_at->toISOString(),
             ], 'Commentaire ajoute', 201);
@@ -673,7 +673,7 @@ class TaskController extends BaseApiController
                     'file_name' => $a->file_name,
                     'file_type' => $a->file_type,
                     'file_size' => $a->file_size,
-                    'url' => asset('storage/' . $a->file_path),
+                    'url' => '/api/files/' . $a->file_path,
                 ]),
                 'created_at' => $comment->created_at->toISOString(),
             ], 'Commentaire ajoute', 201);
@@ -726,7 +726,7 @@ class TaskController extends BaseApiController
                     'file_name' => $a->file_name,
                     'file_type' => $a->file_type,
                     'file_size' => $a->file_size,
-                    'url' => asset('storage/' . $a->file_path),
+                    'url' => '/api/files/' . $a->file_path,
                 ]),
                 'created_at' => $c->created_at->toISOString(),
             ]),

@@ -65,6 +65,67 @@ export interface MyMission {
   assignment_status: 'assigned' | 'seen' | 'completed';
   comment: string | null;
   assigned_at: string;
+  stats?: {
+    total_tasks: number;
+    completed_tasks: number;
+    progression_percentage: number;
+  };
+}
+
+export interface MyMissionCoworker {
+  id: string;
+  first_name: string;
+  last_name: string;
+  role: string | null;
+}
+
+export interface MyMissionTask {
+  id: string;
+  title: string;
+  description: string | null;
+  priority: 'low' | 'medium' | 'high';
+  status: 'todo' | 'in_progress' | 'done';
+  due_date: string | null;
+  estimated_minutes: number | null;
+  actual_minutes: number;
+  completed_at: string | null;
+  creator_name: string | null;
+  comments: Array<{
+    id: string;
+    content: string;
+    employee_name: string | null;
+    attachments: Array<{
+      id: string;
+      file_name: string;
+      file_type: 'image' | 'pdf' | 'video' | 'document';
+      file_size: number;
+      url: string;
+    }>;
+    created_at: string;
+  }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MyMissionDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  status: 'draft' | 'active' | 'completed' | 'cancelled';
+  start_date: string;
+  end_date: string | null;
+  department: { id: string; name: string } | null;
+  stats: {
+    total_tasks: number;
+    completed_tasks: number;
+    progression_percentage: number;
+    my_tasks_total: number;
+    my_tasks_completed: number;
+  };
+  my_tasks: MyMissionTask[];
+  documents: MissionDocument[];
+  coworkers: MyMissionCoworker[];
 }
 
 export interface AttendanceRecord {
@@ -101,6 +162,9 @@ export const missionsApi = {
 
   getMyMissions: () =>
     api.get<{ data: MyMission[] }>('/api/employee/my-missions'),
+
+  getMyMission: (id: string) =>
+    api.get<{ data: MyMissionDetail }>(`/api/employee/my-missions/${id}`),
 
   // Documents
   uploadDocuments: (missionId: string, files: File[]) => {

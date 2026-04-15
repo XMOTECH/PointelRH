@@ -68,7 +68,7 @@ class MissionResource extends JsonResource
                     'file_name' => $d->file_name,
                     'file_type' => $d->file_type,
                     'file_size' => $d->file_size,
-                    'url' => asset('storage/' . $d->file_path),
+                    'url' => '/api/files/' . $d->file_path,
                     'uploaded_by_name' => $d->uploaded_by_name,
                     'created_at' => $d->created_at->toIso8601String(),
                 ]);

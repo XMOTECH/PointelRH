@@ -43,9 +43,17 @@ class MissionController extends BaseApiController
 
             $missions = $employee->missions()
                 ->with('department')
+                ->withCount([
+                    'tasks',
+                    'tasks as completed_tasks_count' => function ($q) {
+                        $q->where('status', 'done');
+                    },
+                ])
                 ->orderBy('start_date', 'desc')
                 ->get()
                 ->map(function ($mission) {
+                    $total = $mission->tasks_count;
+                    $completed = $mission->completed_tasks_count;
                     return [
                         'id' => $mission->id,
                         'title' => $mission->title,
@@ -58,6 +66,11 @@ class MissionController extends BaseApiController
                         'assignment_status' => $mission->pivot->status,
                         'comment' => $mission->pivot->comment,
                         'assigned_at' => $mission->pivot->assigned_at,
+                        'stats' => [
+                            'total_tasks' => $total,
+                            'completed_tasks' => $completed,
+                            'progression_percentage' => $total > 0 ? round(($completed / $total) * 100) : 0,
+                        ],
                     ];
                 });
 
@@ -66,6 +79,120 @@ class MissionController extends BaseApiController
             LoggingService::error('Failed to list employee missions', $e);
 
             return $this->respondServerError('Impossible de récupérer vos missions');
+        }
+    }
+
+    /**
+     * Detail of a mission assigned to the authenticated employee.
+     * GET /api/employee/my-missions/{id}
+     */
+    public function myMissionDetail(Request $request, string $id): JsonResponse
+    {
+        try {
+            $employee = Employee::where('user_id', $request->auth_user_id)
+                ->where('company_id', $request->auth_company_id)
+                ->first();
+
+            if (! $employee) {
+                return $this->respondNotFound('Profil employe introuvable');
+            }
+
+            // Verify the employee is assigned to this mission
+            $mission = Mission::with(['department', 'employees', 'documents'])
+                ->withCount([
+                    'tasks',
+                    'tasks as completed_tasks_count' => fn ($q) => $q->where('status', 'done'),
+                ])
+                ->whereHas('employees', fn ($q) => $q->where('employees.id', $employee->id))
+                ->where('company_id', $request->auth_company_id)
+                ->findOrFail($id);
+
+            // Get tasks assigned to this employee for this mission
+            $myTasks = $mission->tasks()
+                ->with(['creator:id,first_name,last_name', 'comments.employee', 'comments.attachments'])
+                ->where('assigned_to', $employee->id)
+                ->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
+                ->orderBy('due_date')
+                ->get();
+
+            $myTasksCompleted = $myTasks->where('status', 'done')->count();
+
+            // Coworkers = other employees assigned to this mission (not self)
+            $coworkers = $mission->employees
+                ->where('id', '!=', $employee->id)
+                ->values()
+                ->map(fn ($e) => [
+                    'id' => $e->id,
+                    'first_name' => $e->first_name,
+                    'last_name' => $e->last_name,
+                    'role' => $e->role,
+                ]);
+
+            return $this->respondSuccess([
+                'id' => $mission->id,
+                'title' => $mission->title,
+                'description' => $mission->description,
+                'location' => $mission->location,
+                'status' => $mission->status,
+                'start_date' => $mission->start_date?->toDateString(),
+                'end_date' => $mission->end_date?->toDateString(),
+                'department' => $mission->department ? [
+                    'id' => $mission->department->id,
+                    'name' => $mission->department->name,
+                ] : null,
+                'stats' => [
+                    'total_tasks' => $mission->tasks_count,
+                    'completed_tasks' => $mission->completed_tasks_count,
+                    'progression_percentage' => $mission->tasks_count > 0
+                        ? round(($mission->completed_tasks_count / $mission->tasks_count) * 100)
+                        : 0,
+                    'my_tasks_total' => $myTasks->count(),
+                    'my_tasks_completed' => $myTasksCompleted,
+                ],
+                'my_tasks' => $myTasks->map(fn ($task) => [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'priority' => $task->priority,
+                    'status' => $task->status,
+                    'due_date' => $task->due_date?->toDateString(),
+                    'estimated_minutes' => $task->estimated_minutes,
+                    'actual_minutes' => $task->actual_minutes,
+                    'completed_at' => $task->completed_at?->toISOString(),
+                    'creator_name' => $task->creator ? $task->creator->first_name . ' ' . $task->creator->last_name : null,
+                    'comments' => ($task->comments ?? collect())->map(fn ($c) => [
+                        'id' => $c->id,
+                        'content' => $c->content,
+                        'employee_name' => $c->employee ? $c->employee->first_name . ' ' . $c->employee->last_name : null,
+                        'attachments' => ($c->attachments ?? collect())->map(fn ($a) => [
+                            'id' => $a->id,
+                            'file_name' => $a->file_name,
+                            'file_type' => $a->file_type,
+                            'file_size' => $a->file_size,
+                            'url' => '/api/files/' . $a->file_path,
+                        ]),
+                        'created_at' => $c->created_at->toISOString(),
+                    ]),
+                    'created_at' => $task->created_at->toISOString(),
+                    'updated_at' => $task->updated_at->toISOString(),
+                ]),
+                'documents' => ($mission->documents ?? collect())->map(fn ($d) => [
+                    'id' => $d->id,
+                    'file_name' => $d->file_name,
+                    'file_type' => $d->file_type,
+                    'file_size' => $d->file_size,
+                    'url' => '/api/files/' . $d->file_path,
+                    'uploaded_by_name' => $d->uploaded_by_name,
+                    'created_at' => $d->created_at->toISOString(),
+                ]),
+                'coworkers' => $coworkers,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->respondNotFound('Mission non trouvee ou non assignee');
+        } catch (\Exception $e) {
+            LoggingService::error('Failed to retrieve employee mission detail', $e);
+
+            return $this->respondServerError('Impossible de recuperer le detail de la mission');
         }
     }
 
@@ -377,7 +504,7 @@ class MissionController extends BaseApiController
                     'file_name' => $doc->file_name,
                     'file_type' => $doc->file_type,
                     'file_size' => $doc->file_size,
-                    'url' => asset('storage/' . $doc->file_path),
+                    'url' => '/api/files/' . $doc->file_path,
                     'uploaded_by_name' => $doc->uploaded_by_name,
                     'created_at' => $doc->created_at->toIso8601String(),
                 ];
