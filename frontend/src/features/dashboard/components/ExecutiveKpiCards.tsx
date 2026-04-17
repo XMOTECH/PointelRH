@@ -1,42 +1,65 @@
 import { motion } from 'framer-motion';
-import { Users, Clock, AlertCircle } from 'lucide-react';
-import { Card } from '../../../components/ui/Card';
+import { Users, Clock, AlertCircle, CheckCircle, PlaneTakeoff, ListTodo } from 'lucide-react';
 
 interface KpiData {
   label: string;
   value: string | number;
-  subValue?: string;
   icon: React.ElementType;
   color: string;
-  trend?: string;
-  badge?: string;
+  bgColor: string;
 }
 
-export function ExecutiveKpiCards({ totals, loading }: { totals: Record<string, number | undefined>; loading: boolean }) {
+interface ExecutiveKpiCardsProps {
+  totals: Record<string, number | undefined>;
+  pendingLeavesCount?: number;
+  overdueTasksCount?: number;
+  loading: boolean;
+  sirhLoading?: boolean;
+}
+
+export function ExecutiveKpiCards({ totals, pendingLeavesCount = 0, overdueTasksCount = 0, loading, sirhLoading }: ExecutiveKpiCardsProps) {
   const cards: KpiData[] = [
-    { 
-        label: 'EFFECTIF TOTAL', 
-        value: totals?.total_employees ?? 0, 
-        icon: Users, 
-        color: 'primary'
+    {
+      label: 'Effectif Total',
+      value: totals?.total_employees ?? 0,
+      icon: Users,
+      color: 'text-primary',
+      bgColor: 'bg-primary/8',
     },
-    { 
-        label: 'TAUX DE PRÉSENCE', 
-        value: `${totals?.attendance_rate ?? 0}%`, 
-        icon: Clock, 
-        color: 'primary'
+    {
+      label: 'Taux de Présence',
+      value: `${totals?.attendance_rate ?? 0}%`,
+      icon: Clock,
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50',
     },
-    { 
-        label: 'PRÉSENTS (AUJOURD\'HUI)', 
-        value: totals?.total_present ?? 0, 
-        icon: Users, 
-        color: 'primary'
+    {
+      label: "Présents Aujourd'hui",
+      value: totals?.total_present ?? 0,
+      icon: CheckCircle,
+      color: 'text-primary',
+      bgColor: 'bg-primary/8',
     },
-    { 
-        label: 'RETARDS', 
-        value: totals?.total_late ?? 0, 
-        icon: AlertCircle, 
-        color: 'amber-500'
+    {
+      label: 'Retards',
+      value: totals?.total_late ?? 0,
+      icon: AlertCircle,
+      color: 'text-amber-600',
+      bgColor: 'bg-amber-50',
+    },
+    {
+      label: 'Congés en Attente',
+      value: pendingLeavesCount,
+      icon: PlaneTakeoff,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+    },
+    {
+      label: 'Tâches en Retard',
+      value: overdueTasksCount,
+      icon: ListTodo,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50',
     },
   ];
 
@@ -44,45 +67,48 @@ export function ExecutiveKpiCards({ totals, loading }: { totals: Record<string, 
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+      transition: { staggerChildren: 0.06 },
+    },
   };
 
   const item = {
-    hidden: { y: 20, opacity: 0 },
-    show: { y: 0, opacity: 1 }
+    hidden: { y: 16, opacity: 0 },
+    show: { y: 0, opacity: 1 },
   };
 
   return (
-    <motion.div 
+    <motion.div
       variants={container}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
     >
-      {cards.map((card, i) => (
-        <motion.div variants={item} key={i}>
-          <Card className="flex flex-col h-full bg-surface-container-lowest border-none hover:scale-[1.02] transition-transform duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em] opacity-60">
-                {card.label}
-              </p>
-            </div>
-            
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-display font-bold text-on-surface tracking-tight">
-                {loading ? '...' : card.value}
+      {cards.map((card, i) => {
+        const Icon = card.icon;
+        const isLoading = i < 4 ? loading : sirhLoading;
+        return (
+          <motion.div variants={item} key={i}>
+            <div className="flex flex-col gap-4 p-5 bg-surface-container-lowest rounded-xl border border-outline-variant/40 hover:shadow-ambient transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-space font-semibold text-on-surface-variant/60 uppercase tracking-wider">
+                  {card.label}
+                </p>
+                <div className={`p-2 rounded-lg ${card.bgColor}`}>
+                  <Icon size={18} className={card.color} strokeWidth={2} />
+                </div>
+              </div>
+
+              <span className="text-3xl font-display font-bold text-on-surface tracking-tight">
+                {isLoading ? (
+                  <span className="inline-block w-16 h-8 bg-surface-container-high rounded animate-pulse" />
+                ) : (
+                  card.value
+                )}
               </span>
             </div>
-
-            <div className="mt-auto pt-6 flex items-center justify-between">
-              <div/>
-            </div>
-          </Card>
-        </motion.div>
-      ))}
+          </motion.div>
+        );
+      })}
     </motion.div>
   );
 }

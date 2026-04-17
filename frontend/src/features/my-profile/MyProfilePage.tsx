@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { User, Mail, Phone, Building2, Briefcase, Calendar, Clock, QrCode, ScanFace, CheckCircle2, XCircle, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
 import { useMyProfile } from './hooks/useMyProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useFaceEnrollmentStatus } from '@/features/employees/hooks/useFaceEnrollment';
@@ -70,15 +71,15 @@ export default function MyProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Avatar & Identity */}
-        <Card className="flex flex-col items-center text-center py-8">
-          <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-            <User size={36} className="text-primary" />
+        <Card className="flex flex-col items-center text-center py-8 bg-surface-container-lowest">
+          <div className="w-24 h-24 rounded-full bg-surface-container-high flex items-center justify-center mb-4 border-2 border-primary/10">
+            <User size={40} className="text-on-surface-variant" />
           </div>
-          <h2 className="text-xl font-bold text-on-surface">
+          <h2 className="text-2xl font-semibold text-on-surface">
             {profile?.first_name} {profile?.last_name}
           </h2>
           <p className="text-sm text-on-surface-variant mt-1">{profile?.email}</p>
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2 mt-4">
             <Badge variant={statusVariant}>{profile?.status_label || profile?.status || 'N/A'}</Badge>
             <Badge variant="info">{profile?.contract_type || 'CDI'}</Badge>
           </div>
@@ -157,16 +158,15 @@ export default function MyProfilePage() {
                   }
                   changePasswordMutation.mutate();
                 }}
-                className="space-y-3"
+                className="space-y-4"
               >
                 <div className="relative">
-                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40" />
-                  <input
+                  <Input
                     type={showPasswords ? 'text' : 'password'}
                     placeholder="Mot de passe actuel"
                     value={pwForm.current_password}
                     onChange={(e) => setPwForm(p => ({ ...p, current_password: e.target.value }))}
-                    className="w-full h-10 pl-9 pr-10 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="pr-10"
                     required
                   />
                   <button
@@ -174,29 +174,24 @@ export default function MyProfilePage() {
                     onClick={() => setShowPasswords(!showPasswords)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-on-surface-variant"
                   >
-                    {showPasswords ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                <div className="relative">
-                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40" />
-                  <input
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
                     type={showPasswords ? 'text' : 'password'}
-                    placeholder="Nouveau mot de passe (min. 8 caracteres)"
+                    placeholder="Nouveau mot de passe"
                     value={pwForm.new_password}
                     onChange={(e) => setPwForm(p => ({ ...p, new_password: e.target.value }))}
-                    className="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                     required
                     minLength={8}
                   />
-                </div>
-                <div className="relative">
-                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40" />
-                  <input
+                  <Input
                     type={showPasswords ? 'text' : 'password'}
-                    placeholder="Confirmer le nouveau mot de passe"
+                    placeholder="Confirmer le mot de passe"
                     value={pwForm.new_password_confirmation}
                     onChange={(e) => setPwForm(p => ({ ...p, new_password_confirmation: e.target.value }))}
-                    className="w-full h-10 pl-9 pr-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                     required
                     minLength={8}
                   />

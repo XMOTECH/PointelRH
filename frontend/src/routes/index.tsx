@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { LoginPage } from '../features/auth/LoginPage';
+import LandingPage from '../features/landing/LandingPage';
 import { ProtectedRoute } from '../components/layouts/ProtectedRoute';
 import { DashboardLayout } from '../components/layouts/DashboardLayout';
 import ClockInPage from '../features/clockin/ClockInPage';
@@ -35,7 +36,8 @@ function RoleBasedRedirect() {
     if (loading) return;
 
     if (!user) {
-      navigate('/login', { replace: true });
+      // Non-authenticated users stay on the landing page
+      return;
     } else if (user.role === 'super_admin') {
       navigate('/admin/companies', { replace: true });
     } else if (user.role === 'employee') {
@@ -45,14 +47,23 @@ function RoleBasedRedirect() {
     }
   }, [user, loading, navigate]);
 
-  return (
-    <div className="flex justify-center items-center min-h-screen bg-surface">
-      <div className="text-center">
-        <div className="inline-block w-10 h-10 border-4 border-surface-container-low border-t-primary rounded-full animate-spin" />
-        <p className="mt-4 text-on-surface-variant font-medium">Chargement...</p>
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-surface">
+        <div className="text-center">
+          <div className="inline-block w-10 h-10 border-4 border-surface-container-low border-t-primary rounded-full animate-spin" />
+          <p className="mt-4 text-on-surface-variant font-medium">Chargement...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Show landing page for non-authenticated users
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  return null;
 }
 
 export function AppRoutes() {
