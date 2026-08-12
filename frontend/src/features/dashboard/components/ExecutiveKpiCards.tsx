@@ -1,12 +1,11 @@
 import { motion } from 'framer-motion';
-import { Users, Clock, AlertCircle, CheckCircle, PlaneTakeoff, ListTodo } from 'lucide-react';
+import { Users, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface KpiData {
   label: string;
   value: string | number;
   icon: React.ElementType;
   color: string;
-  bgColor: string;
 }
 
 interface ExecutiveKpiCardsProps {
@@ -17,49 +16,31 @@ interface ExecutiveKpiCardsProps {
   sirhLoading?: boolean;
 }
 
-export function ExecutiveKpiCards({ totals, pendingLeavesCount = 0, overdueTasksCount = 0, loading, sirhLoading }: ExecutiveKpiCardsProps) {
+export function ExecutiveKpiCards({ totals, loading }: ExecutiveKpiCardsProps) {
   const cards: KpiData[] = [
     {
       label: 'Effectif Total',
       value: totals?.total_employees ?? 0,
       icon: Users,
       color: 'text-primary',
-      bgColor: 'bg-primary/8',
     },
     {
       label: 'Taux de Présence',
       value: `${totals?.attendance_rate ?? 0}%`,
       icon: Clock,
       color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
     },
     {
       label: "Présents Aujourd'hui",
       value: totals?.total_present ?? 0,
       icon: CheckCircle,
       color: 'text-primary',
-      bgColor: 'bg-primary/8',
     },
     {
       label: 'Retards',
       value: totals?.total_late ?? 0,
       icon: AlertCircle,
       color: 'text-amber-600',
-      bgColor: 'bg-amber-50',
-    },
-    {
-      label: 'Congés en Attente',
-      value: pendingLeavesCount,
-      icon: PlaneTakeoff,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-    },
-    {
-      label: 'Tâches en Retard',
-      value: overdueTasksCount,
-      icon: ListTodo,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
     },
   ];
 
@@ -81,26 +62,24 @@ export function ExecutiveKpiCards({ totals, pendingLeavesCount = 0, overdueTasks
       variants={container}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
     >
-      {cards.map((card, i) => {
+      {cards.map((card) => {
         const Icon = card.icon;
-        const isLoading = i < 4 ? loading : sirhLoading;
+        const isLoading = loading;
         return (
-          <motion.div variants={item} key={i}>
-            <div className="flex flex-col gap-4 p-5 bg-surface-container-lowest rounded-xl border border-outline-variant/40 hover:shadow-ambient transition-shadow duration-300">
+          <motion.div variants={item} key={card.label}>
+            <div className="flex flex-col justify-between gap-4 p-6 bg-surface-container-lowest rounded-2xl border border-on-surface/15 shadow-none">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-space font-semibold text-on-surface-variant/60 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-[0.2em]">
                   {card.label}
-                </p>
-                <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                  <Icon size={18} className={card.color} strokeWidth={2} />
-                </div>
+                </span>
+                <Icon size={20} className={card.color} strokeWidth={2} />
               </div>
 
-              <span className="text-3xl font-display font-bold text-on-surface tracking-tight">
+              <span className="text-3xl font-mono tabular-nums font-extrabold text-on-surface tracking-tight">
                 {isLoading ? (
-                  <span className="inline-block w-16 h-8 bg-surface-container-high rounded animate-pulse" />
+                  <span className="inline-block w-20 h-9 bg-surface-container-high rounded-xl animate-pulse" />
                 ) : (
                   card.value
                 )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Building2, Users, TrendingUp, Activity } from 'lucide-react';
+import { Plus, Search, Building2, Users, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useCompanies, useCreateCompany, useGlobalStats } from '../hooks/useCompanies';
 import { CompanyTable } from './components/CompanyTable';
@@ -59,19 +59,12 @@ export function CompanyListPage() {
       color: "text-blue-500",
       bg: "bg-blue-500/10"
     },
-    { 
-      label: "SLA Plateforme", 
-      value: stats?.sla_status ?? "99.9%", 
-      icon: Activity, 
+    {
+      label: "SLA Plateforme",
+      value: stats?.sla_status ?? "—",
+      icon: Activity,
       color: "text-green-500",
       bg: "bg-green-500/10"
-    },
-    { 
-      label: "Ratio Croissance", 
-      value: "+12.5%", 
-      icon: TrendingUp, 
-      color: "text-amber-500",
-      bg: "bg-amber-500/10"
     }
   ];
 
@@ -84,16 +77,12 @@ export function CompanyListPage() {
         className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8"
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-[2px] bg-primary rounded-full" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80">Platform Governance</span>
-          </div>
-          <h1 className="text-5xl md:text-6xl font-display font-black text-on-surface tracking-tighter uppercase italic leading-[0.85]">
+          <h1 className="text-5xl md:text-6xl font-display font-black text-on-surface tracking-tighter uppercase leading-[0.85]">
             Supervision <br />
             <span className="text-primary not-italic">Des Instances</span>
           </h1>
           <p className="text-on-surface-variant font-medium max-w-lg leading-relaxed opacity-70">
-            Console d'administration centrale pour le pilotage des environnements PointelRH. 
+            Console d'administration centrale pour le pilotage des environnements LuminaRH. ⚙️
             Gérez les quotas, surveillez l'activité et déployez de nouvelles instances.
           </p>
         </div>
@@ -110,25 +99,23 @@ export function CompanyListPage() {
       </motion.div>
 
       {/* Stats Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="premium-card p-6 flex flex-col gap-4 accent-bar"
+            className="bg-surface-container-lowest border border-on-surface/15 rounded-2xl p-6 shadow-none flex flex-col gap-4"
           >
-            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", stat.bg, stat.color)}>
-              <stat.icon size={26} strokeWidth={1.5} />
-            </div>
+            <stat.icon size={26} className={stat.color} strokeWidth={1.5} />
             <div>
-              <div className="text-3xl font-display font-black text-on-surface tracking-tighter italic leading-none">
+              <div className="text-3xl font-mono tabular-nums font-extrabold text-on-surface tracking-tight leading-none">
                 {stat.value}
               </div>
-              <div className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mt-2 opacity-50">
+              <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-[0.2em] block mt-2">
                 {stat.label}
-              </div>
+              </span>
             </div>
           </motion.div>
         ))}

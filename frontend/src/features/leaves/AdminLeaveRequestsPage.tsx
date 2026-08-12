@@ -74,7 +74,7 @@ export const AdminLeaveRequestsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase italic">
+          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase">
             Gestion des Congés
           </h1>
           <p className="text-on-surface-variant mt-1 font-medium">

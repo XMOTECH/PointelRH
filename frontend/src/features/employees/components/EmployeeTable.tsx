@@ -1,9 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
-import { Users, MoreHorizontal, Mail, Building2, ShieldCheck, KeyRound, Loader2, Eye, Pencil, Trash2, UserCheck, UserX, UserMinus } from 'lucide-react';
+import { Users, MoreHorizontal, Mail, Building2, Eye, Pencil, Trash2, UserCheck, UserX, UserMinus } from 'lucide-react';
 import type { Employee } from '../types';
 import { Badge } from '../../../components/ui/Badge';
-import { cn } from '../../../lib/utils';
-import { useGeneratePin } from '../hooks/useGeneratePin';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 
 interface EmployeeTableProps {
@@ -40,30 +39,30 @@ function ActionDropdown({ employee, onView, onEdit, onDelete, onStatusChange }: 
   ];
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative inline-block" ref={ref}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="p-2 hover:bg-surface-container-highest rounded-xl transition-colors text-on-surface-variant opacity-40 hover:opacity-100"
+        className="p-2 hover:bg-surface-container-low rounded-xl transition-colors text-on-surface-variant/60 hover:text-on-surface cursor-pointer"
       >
-        <MoreHorizontal size={20} />
+        <MoreHorizontal size={18} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-surface rounded-xl shadow-2xl border border-on-surface/10 py-1 z-50">
+        <div className="absolute right-0 top-full mt-1 w-48 bg-surface-container-lowest rounded-xl shadow-lg border border-on-surface/15 py-1 z-50">
           <button
             onClick={() => { onView(); setOpen(false); }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
           >
             <Eye size={14} /> Détails
           </button>
           <button
             onClick={() => { onEdit(); setOpen(false); }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
           >
             <Pencil size={14} /> Modifier
           </button>
 
-          <div className="border-t border-on-surface/5 my-1" />
+          <div className="border-t border-on-surface/10 my-1" />
 
           {statuses
             .filter(s => s.value !== employee.status)
@@ -71,17 +70,17 @@ function ActionDropdown({ employee, onView, onEdit, onDelete, onStatusChange }: 
               <button
                 key={s.value}
                 onClick={() => { onStatusChange(s.value); setOpen(false); }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
               >
                 <s.icon size={14} /> {s.label}
               </button>
             ))}
 
-          <div className="border-t border-on-surface/5 my-1" />
+          <div className="border-t border-on-surface/10 my-1" />
 
           <button
             onClick={() => { onDelete(); setOpen(false); }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
           >
             <Trash2 size={14} /> Supprimer
           </button>
@@ -92,8 +91,6 @@ function ActionDropdown({ employee, onView, onEdit, onDelete, onStatusChange }: 
 }
 
 export function EmployeeTable({ employees, isLoading, onView, onEdit, onDelete, onStatusChange }: EmployeeTableProps) {
-  const generatePin = useGeneratePin();
-
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
@@ -106,88 +103,77 @@ export function EmployeeTable({ employees, isLoading, onView, onEdit, onDelete, 
 
   if (!employees?.length) {
     return (
-      <div className="p-12 text-center bg-surface-container-lowest rounded-3xl border border-on-surface/5">
-        <Users size={40} className="mx-auto mb-4 text-on-surface-variant opacity-20" />
-        <p className="text-on-surface-variant font-medium">Aucun employé trouvé.</p>
+      <div className="p-12 text-center bg-surface-container-lowest rounded-2xl border border-on-surface/15 shadow-none">
+        <Users size={40} className="mx-auto mb-4 text-on-surface-variant/30" />
+        <p className="text-on-surface-variant/70 font-semibold text-sm">Aucun enregistrement trouvé.</p>
       </div>
     );
   }
 
   const getStatusBadge = (status: Employee['status']) => {
     switch (status) {
-      case 'active': return <Badge variant="success" className="uppercase tracking-tighter text-[9px]">Actif</Badge>;
-      case 'suspended': return <Badge variant="warning" className="uppercase tracking-tighter text-[9px]">Suspendu</Badge>;
-      case 'inactive': return <Badge variant="error" className="uppercase tracking-tighter text-[9px]">Inactif</Badge>;
-      default: return <Badge variant="default" className="uppercase tracking-tighter text-[9px]">{status}</Badge>;
+      case 'active': return <Badge variant="success" className="uppercase tracking-wider text-[9px] font-bold">Actif</Badge>;
+      case 'suspended': return <Badge variant="warning" className="uppercase tracking-wider text-[9px] font-bold">Suspendu</Badge>;
+      case 'inactive': return <Badge variant="error" className="uppercase tracking-wider text-[9px] font-bold">Inactif</Badge>;
+      default: return <Badge variant="default" className="uppercase tracking-wider text-[9px] font-bold">{status}</Badge>;
     }
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      {/* Header labels */}
-      <div className="grid grid-cols-12 px-6 py-3 text-[10px] font-bold text-on-surface-variant opacity-40 uppercase tracking-[0.2em]">
-        <div className="col-span-4">Employé</div>
-        <div className="col-span-3">Contact</div>
-        <div className="col-span-2">Structure</div>
-        <div className="col-span-2">Statut</div>
-        <div className="col-span-1 text-right">Action</div>
-      </div>
+    <div className="bg-surface-container-lowest rounded-2xl border border-on-surface/15 overflow-hidden shadow-none">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-surface-container-low/30 hover:bg-transparent border-b border-on-surface/10">
+            <TableHead className="py-4 pl-6 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px]">Employé ↕</TableHead>
+            <TableHead className="py-4 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px]">Contact ↕</TableHead>
+            <TableHead className="py-4 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px]">Structure ↕</TableHead>
+            <TableHead className="py-4 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px]">Statut ↕</TableHead>
+            <TableHead className="py-4 pr-6 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px] text-right">Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {employees.map((emp) => (
+            <TableRow key={emp.id} className="group hover:bg-surface-container-low/50 transition-colors border-b border-on-surface/10 last:border-b-0">
+              <TableCell className="py-4 pl-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full border border-on-surface/15 flex items-center justify-center text-primary font-bold text-sm bg-transparent shrink-0">
+                    {emp.first_name.charAt(0)}{emp.last_name.charAt(0)}
+                  </div>
+                  <span className="text-sm font-bold text-on-surface">{emp.first_name} {emp.last_name}</span>
+                </div>
+              </TableCell>
 
-      {employees.map((emp, idx) => (
-        <div
-          key={emp.id}
-          className={cn(
-            "grid grid-cols-12 items-center px-6 py-5 rounded-2xl transition-all duration-200 hover:scale-[1.005] hover:shadow-lg hover:shadow-primary/5 group",
-            idx % 2 === 0 ? "bg-surface-container-lowest" : "bg-surface-container-low"
-          )}
-        >
-          <div className="col-span-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-primary font-bold text-lg relative overflow-hidden">
-               {emp.first_name.charAt(0)}{emp.last_name.charAt(0)}
-               <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base font-bold text-on-surface leading-snug">{emp.first_name} {emp.last_name}</span>
-              <div className="flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-widest opacity-60">
-                <ShieldCheck size={10} />
-                <span>{emp.role}</span>
-              </div>
-            </div>
-          </div>
+              <TableCell className="py-4 text-on-surface-variant">
+                <div className="flex items-center gap-2">
+                  <Mail size={14} className="opacity-50 shrink-0" />
+                  <span className="text-sm font-medium">{emp.email}</span>
+                </div>
+              </TableCell>
 
-          <div className="col-span-3 flex items-center gap-2 text-on-surface-variant opacity-70">
-            <Mail size={14} />
-            <span className="text-sm font-medium truncate">{emp.email}</span>
-          </div>
+              <TableCell className="py-4 text-on-surface-variant">
+                <div className="flex items-center gap-2">
+                  <Building2 size={14} className="opacity-50 shrink-0" />
+                  <span className="text-sm font-medium">{getDeptName(emp.department)}</span>
+                </div>
+              </TableCell>
 
-          <div className="col-span-2 flex items-center gap-2 text-on-surface-variant opacity-70">
-            <Building2 size={14} />
-            <span className="text-sm font-medium">{getDeptName(emp.department)}</span>
-          </div>
+              <TableCell className="py-4">
+                {getStatusBadge(emp.status)}
+              </TableCell>
 
-          <div className="col-span-2">
-            {getStatusBadge(emp.status)}
-          </div>
-
-          <div className="col-span-1 flex justify-end gap-1">
-            <button
-              onClick={() => generatePin.mutate(emp.id)}
-              disabled={generatePin.isPending}
-              title="Envoyer PIN & mot de passe par email"
-              className="p-2 hover:bg-primary/10 rounded-xl transition-colors text-primary opacity-60 hover:opacity-100 disabled:opacity-30"
-            >
-              {generatePin.isPending ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
-            </button>
-            <ActionDropdown
-              employee={emp}
-              onView={() => onView(emp)}
-              onEdit={() => onEdit(emp)}
-              onDelete={() => onDelete(emp)}
-              onStatusChange={(status) => onStatusChange(emp, status)}
-            />
-          </div>
-        </div>
-      ))}
+              <TableCell className="py-4 pr-6 text-right">
+                <ActionDropdown
+                  employee={emp}
+                  onView={() => onView(emp)}
+                  onEdit={() => onEdit(emp)}
+                  onDelete={() => onDelete(emp)}
+                  onStatusChange={(status) => onStatusChange(emp, status)}
+                />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

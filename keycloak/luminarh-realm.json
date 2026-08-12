@@ -1,0 +1,114 @@
+{
+  "id": "luminarh",
+  "realm": "luminarh",
+  "enabled": true,
+  "sslRequired": "external",
+  "smtpServer": {
+    "host": "smtp.gmail.com",
+    "port": "465",
+    "from": "luminarhsn@gmail.com",
+    "fromDisplayName": "LuminaRH",
+    "ssl": "true",
+    "auth": "true",
+    "user": "luminarhsn@gmail.com",
+    "password": "mzumpyykidhvyxaq"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "super_admin",
+        "description": "Super administrateur de la plateforme LuminaRH"
+      },
+      {
+        "name": "admin",
+        "description": "Administrateur de l'entreprise"
+      },
+      {
+        "name": "manager",
+        "description": "Manager d'equipe ou de departement"
+      },
+      {
+        "name": "employee",
+        "description": "Employe standard"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "luminarh-backend",
+      "name": "LuminaRH Backend Monolith Client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "z9yDCh9WO3B8PclSsZirS5nXLZWmCRVU",
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "amadou@luminarh.sn",
+      "email": "amadou@luminarh.sn",
+      "firstName": "Amadou",
+      "lastName": "Diallo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ]
+    },
+    {
+      "username": "mandiaye@luminarh.sn",
+      "email": "mandiaye@luminarh.sn",
+      "firstName": "Mandiaye",
+      "lastName": "Diagne",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "employee"
+      ]
+    },
+    {
+      "username": "fatou@luminarh.sn",
+      "email": "fatou@luminarh.sn",
+      "firstName": "Fatou",
+      "lastName": "Sow",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "manager"
+      ]
+    }
+  ]
+}
+

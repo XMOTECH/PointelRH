@@ -10,7 +10,8 @@
  */
 
 import { useState } from 'react';
-import { Monitor, ScanFace, UserPlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Monitor, ScanFace, UserPlus, HeartHandshake, PlaneTakeoff, Briefcase, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useClockIn } from './hooks/useClockIn';
 import { useClockOut } from './hooks/useClockOut';
@@ -234,6 +235,138 @@ export default function ClockInPage() {
         )}
         {clockInError && <ErrorMessage message={clockInErrorMessage} />}
         {clockOutError && <ErrorMessage message={clockOutErrorMessage} />}
+      </div>
+
+      {/* Espace Collaborateur - Raccourcis & Indicateurs */}
+      <div
+        style={{
+          marginTop: '40px',
+          paddingTop: '30px',
+          borderTop: '1px solid var(--border-light, #e2e8f0)',
+        }}
+      >
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '15px', color: '#2d3748' }}>
+          Mon Espace LuminaRH
+        </h3>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '15px',
+          }}
+        >
+          <Link
+            to="/my-advances"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #edf2f7',
+              backgroundColor: 'white',
+              textDecoration: 'none',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+            }}
+          >
+            <HeartHandshake size={20} className="text-primary" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2d3748' }}>Prêts & Acomptes</span>
+            <span style={{ fontSize: '0.75rem', color: '#718096' }}>Demandes d'aides & acomptes</span>
+          </Link>
+
+          <Link
+            to="/my-leaves"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #edf2f7',
+              backgroundColor: 'white',
+              textDecoration: 'none',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+            }}
+          >
+            <PlaneTakeoff size={20} className="text-primary" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2d3748' }}>Mes Congés</span>
+            <span style={{ fontSize: '0.75rem', color: '#718096' }}>Demandes de congés</span>
+          </Link>
+
+          <Link
+            to="/my-missions"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #edf2f7',
+              backgroundColor: 'white',
+              textDecoration: 'none',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+            }}
+          >
+            <Briefcase size={20} className="text-primary" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2d3748' }}>Mes Missions</span>
+            <span style={{ fontSize: '0.75rem', color: '#718096' }}>Suivi des affectations</span>
+          </Link>
+
+          <Link
+            to="/my-profile"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #edf2f7',
+              backgroundColor: 'white',
+              textDecoration: 'none',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+            }}
+          >
+            <User size={20} className="text-primary" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2d3748' }}>Mon Profil</span>
+            <span style={{ fontSize: '0.75rem', color: '#718096' }}>Mes informations & PIN</span>
+          </Link>
+        </div>
       </div>
 
       {/* Face Enrollment Modal */}

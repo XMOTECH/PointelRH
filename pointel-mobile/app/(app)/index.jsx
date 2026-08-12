@@ -122,18 +122,25 @@ export default function ClockInScreen() {
 
     try {
       const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
-      let latitude = 0, longitude = 0;
-      if (locStatus === 'granted') {
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        latitude = location.coords.latitude;
-        longitude = location.coords.longitude;
+      if (locStatus !== 'granted') {
+        setErrorMsg('Activez la localisation pour pointer sur site.');
+        setStatus('idle');
+        return;
       }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      const latitude = location.coords.latitude;
+      const longitude = location.coords.longitude;
 
       const response = await api.post('/pointage/clock-in', {
         channel: 'qr_location',
-        payload: { location_token: locationToken },
+        payload: {
+          location_token: locationToken,
+          latitude,
+          longitude,
+        },
         latitude,
         longitude,
       });

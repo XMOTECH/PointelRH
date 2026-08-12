@@ -2,7 +2,7 @@
 Cypress.Commands.add('loginAs', (role: 'manager' | 'employee') => {
   const credentials = {
     manager:  { email: 'admin@test.com',   password: 'password' },
-    employee: { email: 'amadou@pointel.sn', password: 'password' },
+    employee: { email: 'amadou@luminarh.sn', password: 'password' },
   };
 
   const { email, password } = credentials[role];

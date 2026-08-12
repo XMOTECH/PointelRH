@@ -7,12 +7,11 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, withAccent = true, ...props }, ref) => (
+  ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        'no-line-card p-6',
-        withAccent && 'accent-bar',
+        'premium-card relative p-6',
         className
       )}
       {...props}

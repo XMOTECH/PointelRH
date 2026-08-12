@@ -11,7 +11,7 @@ describe('Authentification', () => {
 
   it('login employe → redirect clock-in', () => {
     cy.visit('/login');
-    cy.get('[data-cy=email]').type('amadou@pointel.sn');
+    cy.get('[data-cy=email]').type('amadou@luminarh.sn');
     cy.get('[data-cy=password]').type('password');
     cy.get('[data-cy=submit]').click();
     cy.url().should('include', '/clock-in');

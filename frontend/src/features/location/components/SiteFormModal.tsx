@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,23 +5,24 @@ import { X, MapPin } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import type { Site } from '../api/locations.api';
+import type { LeafletMouseEvent } from 'leaflet';
 
 const schema = z.object({
   name: z.string().min(1, 'Nom requis').max(255),
-  latitude: z.coerce.number().min(-90).max(90),
-  longitude: z.coerce.number().min(-180).max(180),
-  radius_meters: z.coerce.number().int().min(1, 'Min 1m'),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  radius_meters: z.number().int().min(1, 'Min 1m'),
   is_active: z.boolean(),
 });
 
-type FormData = z.infer<typeof schema>;
+type SiteFormData = z.infer<typeof schema>;
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: SiteFormData) => void;
   isLoading?: boolean;
   site?: Site | null;
 }
@@ -44,7 +44,7 @@ function LocationPicker({ lat, lng, radius, onChange }: { lat: number; lng: numb
   );
 
   useMapEvents({
-    click(e) {
+    click(e: LeafletMouseEvent) {
       onChange(e.latlng.lat, e.latlng.lng);
     },
   });
@@ -67,8 +67,8 @@ function LocationPicker({ lat, lng, radius, onChange }: { lat: number; lng: numb
 }
 
 export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Props) {
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<SiteFormData>({
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
       latitude: 33.5731,
@@ -77,6 +77,14 @@ export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Prop
       is_active: true,
     },
   });
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
 
   useEffect(() => {
     if (site) {
@@ -110,11 +118,12 @@ export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Prop
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="p-6 flex flex-col gap-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 flex flex-col gap-5">
           {/* Name */}
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Nom du site</label>
+            <label htmlFor="site-name" className="block text-xs font-bold text-on-surface-variant mb-1.5">Nom du site</label>
             <input
+              id="site-name"
               {...register('name')}
               className="w-full h-10 px-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="Ex: Siège Casablanca"
@@ -146,9 +155,10 @@ export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Prop
           {/* Lat/Lng/Radius row */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Latitude</label>
+              <label htmlFor="site-lat" className="block text-xs font-bold text-on-surface-variant mb-1.5">Latitude</label>
               <input
-                {...register('latitude')}
+                id="site-lat"
+                {...register('latitude', { valueAsNumber: true })}
                 type="number"
                 step="any"
                 className="w-full h-10 px-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -156,9 +166,10 @@ export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Prop
               {errors.latitude && <p className="text-xs text-red-500 mt-1">{errors.latitude.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Longitude</label>
+              <label htmlFor="site-lng" className="block text-xs font-bold text-on-surface-variant mb-1.5">Longitude</label>
               <input
-                {...register('longitude')}
+                id="site-lng"
+                {...register('longitude', { valueAsNumber: true })}
                 type="number"
                 step="any"
                 className="w-full h-10 px-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -166,9 +177,10 @@ export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Prop
               {errors.longitude && <p className="text-xs text-red-500 mt-1">{errors.longitude.message}</p>}
             </div>
             <div>
-              <label className="block text-xs font-bold text-on-surface-variant mb-1.5">Rayon (m)</label>
+              <label htmlFor="site-radius" className="block text-xs font-bold text-on-surface-variant mb-1.5">Rayon (m)</label>
               <input
-                {...register('radius_meters')}
+                id="site-radius"
+                {...register('radius_meters', { valueAsNumber: true })}
                 type="number"
                 className="w-full h-10 px-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
@@ -177,8 +189,8 @@ export function SiteFormModal({ open, onClose, onSubmit, isLoading, site }: Prop
           </div>
 
           {/* Active toggle */}
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" {...register('is_active')} className="w-4 h-4 rounded accent-primary" />
+          <label htmlFor="site-active" className="flex items-center gap-3 cursor-pointer">
+            <input id="site-active" type="checkbox" {...register('is_active')} className="w-4 h-4 rounded accent-primary" />
             <span className="text-sm text-on-surface">Site actif</span>
           </label>
 

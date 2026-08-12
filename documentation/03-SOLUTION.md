@@ -1,4 +1,4 @@
-# La Solution PointelRH
+# La Solution Zero Up
 
 ## Vision
 
@@ -8,7 +8,7 @@ Offrir a chaque entreprise, quelle que soit sa taille, une plateforme complete d
 
 ### Pilier 1 : Pointage Intelligent Multi-Mode
 
-PointelRH propose **3 modes de pointage** qui s'adaptent a chaque contexte :
+Zero Up propose **3 modes de pointage** qui s'adaptent a chaque contexte :
 
 **QR Code**
 - Chaque site de travail dispose d'un QR Code unique

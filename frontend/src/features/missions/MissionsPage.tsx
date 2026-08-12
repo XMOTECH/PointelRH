@@ -64,7 +64,7 @@ export const MissionsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto min-h-screen bg-surface">
+    <div className="space-y-8 w-full">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
@@ -143,7 +143,7 @@ export const MissionsPage: React.FC = () => {
       ) : filteredMissions.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
           {filteredMissions.map((mission) => (
-            <div key={mission.id} className="premium-card accent-bar relative overflow-hidden group">
+            <div key={mission.id} className="premium-card relative overflow-hidden group">
               <div className="p-6 space-y-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1.5">

@@ -33,9 +33,8 @@ function MissionCard({ mission }: { mission: MyMission }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
       onClick={() => navigate(`/my-missions/${mission.id}`)}
-      className="premium-card p-5 cursor-pointer group transition-shadow hover:shadow-md"
+      className="premium-card p-5 cursor-pointer"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">

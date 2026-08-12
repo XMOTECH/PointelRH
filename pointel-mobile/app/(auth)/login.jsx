@@ -58,7 +58,7 @@ export default function LoginScreen() {
             <View style={styles.logoContainer}>
               <View style={styles.logoDot} />
               <Text style={styles.brandTitle}>
-                Pointel<Text style={styles.brandAccent}>RH</Text>
+                Zero<Text style={styles.brandAccent}>Up</Text>
               </Text>
             </View>
             <Text style={styles.heroTitle}>Bienvenue</Text>

@@ -27,6 +27,9 @@ import { MyMissionDetailPage } from '../features/missions/MyMissionDetailPage';
 import { MyTasksPage } from '../features/tasks/MyTasksPage';
 import { TeamTasksPage } from '../features/tasks/TeamTasksPage';
 import { CompanyListPage } from '../features/admin/companies/CompanyListPage';
+import { PayrollPage } from '../features/payroll/PayrollPage';
+import { AdvancesPage } from '../features/advances/AdvancesPage';
+import { MyAdvancesPage } from '../features/my-advances/MyAdvancesPage';
 
 function RoleBasedRedirect() {
   const { user, loading } = useAuth();
@@ -93,6 +96,8 @@ export function AppRoutes() {
           <Route path="/missions" element={<MissionsPage />} />
           <Route path="/missions/:id/tracking" element={<MissionTrackingPage />} />
           <Route path="/team-tasks" element={<TeamTasksPage />} />
+          <Route path="/payroll" element={<PayrollPage />} />
+          <Route path="/advances" element={<AdvancesPage />} />
           <Route path="/admin/users" element={<div className="p-8"><h1 className="text-2xl font-bold mb-4">Gestion des Utilisateurs</h1><p className="text-on-surface-variant">Chargement du module...</p></div>} />
           <Route path="/settings" element={<SettingsPage />} />
 
@@ -106,6 +111,7 @@ export function AppRoutes() {
           <Route path="/my-leaves" element={<MyLeavesPage />} />
           <Route path="/my-attendance" element={<MyAttendancePage />} />
           <Route path="/my-schedule" element={<MySchedulePage />} />
+          <Route path="/my-advances" element={<MyAdvancesPage />} />
         </Route>
 
         {/* Super Admin routes — separate ProtectedRoute */}

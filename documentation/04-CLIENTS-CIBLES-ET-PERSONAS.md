@@ -11,7 +11,7 @@
 - Budget RH limite
 - Besoin de simplicite et de resultats rapides
 
-**Pourquoi PointelRH :**
+**Pourquoi Zero Up :**
 - Zero investissement materiel (une tablette suffit)
 - Mise en service en moins d'une journee
 - Interface intuitive, pas besoin de formation longue
@@ -25,7 +25,7 @@
 - Equipes terrain mobiles
 - Problematique forte de controle de presence a distance
 
-**Pourquoi PointelRH :**
+**Pourquoi Zero Up :**
 - Geofencing GPS pour chaque site
 - QR Codes uniques par site
 - Missions terrain avec suivi en temps reel
@@ -39,7 +39,7 @@
 - Volumetrie importante de pointages
 - Exigences de conformite et d'audit
 
-**Pourquoi PointelRH :**
+**Pourquoi Zero Up :**
 - Architecture microservices scalable
 - API pour integration avec les systemes existants
 - Multi-departements avec hierarchie
@@ -67,7 +67,7 @@
 - Un systeme fiable sans investissement lourd
 - Des rapports automatiques pour la paie
 
-**Comment PointelRH l'aide**
+**Comment Zero Up l'aide**
 - QR Code par site + geofencing = presence verifiee a distance
 - Dashboard temps reel = visibilite immediate
 - Export des heures = paie simplifiee
@@ -91,7 +91,7 @@
 - Des notifications automatiques
 - Une vue d'ensemble sur la progression de l'equipe
 
-**Comment PointelRH l'aide**
+**Comment Zero Up l'aide**
 - Missions + Taches avec notifications automatiques
 - Vue equipe groupee par employe avec progression
 - Chronometre integre = temps passe visible
@@ -116,7 +116,7 @@
 - Voir ses missions et ses taches au meme endroit
 - Consulter son planning et son historique
 
-**Comment PointelRH l'aide**
+**Comment Zero Up l'aide**
 - Pointage par Face ID sur son telephone = rapide, impossible a oublier
 - "Mes Missions" + "Mes Taches" = tout au meme endroit
 - "Mon Planning" + "Mon Historique" = transparence totale
@@ -141,7 +141,7 @@
 - Un retour sur investissement rapide
 - Une solution cle en main
 
-**Comment PointelRH l'aide**
+**Comment Zero Up l'aide**
 - Dashboard avec KPI en temps reel
 - Taux de presence, retards, tendances = chiffres indiscutables
 - ROI immediat : reduction des fraudes de pointage des le 1er mois
@@ -152,11 +152,11 @@
 ### Persona 5 : Operateur plateforme (Super Admin)
 
 **Contexte**
-- Equipe technique de PointelRH qui gere la plateforme SaaS
+- Equipe technique de Zero Up qui gere la plateforme SaaS
 - Doit onboarder de nouvelles entreprises rapidement
 - Doit surveiller la sante de la plateforme
 
-**Besoins couverts par PointelRH**
+**Besoins couverts par Zero Up**
 - Back-office super-admin pour creer/gerer les entreprises
 - Activation/desactivation en un clic
 - Statistiques globales

@@ -2,12 +2,12 @@ import { defineConfig } from 'cypress';
 
 export default defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:5173',
+    baseUrl: 'http://localhost:5180',
     setupNodeEvents() {
       // implement node event listeners here
     },
     env: {
-      apiUrl: 'http://localhost:8000/api',
+      apiUrl: 'http://localhost:8001/api',
     },
   },
 });

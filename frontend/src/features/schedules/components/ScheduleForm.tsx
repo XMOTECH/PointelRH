@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,17 +10,11 @@ const schema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format HH:mm requis"),
   end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format HH:mm requis"),
-  grace_minutes: z.preprocess((val) => Number(val), z.number().min(0).max(60)),
+  grace_minutes: z.number().min(0).max(60),
   work_days: z.array(z.number()).min(1, "Sélectionnez au moins un jour"),
-}) satisfies z.ZodType<any>;
+});
 
-type FormData = {
-  name: string;
-  start_time: string;
-  end_time: string;
-  grace_minutes: number;
-  work_days: number[];
-};
+export type FormData = z.infer<typeof schema>;
 
 interface Props {
   isOpen: boolean;
@@ -41,14 +35,23 @@ const DAYS = [
 
 export const ScheduleForm: React.FC<Props> = ({ isOpen, onClose, onSubmit, isLoading }) => {
   const { register, control, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema),
     defaultValues: {
+      name: '',
       work_days: [1, 2, 3, 4, 5],
       grace_minutes: 15,
       start_time: '08:00',
       end_time: '17:00',
     }
   });
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
 
   if (!isOpen) return null;
 
@@ -72,10 +75,11 @@ export const ScheduleForm: React.FC<Props> = ({ isOpen, onClose, onSubmit, isLoa
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(handleFormSubmit as any)} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="p-6 space-y-6">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest ml-1">Nom du planning</label>
+            <label htmlFor="schedule-name" className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest ml-1">Nom du planning</label>
             <Input 
+              id="schedule-name"
               {...register('name')}
               placeholder="Ex: Horaire Standard, Équipe de Nuit..."
               className={errors.name ? 'border-red-500' : ''}
@@ -86,16 +90,18 @@ export const ScheduleForm: React.FC<Props> = ({ isOpen, onClose, onSubmit, isLoa
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest ml-1">Heure de début</label>
+              <label htmlFor="schedule-start" className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest ml-1">Heure de début</label>
               <Input 
+                id="schedule-start"
                 {...register('start_time')}
                 type="time"
                 className={errors.start_time ? 'border-red-500' : ''}
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest ml-1">Heure de fin</label>
+              <label htmlFor="schedule-end" className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest ml-1">Heure de fin</label>
               <Input 
+                id="schedule-end"
                 {...register('end_time')}
                 type="time"
                 className={errors.end_time ? 'border-red-500' : ''}
@@ -141,11 +147,12 @@ export const ScheduleForm: React.FC<Props> = ({ isOpen, onClose, onSubmit, isLoa
           <div className="space-y-1.5 p-4 bg-amber-50 rounded-xl border border-amber-200">
             <div className="flex items-center gap-2 text-amber-800 mb-2">
                <Info size={16} />
-               <label className="text-[10px] font-black uppercase tracking-widest">Tolérance de retard</label>
+               <label htmlFor="schedule-grace" className="text-[10px] font-black uppercase tracking-widest">Tolérance de retard</label>
             </div>
             <div className="flex items-center gap-3">
                <Input 
-                 {...register('grace_minutes')}
+                 id="schedule-grace"
+                 {...register('grace_minutes', { valueAsNumber: true })}
                  type="number"
                  className="w-24 bg-white border-amber-300 focus:ring-amber-500/20 focus:border-amber-500"
                />

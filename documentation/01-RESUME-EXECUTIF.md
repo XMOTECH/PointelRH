@@ -1,8 +1,8 @@
-# PointelRH - Resume Executif
+# Zero Up - Resume Executif
 
 ## En une phrase
 
-**PointelRH** est une plateforme SaaS de gestion des ressources humaines qui remplace les badgeuses physiques, les feuilles Excel et les outils disperses par une solution 100% logicielle de pointage intelligent, de suivi de missions et de gestion operationnelle des equipes.
+**Zero Up** est une plateforme SaaS de gestion des ressources humaines qui remplace les badgeuses physiques, les feuilles Excel et les outils disperses par une solution 100% logicielle de pointage intelligent, de suivi de missions et de gestion operationnelle des equipes.
 
 ## Le constat
 
@@ -10,7 +10,7 @@ En Afrique de l'Ouest et dans les marches emergents, **80% des PME** gerent enco
 
 ## Notre solution
 
-PointelRH digitalise entierement le cycle RH operationnel :
+Zero Up digitalise entierement le cycle RH operationnel :
 - **Pointage multi-mode** : QR Code, Code PIN, Reconnaissance Faciale — sans aucun materiel dedie
 - **Suivi en temps reel** : dashboard, alertes, geofencing GPS
 - **Gestion operationnelle** : missions terrain, taches quotidiennes, conges, plannings
@@ -39,4 +39,4 @@ Abonnement mensuel par entreprise avec tarification par tranche d'employes. Mode
 
 ## Avantage concurrentiel
 
-Alors que les solutions existantes (badgeuses, Jibble, Skello) necessitent soit du materiel couteux soit ne sont pas adaptees au contexte africain, PointelRH est **nativement concu pour fonctionner avec un simple smartphone**, avec une architecture moderne qui permet de scaler sans limite.
+Alors que les solutions existantes (badgeuses, Jibble, Skello) necessitent soit du materiel couteux soit ne sont pas adaptees au contexte africain, Zero Up est **nativement concu pour fonctionner avec un simple smartphone**, avec une architecture moderne qui permet de scaler sans limite.

@@ -61,7 +61,7 @@ export function RealTimeFeed({ attendances, loading }: RealTimeFeedProps) {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
                     className={cn(
-                      "grid grid-cols-4 items-center px-4 py-4 rounded-xl transition-all duration-200 hover:scale-[1.01]",
+                      "grid grid-cols-4 items-center px-4 py-4 rounded-xl transition-all duration-200",
                       idx % 2 === 0 ? "bg-surface" : "bg-surface-container-low"
                     )}
                   >

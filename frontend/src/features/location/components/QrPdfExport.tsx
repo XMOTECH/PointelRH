@@ -31,7 +31,7 @@ export async function exportQrPdf(site: Site, qrSvgElement: SVGSVGElement) {
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(22);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('PointelRH', pageWidth / 2, 18, { align: 'center' });
+  pdf.text('LuminaRH', pageWidth / 2, 18, { align: 'center' });
   pdf.setFontSize(11);
   pdf.setFont('helvetica', 'normal');
   pdf.text('Terminal QR - Point de Pointage', pageWidth / 2, 30, { align: 'center' });

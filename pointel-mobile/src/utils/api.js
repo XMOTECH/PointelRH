@@ -14,7 +14,7 @@ let API_BASE_URL = '';
  * host on port 8000 where Kong listens.
  */
 const getDefaultBaseURL = () => {
-  if (!__DEV__) return 'https://api.pointel.com/api';
+  if (!__DEV__) return 'https://api.luminarh.com/api';
 
   let host = null;
 

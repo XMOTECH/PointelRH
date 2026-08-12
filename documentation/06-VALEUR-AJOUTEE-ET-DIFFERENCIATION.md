@@ -2,7 +2,7 @@
 
 ## Proposition de valeur
 
-> **PointelRH permet a toute entreprise de savoir exactement qui est present, ou, et ce qu'il fait — en temps reel, sans aucun investissement materiel.**
+> **Zero Up permet a toute entreprise de savoir exactement qui est present, ou, et ce qu'il fait — en temps reel, sans aucun investissement materiel.**
 
 ---
 
@@ -14,7 +14,7 @@
 Les badgeuses biometriques coutent 500 a 2000 EUR par unite, necessitent une installation technique, une maintenance reguliere, et ne fonctionnent que sur un point fixe.
 
 **Notre approche :**
-PointelRH transforme n'importe quel smartphone ou tablette en terminal de pointage intelligent. Un appareil a 50 EUR fait tourner les 3 modes de pointage (QR, PIN, Face ID).
+Zero Up transforme n'importe quel smartphone ou tablette en terminal de pointage intelligent. Un appareil a 50 EUR fait tourner les 3 modes de pointage (QR, PIN, Face ID).
 
 **Impact client :** Economie de 80 a 95% sur le cout initial d'equipement.
 
@@ -26,7 +26,7 @@ PointelRH transforme n'importe quel smartphone ou tablette en terminal de pointa
 La reconnaissance faciale est reservee aux grandes entreprises avec des cameras dediees ou des abonnements cloud couteux (AWS Rekognition, Azure Face).
 
 **Notre approche :**
-PointelRH utilise face-api.js avec des modeles qui tournent **directement dans le navigateur**. Pas de cloud IA externe, pas de cout par scan, pas de dependance a un fournisseur. La camera du telephone suffit.
+Zero Up utilise face-api.js avec des modeles qui tournent **directement dans le navigateur**. Pas de cloud IA externe, pas de cout par scan, pas de dependance a un fournisseur. La camera du telephone suffit.
 
 **Impact client :** Pointage biometrique pour le prix d'un abonnement SaaS standard.
 
@@ -52,7 +52,7 @@ Chaque site est delimite par un perimetre GPS. Le systeme verifie automatiquemen
 - Les badgeuses = uniquement du pointage, rien d'autre
 
 **Notre approche :**
-PointelRH integre dans une seule plateforme :
+Zero Up integre dans une seule plateforme :
 - Pointage multi-mode
 - Missions terrain
 - Taches quotidiennes avec chrono
@@ -83,7 +83,7 @@ RabbitMQ propage les evenements instantanement entre les services. Quand un empl
 Beaucoup de solutions locales deploient une instance par client (installation sur site), ce qui est couteux et non scalable.
 
 **Notre approche :**
-PointelRH est nativement multi-tenant. Un seul deploiement sert des dizaines d'entreprises avec isolation totale des donnees (filtrage par company_id a tous les niveaux). Le super-admin onboarde un nouveau client en 2 minutes.
+Zero Up est nativement multi-tenant. Un seul deploiement sert des dizaines d'entreprises avec isolation totale des donnees (filtrage par company_id a tous les niveaux). Le super-admin onboarde un nouveau client en 2 minutes.
 
 **Impact client :** Pour nous = marges scalables. Pour le client = pas d'installation, mise en service immediate.
 
@@ -107,7 +107,7 @@ PointelRH est nativement multi-tenant. Un seul deploiement sert des dizaines d'e
 
 ## Matrice concurrentielle
 
-| Critere | PointelRH | Badgeuses physiques | Jibble | Skello | BambooHR |
+| Critere | Zero Up | Badgeuses physiques | Jibble | Skello | BambooHR |
 |---------|-----------|-------------------|--------|--------|----------|
 | Pointage QR Code | Oui | Non | Oui | Non | Non |
 | Pointage PIN/Kiosque | Oui | Oui | Non | Non | Non |

@@ -320,7 +320,7 @@ export const MissionTrackingPage: React.FC = () => {
   const checkedInCount = employeeIds.filter((eid: string) => attendanceMap.has(eid)).length;
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 w-full">
       {/* Header */}
       <div className="flex flex-col gap-4">
         <button

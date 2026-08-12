@@ -45,12 +45,9 @@ export const ScheduleListPage: React.FC = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase italic">
+          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase">
             Plannings
           </h1>
-          <p className="text-on-surface-variant mt-1 font-medium">
-            Définissez les horaires de travail et les seuils de tolérance.
-          </p>
         </div>
         <Button className="btn-primary" onClick={() => setIsFormOpen(true)}>
           <Plus size={20} />
@@ -61,10 +58,10 @@ export const ScheduleListPage: React.FC = () => {
       {/* Grid view for schedules (more visual than table) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {schedules?.map((schedule: any) => (
-          <Card key={schedule.id} className="premium-card p-6 flex flex-col gap-5 relative overflow-hidden group">
+          <Card key={schedule.id} className="bg-surface-container-lowest border border-on-surface/15 rounded-2xl p-6 shadow-none flex flex-col gap-5 relative overflow-hidden">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-primary/10 text-primary rounded-xl">
                   <CalendarRange size={24} />
                 </div>
                 <div>

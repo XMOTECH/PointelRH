@@ -9,6 +9,7 @@ import { useClockOut } from '../clockin/hooks/useClockOut';
 import { useFaceDetection } from '../clockin/hooks/useFaceDetection';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
+import { LuminaLogo } from '../../components/ui/LuminaLogo';
 
 type KioskAction = 'checkin' | 'checkout';
 type KioskMode = 'pin' | 'face';
@@ -190,24 +191,19 @@ export default function KioskPage() {
   const isCheckout = action === 'checkout';
 
   return (
-    <div className="relative flex h-screen w-full flex-col bg-surface font-inter text-on-surface overflow-hidden">
+    <div className="relative min-h-screen lg:h-screen w-full flex flex-col bg-surface font-inter text-on-surface overflow-y-auto lg:overflow-hidden">
       {/* Header */}
-      <header className="flex w-full items-center justify-between px-12 py-8 bg-surface">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold tracking-tighter text-on-surface uppercase font-space">
-            Pointel<span className="text-primary">RH</span>
-          </h1>
-          <p className="text-[10px] font-bold tracking-[0.3em] text-on-surface-variant uppercase">
-            Operational Precision
-          </p>
+      <header className="flex w-full items-center justify-between px-6 py-4 md:px-10 md:py-5 lg:px-12 lg:py-6 bg-surface shrink-0">
+        <div className="flex items-center">
+          <LuminaLogo variant="horizontal" size="lg" showTagline={true} />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           {/* Mode Toggle */}
           <div className="flex items-center rounded-full bg-surface-container-low p-1 gap-1">
             <button
               onClick={() => { setMode('pin'); setPin(''); }}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
+                "flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
                 mode === 'pin'
                   ? "bg-primary text-white shadow-sm"
                   : "text-on-surface-variant hover:text-on-surface"
@@ -219,7 +215,7 @@ export default function KioskPage() {
             <button
               onClick={() => setMode('face')}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
+                "flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
                 mode === 'face'
                   ? "bg-primary text-white shadow-sm"
                   : "text-on-surface-variant hover:text-on-surface"
@@ -229,38 +225,27 @@ export default function KioskPage() {
               Visage
             </button>
           </div>
-
-          <div className="flex items-center space-x-3 px-4 py-2 rounded-full bg-surface-container-lowest shadow-ambient">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">Kiosk Actif</span>
-          </div>
         </div>
       </header>
 
-      <main className="flex flex-1 items-center justify-center p-12">
-        <div className="flex w-full max-w-6xl items-center justify-between gap-24">
+      <main className="flex flex-1 items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 min-h-0 overflow-y-auto lg:overflow-hidden">
+        <div className="flex flex-col lg:flex-row w-full max-w-6xl items-center justify-between gap-8 md:gap-12 lg:gap-16 xl:gap-24 my-auto">
 
           {/* Clock Section */}
-          <div className="flex flex-col space-y-4 flex-1">
+          <div className="flex flex-col space-y-2 sm:space-y-3 lg:space-y-4 flex-1 text-center lg:text-left items-center lg:items-start">
             <h2 className={cn(
               "text-xs font-bold tracking-[0.4em] uppercase",
               isCheckout ? "text-orange-500" : "text-primary"
             )}>
-              {isCheckout ? 'Pointage de Sortie' : 'The Digital Atelier'}
+              {isCheckout ? 'Pointage de Sortie' : 'Pointage d\'Entrée'}
             </h2>
-            <div className="text-[12rem] font-medium leading-[0.8] tracking-tighter text-on-surface font-space">
+            <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[11rem] font-medium leading-[0.85] tracking-tighter text-on-surface font-space">
               {format(currentTime, 'HH:mm')}
             </div>
-            <div className="text-3xl font-light text-on-surface-variant tracking-tight pl-2">
+            <div className="text-xl sm:text-2xl md:text-3xl font-light text-on-surface-variant tracking-tight pl-0 lg:pl-2 capitalize">
               {format(currentTime, "EEEE d MMMM yyyy", { locale: fr })}
             </div>
 
-            <div className="mt-12 flex items-center space-x-4 opacity-40">
-               <div className="h-[1px] w-12 bg-on-surface-variant" />
-               <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-on-surface-variant italic">
-                 Synchronisé en temps réel
-               </span>
-            </div>
           </div>
 
           {/* Interaction Module */}
@@ -347,25 +332,22 @@ interface PinModuleProps {
 
 function PinModule({ pin, isCheckout, isPending, isSuccess, clockInError, clockOutError, onKeyPress, onDelete, onCancel }: PinModuleProps) {
   return (
-    <div className={cn(
-      "flex flex-col items-center rounded-[3rem] p-16 shadow-ambient w-[420px] transition-all duration-500",
-      isCheckout ? "bg-orange-50" : "bg-surface-container-low"
-    )}>
+    <div className="flex flex-col items-center p-2 sm:p-4 w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[420px] transition-all duration-500 shrink-0">
       <p className={cn(
-        "mb-10 text-[10px] font-bold tracking-[0.3em] uppercase",
+        "mb-4 md:mb-6 text-[10px] font-bold tracking-[0.3em] uppercase",
         isCheckout ? "text-orange-600" : "text-on-surface-variant"
       )}>
         {isCheckout ? 'PIN pour la sortie' : 'Saisissez votre PIN'}
       </p>
 
       {isCheckout && (
-        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-          <LogOut className="h-6 w-6 text-orange-600" />
+        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
+          <LogOut className="h-5 w-5 text-orange-600" />
         </div>
       )}
 
       {/* PIN Indicators */}
-      <div className="mb-14 flex space-x-5">
+      <div className="mb-5 md:mb-8 flex space-x-4 sm:space-x-5">
         {[0, 1, 2, 3].map((index) => {
           const isFilled = index < pin.length;
           return (
@@ -391,7 +373,7 @@ function PinModule({ pin, isCheckout, isPending, isSuccess, clockInError, clockO
       />
 
       <div className="h-8 mt-8 flex items-center justify-center w-full">
-        {clockInError && !isCheckout && (clockInError as any)?.response?.status !== 409 && (
+        {clockInError && !isCheckout && (clockInError as { response?: { status?: number } })?.response?.status !== 409 && (
           <p className="text-[10px] font-bold tracking-widest text-red-500 uppercase animate-bounce">
             PIN incorrect. réessayez.
           </p>
@@ -541,19 +523,16 @@ function FaceModule({ isCheckout, isPending, onFaceDetected, clockInError, clock
     return () => { running = false; };
   }, [cameraReady, modelsLoaded, detectFace, isPending, onFaceDetected]);
 
-  const errorMsg = clockInError && (clockInError as any)?.response?.status !== 409
+  const errorMsg = clockInError && (clockInError as { response?: { status?: number } })?.response?.status !== 409
     ? 'Visage non reconnu'
     : clockOutError
       ? 'Erreur lors de la sortie'
       : null;
 
   return (
-    <div className={cn(
-      "flex flex-col items-center rounded-[3rem] p-12 shadow-ambient w-[420px] transition-all duration-500",
-      isCheckout ? "bg-orange-50" : "bg-surface-container-low"
-    )}>
+    <div className="flex flex-col items-center p-2 sm:p-4 w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[420px] transition-all duration-500 shrink-0">
       <p className={cn(
-        "mb-6 text-[10px] font-bold tracking-[0.3em] uppercase",
+        "mb-4 md:mb-6 text-[10px] font-bold tracking-[0.3em] uppercase",
         isCheckout ? "text-orange-600" : "text-on-surface-variant"
       )}>
         {isCheckout ? 'Reconnaissance pour sortie' : 'Regardez la caméra'}

@@ -50,4 +50,4 @@ La gestion de la presence et du suivi operationnel des employes reste un point d
 
 > "Les entreprises paient des gens qui ne sont pas la, ne savent pas ce que font ceux qui sont la, et passent des jours a compiler des rapports que personne ne lit a temps."
 
-PointelRH resout chacun de ces problemes.
+Zero Up resout chacun de ces problemes.

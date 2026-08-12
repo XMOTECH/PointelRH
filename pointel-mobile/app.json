@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "pointel-mobile",
-    "slug": "pointel-mobile",
-    "scheme": "pointelrh",
+    "name": "luminarh-mobile",
+    "slug": "luminarh-mobile",
+    "scheme": "luminarh",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,8 +15,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Pointel a besoin de la caméra pour scanner les QR codes de pointage.",
-        "NSLocationWhenInUseUsageDescription": "Pointel utilise votre position pour valider le pointage sur site."
+        "NSCameraUsageDescription": "LuminaRH a besoin de la caméra pour scanner les QR codes de pointage.",
+        "NSLocationWhenInUseUsageDescription": "LuminaRH utilise votre position pour valider le pointage sur site."
       }
     },
     "android": {
@@ -40,13 +40,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Pointel a besoin de la caméra pour scanner les QR codes."
+          "cameraPermission": "LuminaRH a besoin de la caméra pour scanner les QR codes."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Pointel utilise votre position pour valider le pointage."
+          "locationWhenInUsePermission": "LuminaRH utilise votre position pour valider le pointage."
         }
       ],
       "expo-secure-store"

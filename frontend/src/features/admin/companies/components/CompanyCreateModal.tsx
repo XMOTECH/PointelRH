@@ -57,7 +57,7 @@ export function CompanyCreateModal({ open, onClose, onSubmit, isLoading }: Compa
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
               <Building2 size={18} strokeWidth={2.5} />
             </div>
-            <h3 className="font-display font-black text-sm uppercase tracking-[0.2em] text-on-surface/60 italic">Configuration Organisation</h3>
+            <h3 className="font-display font-black text-sm uppercase tracking-[0.2em] text-on-surface/60">Configuration Organisation</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-surface-container-low/50 rounded-3xl border border-outline-variant/30">
@@ -70,7 +70,7 @@ export function CompanyCreateModal({ open, onClose, onSubmit, isLoading }: Compa
                   name="company_name"
                   value={formData.company_name}
                   onChange={handleChange}
-                  placeholder="EX: POINTEL SOLUTIONS S.A."
+                  placeholder="EX: LUMINA RH S.A."
                   className="pl-12 h-14 bg-surface-container-lowest border-outline-variant/50 focus:border-primary/50 text-xs font-bold uppercase tracking-tight"
                   required
                 />
@@ -109,7 +109,7 @@ export function CompanyCreateModal({ open, onClose, onSubmit, isLoading }: Compa
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20">
               <ShieldCheck size={18} strokeWidth={2.5} />
             </div>
-            <h3 className="font-display font-black text-sm uppercase tracking-[0.2em] text-on-surface/60 italic">Identité Administrateur</h3>
+            <h3 className="font-display font-black text-sm uppercase tracking-[0.2em] text-on-surface/60">Identité Administrateur</h3>
           </div>
 
           <div className="space-y-6 p-6 bg-surface-container-low/50 rounded-3xl border border-outline-variant/30">

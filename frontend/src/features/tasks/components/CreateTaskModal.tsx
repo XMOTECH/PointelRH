@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { X, ListTodo, User, Calendar, Clock, Flame, ArrowRight, ChevronDown, Briefcase } from 'lucide-react';
@@ -12,6 +12,14 @@ interface Props {
 }
 
 export function CreateTaskModal({ open, onClose }: Props) {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
   const queryClient = useQueryClient();
   const [form, setForm] = useState<CreateTaskDTO & { assigned_to: string }>({
     title: '',
@@ -106,10 +114,11 @@ export function CreateTaskModal({ open, onClose }: Props) {
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             {/* Title */}
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
+              <label htmlFor="task-title" className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
                 Titre *
               </label>
               <input
+                id="task-title"
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 placeholder="Ex: Preparer le rapport mensuel"
@@ -120,10 +129,11 @@ export function CreateTaskModal({ open, onClose }: Props) {
 
             {/* Description */}
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
+              <label htmlFor="task-desc" className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
                 Description
               </label>
               <textarea
+                id="task-desc"
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Details supplementaires..."
@@ -134,18 +144,19 @@ export function CreateTaskModal({ open, onClose }: Props) {
 
             {/* Mission (optional) */}
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
+              <label htmlFor="task-mission" className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
                 Mission (optionnel)
               </label>
               <div className="relative mt-1.5">
                 <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50" />
                 <select
+                  id="task-mission"
                   value={form.mission_id || ''}
                   onChange={e => setForm(f => ({ ...f, mission_id: e.target.value }))}
                   className="w-full h-10 pl-9 pr-4 text-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none"
                 >
                   <option value="">Aucune mission</option>
-                  {(missions || []).map((m: any) => (
+                  {(missions || []).map((m: { id: string; title: string; location: string | null }) => (
                     <option key={m.id} value={m.id}>
                       {m.title}{m.location ? ` - ${m.location}` : ''}
                     </option>
@@ -156,18 +167,19 @@ export function CreateTaskModal({ open, onClose }: Props) {
 
             {/* Assigned To */}
             <div>
-              <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
+              <label htmlFor="task-assignee" className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
                 Assigner a *
               </label>
               <div className="relative mt-1.5">
                 <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50" />
                 <select
+                  id="task-assignee"
                   value={form.assigned_to}
                   onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
                   className="w-full h-10 pl-9 pr-4 text-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none"
                 >
                   <option value="">Selectionner un employe</option>
-                  {(employees || []).map((emp: any) => (
+                  {(employees || []).map((emp: { id: string; first_name: string; last_name: string }) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.first_name} {emp.last_name}
                     </option>
@@ -189,7 +201,7 @@ export function CreateTaskModal({ open, onClose }: Props) {
                     <button
                       key={p.value}
                       type="button"
-                      onClick={() => setForm(f => ({ ...f, priority: p.value as any }))}
+                      onClick={() => setForm(f => ({ ...f, priority: p.value as CreateTaskDTO['priority'] }))}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
                         isActive ? p.color : 'border-outline-variant text-on-surface-variant hover:bg-surface-container'
                       }`}
@@ -205,12 +217,13 @@ export function CreateTaskModal({ open, onClose }: Props) {
             {/* Due date + Estimated time row */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
+                <label htmlFor="task-due-date" className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
                   Echeance
                 </label>
                 <div className="relative mt-1.5">
                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50" />
                   <input
+                    id="task-due-date"
                     type="date"
                     value={form.due_date || ''}
                     onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
@@ -219,12 +232,13 @@ export function CreateTaskModal({ open, onClose }: Props) {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
+                <label htmlFor="task-estimate" className="text-xs font-black uppercase tracking-widest text-on-surface-variant/70 ml-1">
                   Temps estime (min)
                 </label>
                 <div className="relative mt-1.5">
                   <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50" />
                   <input
+                    id="task-estimate"
                     type="number"
                     min={1}
                     value={form.estimated_minutes || ''}

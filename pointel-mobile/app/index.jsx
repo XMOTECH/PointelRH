@@ -39,7 +39,7 @@ export default function Index() {
   if (!isReady) {
     return (
       <View style={styles.container}>
-        <Text style={styles.brand}>Pointel<Text style={styles.accent}>RH</Text></Text>
+        <Text style={styles.brand}>Zero<Text style={styles.accent}>Up</Text></Text>
         <ActivityIndicator size="large" color={Colors.primary_vibrant} style={{ marginTop: 24 }} />
       </View>
     );

@@ -211,7 +211,7 @@ export default function ProfileScreen() {
             style={styles.logoutBtn}
             icon={<Ionicons name="log-out-outline" size={20} color={Colors.primary} />}
           />
-          <Text style={styles.version}>Pointel Go v2.5.0</Text>
+          <Text style={styles.version}>LuminaRH Mobile v2.5.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

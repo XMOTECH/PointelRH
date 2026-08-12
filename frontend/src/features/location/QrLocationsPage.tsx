@@ -218,7 +218,7 @@ export function QrLocationsPage() {
                 <div className="bg-white p-4 rounded-2xl border border-on-surface/5 mb-4">
                   <QRCodeSVG
                     ref={qrRef}
-                    value={activeSite.qr_token || `pointelrh://site/${activeSite.id}`}
+                    value={activeSite.qr_token || `luminarh://site/${activeSite.id}`}
                     size={140}
                     level="H"
                   />

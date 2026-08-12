@@ -103,12 +103,9 @@ export function EmployeeListPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase italic">
-            Annuaire des Employés
+          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase">
+            Employés
           </h1>
-          <p className="text-on-surface-variant mt-1 font-medium">
-            Gérez votre capital humain et les accès utilisateurs.
-          </p>
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">

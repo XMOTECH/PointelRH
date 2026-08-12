@@ -1,7 +1,6 @@
 import { useDashboard, useAttendancesToday, usePresenceTrend } from './hooks/useDashboard';
 import { useDashboardSirh } from './hooks/useDashboardSirh';
 import { ExecutiveKpiCards } from './components/ExecutiveKpiCards';
-import { QuickStats } from './components/QuickStats';
 import { AttendanceChart } from './components/AttendanceChart';
 import { WorkforceSplit } from './components/WorkforceSplit';
 import { PendingActions } from './components/PendingActions';
@@ -21,15 +20,17 @@ export default function DashboardPage() {
 
   const sirh = useDashboardSirh();
 
-  const dashboardData = rawDashboardData || {};
+  const dashboardData = (rawDashboardData && typeof rawDashboardData === 'object' ? rawDashboardData : {}) as { totals?: Record<string, number> };
   const todayAttendances = Array.isArray(rawAttendances) ? rawAttendances : [];
   const presenceTrend = Array.isArray(rawPresenceTrend)
     ? rawPresenceTrend
-    : (rawPresenceTrend as any)?.data || [];
+    : (rawPresenceTrend && typeof rawPresenceTrend === 'object' && 'data' in rawPresenceTrend && Array.isArray((rawPresenceTrend as { data: unknown[] }).data))
+      ? (rawPresenceTrend as { data: unknown[] }).data
+      : [];
 
-  const totals = (dashboardData as { totals?: Record<string, number> })?.totals || {};
+  const totals = dashboardData.totals || {};
   const presentCount = todayAttendances.length;
-  const totalEmployees = totals?.total_employees ?? 0;
+  const totalEmployees = totals.total_employees ?? 0;
   const attendanceRate = totalEmployees > 0 ? Math.round((presentCount / totalEmployees) * 100) : 0;
   const lateCount = todayAttendances.filter((a: { status?: string }) =>
     String(a.status || '').toLowerCase() === 'late'
@@ -42,14 +43,6 @@ export default function DashboardPage() {
     total_late: lateCount,
   };
 
-  const periodLabel = period === 'day'
-    ? (selectedDate === new Date().toISOString().split('T')[0]
-      ? "Activité d'aujourd'hui"
-      : `Activité du ${new Date(selectedDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`)
-    : period === 'week'
-      ? `Activité de la semaine du ${new Date(selectedDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
-      : `Activité du mois de ${new Date(selectedDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -57,64 +50,52 @@ export default function DashboardPage() {
       transition={{ duration: 0.4 }}
       className="flex flex-col gap-6"
     >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-on-surface">Tableau de Bord</h1>
-          <p className="text-sm text-on-surface-variant/60 mt-0.5">{periodLabel}</p>
+      {/* Header Controls Bar */}
+      <div className="flex justify-end items-center gap-3">
+        <div className="flex bg-surface-container-low p-1 rounded-xl border border-on-surface/10">
+          {(['day', 'week', 'month'] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                period === p
+                  ? 'bg-primary text-on-primary shadow-sm'
+                  : 'text-on-surface-variant/60 hover:text-on-surface'
+              }`}
+            >
+              {p === 'day' ? 'Jour' : p === 'week' ? 'Semaine' : 'Mois'}
+            </button>
+          ))}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex bg-surface-container-low p-1 rounded-lg border border-outline-variant/20">
-            {(['day', 'week', 'month'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  period === p
-                    ? 'bg-primary text-on-primary shadow-sm'
-                    : 'text-on-surface-variant/60 hover:text-on-surface'
-                }`}
-              >
-                {p === 'day' ? 'Jour' : p === 'week' ? 'Semaine' : 'Mois'}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 bg-surface-container-low px-3 py-2 rounded-lg border border-outline-variant/20">
-            <Calendar className="text-primary" size={16} />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              className="bg-transparent border-none text-on-surface font-medium text-sm focus:ring-0 outline-none cursor-pointer"
-            />
-          </div>
+        <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-xl border border-on-surface/10">
+          <Calendar className="text-primary" size={16} />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            className="bg-transparent border-none text-on-surface font-semibold text-xs focus:ring-0 outline-none cursor-pointer uppercase tracking-wider"
+          />
         </div>
       </div>
 
-      {/* KPI Cards (6) */}
+      {/* KPI Cards (4 Essentiels) */}
       <ExecutiveKpiCards
         totals={enrichedTotals}
-        pendingLeavesCount={sirh.pendingLeavesCount}
-        overdueTasksCount={sirh.overdueTasksCount}
         loading={dashboardLoading || attendancesLoading}
-        sirhLoading={sirh.loading}
       />
 
-      {/* Quick Stats Bar */}
-      <QuickStats
-        activeMissionsCount={sirh.activeMissionsCount}
-        onLeaveTodayCount={sirh.onLeaveTodayCount}
-        unreadNotificationsCount={sirh.unreadNotificationsCount}
-        loading={sirh.loading}
-      />
 
-      {/* Charts Row */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        <AttendanceChart data={presenceTrend} loading={trendLoading} />
-        <WorkforceSplit />
+
+      {/* Charts Row (Parallel 4-Column Grid Alignment) */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 items-stretch">
+        <div className="lg:col-span-3 flex flex-col">
+          <AttendanceChart data={presenceTrend} loading={trendLoading} />
+        </div>
+        <div className="lg:col-span-1 flex flex-col">
+          <WorkforceSplit />
+        </div>
       </div>
 
       {/* Pending Actions (Tabs: Anomalies | Congés | Tâches) */}

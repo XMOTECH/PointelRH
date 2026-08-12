@@ -34,7 +34,7 @@ export function RecentAttendanceFailures({ attendances, loading }: RecentAttenda
   };
 
   return (
-    <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-6">
+    <div className="bg-surface-container-lowest rounded-2xl border border-on-surface/15 p-6 shadow-none">
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-lg font-display font-bold text-on-surface">Anomalies de Pointage</h3>

@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { X, User, Building2, Calendar, QrCode, ScanFace, KeyRound, Mail, Loader2 } from 'lucide-react';
+import { X, User, Building2, Calendar, QrCode, ScanFace, KeyRound, Mail, Loader2, FileText, Printer } from 'lucide-react';
 import type { Employee } from '../types';
 import { Badge } from '../../../components/ui/Badge';
 import { FaceEnrollmentModal } from './FaceEnrollmentModal';
 import { useFaceEnrollmentStatus } from '../hooks/useFaceEnrollment';
 import { useGeneratePin } from '../hooks/useGeneratePin';
+import api from '../../../lib/axios';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -206,6 +208,61 @@ export function EmployeeDetailModal({ open, onClose, employee }: Props) {
               <ScanFace size={16} />
               {faceStatus?.enrolled ? 'Gérer le visage' : 'Enregistrer le visage'}
             </button>
+          </div>
+
+          {/* Documents Administratifs */}
+          <hr className="border-on-surface/5" />
+          <div className={sectionClass}>
+            <div className="flex items-center gap-2 text-primary mb-1">
+              <FileText size={14} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Documents de Sortie (Sénégal)</span>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await api.get(`/api/employees/${employee.id}/documents/work-certificate`, {
+                      responseType: 'text',
+                    });
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(response.data);
+                      printWindow.document.close();
+                    } else {
+                      toast.error("Veuillez autoriser les fenêtres surgissantes pour imprimer.");
+                    }
+                  } catch (err) {
+                    toast.error("Erreur lors de la génération du certificat.");
+                  }
+                }}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-on-surface/10 bg-surface-container-low text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
+              >
+                <Printer size={13} />
+                Certificat de Travail
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await api.get(`/api/employees/${employee.id}/documents/solde-de-tout-compte`, {
+                      responseType: 'text',
+                    });
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(response.data);
+                      printWindow.document.close();
+                    } else {
+                      toast.error("Veuillez autoriser les fenêtres surgissantes pour imprimer.");
+                    }
+                  } catch (err) {
+                    toast.error("Erreur lors de la génération du solde de tout compte.");
+                  }
+                }}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-on-surface/10 bg-surface-container-low text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
+              >
+                <Printer size={13} />
+                Reçu STC
+              </button>
+            </div>
           </div>
 
           {/* Close button */}

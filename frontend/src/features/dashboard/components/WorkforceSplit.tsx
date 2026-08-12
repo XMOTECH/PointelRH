@@ -21,11 +21,11 @@ export function WorkforceSplit() {
   const total = departments.reduce((acc, curr) => acc + curr.value, 0);
 
   return (
-    <div className="w-full lg:w-[380px] bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-6">
+    <div className="w-full h-full bg-surface-container-lowest rounded-2xl border border-on-surface/15 p-6 shadow-none flex flex-col justify-between">
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-lg font-display font-bold text-on-surface">Répartition par Département</h3>
-        <p className="text-[11px] font-medium text-on-surface-variant/50 uppercase tracking-widest mt-1">
+        <h3 className="text-lg font-bold text-on-surface uppercase tracking-tight">Répartition par Département</h3>
+        <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-[0.2em] mt-1">
           Distribution des effectifs par service
         </p>
       </div>

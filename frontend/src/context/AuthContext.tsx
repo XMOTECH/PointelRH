@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Restaurer la session au chargement (une seule fois)
   useEffect(() => {
     const restoreSession = async () => {
-      const token = sessionStorage.getItem('access_token');
+      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
       if (token) {
         try {
           // Vérifier le token auprès de l'API
@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userData);
         } catch {
           sessionStorage.clear();
+          localStorage.clear();
         }
       }
       setLoading(false);
@@ -46,8 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     sessionStorage.setItem('access_token', responseData.access_token);
+    localStorage.setItem('access_token', responseData.access_token);
     if (responseData.refresh_token) {
       sessionStorage.setItem('refresh_token', responseData.refresh_token);
+      localStorage.setItem('refresh_token', responseData.refresh_token);
     }
     
     setUser(responseData.user);
@@ -63,8 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     sessionStorage.setItem('access_token', responseData.access_token);
+    localStorage.setItem('access_token', responseData.access_token);
     if (responseData.refresh_token) {
       sessionStorage.setItem('refresh_token', responseData.refresh_token);
+      localStorage.setItem('refresh_token', responseData.refresh_token);
     }
 
     setUser(responseData.user);

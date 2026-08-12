@@ -63,7 +63,7 @@ export function CompanyTable({ companies, isLoading }: CompanyTableProps) {
           <Building2 size={48} strokeWidth={1} />
         </div>
         <div className="space-y-3">
-          <h3 className="text-3xl font-display font-black text-on-surface uppercase tracking-tight italic leading-none">Plateforme Vierge</h3>
+          <h3 className="text-3xl font-display font-black text-on-surface uppercase tracking-tight leading-none">Plateforme Vierge</h3>
           <p className="text-on-surface-variant max-w-xs font-medium leading-relaxed opacity-70 italic text-sm">
             Aucune organisation n'a été déployée pour le moment. Initialisez une instance pour commencer.
           </p>
@@ -77,23 +77,21 @@ export function CompanyTable({ companies, isLoading }: CompanyTableProps) {
     <div className="premium-card overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="bg-surface-container-low/50 border-none">
-            <TableHead className="font-black text-on-surface-variant text-[10px] uppercase tracking-[0.2em] py-6 pl-8">Organisation</TableHead>
-            <TableHead className="font-black text-on-surface-variant text-[10px] uppercase tracking-[0.2em]">Offre Active</TableHead>
-            <TableHead className="font-black text-on-surface-variant text-[10px] uppercase tracking-[0.2em] text-center">Effectif</TableHead>
-            <TableHead className="font-black text-on-surface-variant text-[10px] uppercase tracking-[0.2em]">Disponibilité</TableHead>
-            <TableHead className="font-black text-on-surface-variant text-[10px] uppercase tracking-[0.2em]">Enregistrement</TableHead>
-            <TableHead className="font-black text-on-surface-variant text-[10px] uppercase tracking-[0.2em] text-right pr-8">Actions</TableHead>
+          <TableRow className="bg-surface-container-low/30 border-b border-on-surface/10">
+            <TableHead className="font-bold text-on-surface-variant/70 text-[10px] uppercase tracking-[0.15em] py-4 pl-8">Organisation ↕</TableHead>
+            <TableHead className="font-bold text-on-surface-variant/70 text-[10px] uppercase tracking-[0.15em] py-4">Offre Active ↕</TableHead>
+            <TableHead className="font-bold text-on-surface-variant/70 text-[10px] uppercase tracking-[0.15em] py-4 text-center">Effectif ↕</TableHead>
+            <TableHead className="font-bold text-on-surface-variant/70 text-[10px] uppercase tracking-[0.15em] py-4">Disponibilité ↕</TableHead>
+            <TableHead className="font-bold text-on-surface-variant/70 text-[10px] uppercase tracking-[0.15em] py-4">Enregistrement ↕</TableHead>
+            <TableHead className="font-bold text-on-surface-variant/70 text-[10px] uppercase tracking-[0.15em] py-4 text-right pr-8">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {companies.map((company) => (
             <TableRow key={company.id} className="group transition-all hover:bg-surface-container-low/40 border-b border-outline-variant/10 last:border-none">
               <TableCell className="py-6 pl-8 border-none">
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 rounded-2xl bg-surface-container shadow-sm flex items-center justify-center text-on-surface-variant/40 group-hover:text-primary group-hover:shadow-md group-hover:shadow-primary/10 transition-all duration-500 border border-outline-variant/30">
-                    <Building2 size={28} strokeWidth={1.5} />
-                  </div>
+                <div className="flex items-center gap-3">
+                  <Building2 size={24} className="text-primary shrink-0" />
                   <div>
                     <div className="font-display font-black text-on-surface tracking-tight text-xl leading-none uppercase italic group-hover:text-primary transition-colors duration-300">
                       {company.name}

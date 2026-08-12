@@ -52,11 +52,11 @@ export function NotificationsPage() {
   if (isLoading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase italic">
+          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase">
             Notifications
           </h1>
           <p className="text-on-surface-variant mt-1 font-medium text-sm">

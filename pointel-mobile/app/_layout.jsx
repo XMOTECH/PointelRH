@@ -34,8 +34,8 @@ export default function RootLayout() {
   if (!fontsLoaded || !apiReady) {
     return (
       <View style={styles.splash}>
-        <Text style={styles.splashBrand}>Pointel</Text>
-        <Text style={styles.splashSuffix}>RH</Text>
+        <Text style={styles.splashBrand}>Zero</Text>
+        <Text style={styles.splashSuffix}>Up</Text>
         <ActivityIndicator size="small" color={Colors.primary_vibrant} style={{ marginTop: 32 }} />
       </View>
     );

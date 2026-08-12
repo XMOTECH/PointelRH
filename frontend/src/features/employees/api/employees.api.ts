@@ -2,7 +2,7 @@ import api from '../../../lib/axios';
 import type { Employee, CreateEmployeePayload, UpdateEmployeePayload } from '../types';
 
 export const employeesApi = {
-  getEmployees: (params?: any) =>
+  getEmployees: (params?: Record<string, unknown>) =>
     api.get('/api/employees', { params }).then(res => {
       const d = res.data.data || res.data;
       return Array.isArray(d) ? d : (d.data || []);

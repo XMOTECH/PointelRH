@@ -25,7 +25,7 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
     }
   }, [user, loading, roles, navigate]);
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>Chargement...</div>;
+  if (loading) return <div role="status" aria-live="polite" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>Chargement...</div>;
 
   if (!user || (roles && !roles.includes(user.role))) {
     return null; // Les navigations sont gérées par useEffect

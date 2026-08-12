@@ -8,7 +8,7 @@ export const api = axios.create({
 
 // Interceptor requete — injecter le JWT automatiquement
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = sessionStorage.getItem('access_token');
+  const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`; // No line breaks before Bearer
   }
@@ -28,18 +28,33 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       originalRequest._retry = true;
       try {
+        const refreshToken = sessionStorage.getItem('refresh_token') || localStorage.getItem('refresh_token');
+        if (!refreshToken) {
+          throw new Error('Aucun refresh token disponible');
+        }
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`,
-          {},
-          { withCredentials: true } // refresh token dans httpOnly cookie
+          { refresh_token: refreshToken }
         );
-        sessionStorage.setItem('access_token', data.access_token);
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
+        const newAccessToken = data?.data?.access_token || data?.access_token;
+        const newRefreshToken = data?.data?.refresh_token || data?.refresh_token;
+
+        if (newAccessToken) {
+          sessionStorage.setItem('access_token', newAccessToken);
+          localStorage.setItem('access_token', newAccessToken);
         }
-        return api(originalRequest); // rejouer la requete originale
+        if (newRefreshToken) {
+          sessionStorage.setItem('refresh_token', newRefreshToken);
+          localStorage.setItem('refresh_token', newRefreshToken);
+        }
+
+        if (originalRequest.headers && newAccessToken) {
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        }
+        return api(originalRequest);
       } catch (refreshError) {
         sessionStorage.clear();
+        localStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

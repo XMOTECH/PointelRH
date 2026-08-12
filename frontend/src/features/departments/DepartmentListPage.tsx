@@ -88,12 +88,9 @@ export const DepartmentListPage: React.FC = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase italic">
+          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase">
             Départements
           </h1>
-          <p className="text-on-surface-variant mt-1 font-medium">
-            Gérez la structure organisationnelle de votre entreprise.
-          </p>
         </div>
         <Button className="btn-primary" onClick={() => setIsFormOpen(true)}>
           <Plus size={20} />
@@ -103,41 +100,29 @@ export const DepartmentListPage: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="premium-card p-6 accent-bar relative overflow-hidden">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 text-primary rounded-xl">
-              <Building2 size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider opacity-60">Total Départements</p>
-              <h3 className="text-2xl font-black">{departments?.length || 0}</h3>
-            </div>
+        <div className="bg-surface-container-lowest border border-on-surface/15 rounded-2xl p-6 shadow-none flex items-center gap-4">
+          <Building2 size={24} className="text-primary shrink-0" />
+          <div>
+            <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-[0.2em] block mb-1">Total Départements</span>
+            <span className="text-3xl font-mono tabular-nums font-extrabold text-on-surface">{departments?.length || 0}</span>
           </div>
-        </Card>
+        </div>
         
-        <Card className="premium-card p-6 relative overflow-hidden">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-green-500/10 text-green-600 rounded-xl">
-              <Users size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider opacity-60">Total Employés</p>
-              <h3 className="text-2xl font-black">--</h3>
-            </div>
+        <div className="bg-surface-container-lowest border border-on-surface/15 rounded-2xl p-6 shadow-none flex items-center gap-4">
+          <Users size={24} className="text-emerald-600 shrink-0" />
+          <div>
+            <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-[0.2em] block mb-1">Total Employés</span>
+            <span className="text-3xl font-mono tabular-nums font-extrabold text-on-surface">--</span>
           </div>
-        </Card>
+        </div>
 
-        <Card className="premium-card p-6 relative overflow-hidden">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
-              <ArrowRight size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider opacity-60">Activité Récente</p>
-              <h3 className="text-2xl font-black">Stable</h3>
-            </div>
+        <div className="bg-surface-container-lowest border border-on-surface/15 rounded-2xl p-6 shadow-none flex items-center gap-4">
+          <ArrowRight size={24} className="text-amber-600 shrink-0" />
+          <div>
+            <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-[0.2em] block mb-1">Activité Récente</span>
+            <span className="text-2xl font-bold text-on-surface">Stable</span>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Table Section */}
@@ -157,21 +142,19 @@ export const DepartmentListPage: React.FC = () => {
 
         <Table>
           <TableHeader>
-            <TableRow className="bg-surface-container-low/30 hover:bg-transparent border-b border-outline-variant">
-              <TableHead className="py-4 font-bold text-on-surface-variant uppercase tracking-widest text-[10px]">Nom du Département</TableHead>
-              <TableHead className="py-4 font-bold text-on-surface-variant uppercase tracking-widest text-[10px]">Manager</TableHead>
-              <TableHead className="py-4 font-bold text-on-surface-variant uppercase tracking-widest text-[10px]">ID Interne</TableHead>
-              <TableHead className="py-4 font-bold text-on-surface-variant uppercase tracking-widest text-[10px]">Actions</TableHead>
+            <TableRow className="bg-surface-container-low/30 hover:bg-transparent border-b border-on-surface/10">
+              <TableHead className="py-4 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px]">Nom du Département ↕</TableHead>
+              <TableHead className="py-4 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px]">Manager ↕</TableHead>
+              <TableHead className="py-4 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px]">ID Interne ↕</TableHead>
+              <TableHead className="py-4 font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] text-[10px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {departments?.map((dept: any) => (
-              <TableRow key={dept.id} className="group hover:bg-surface-container-low/50 transition-colors border-b border-outline-variant/30 last:border-0">
+              <TableRow key={dept.id} className="group hover:bg-surface-container-low/50 transition-colors border-b border-on-surface/10 last:border-0">
                 <TableCell className="py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-surface-container-highest rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                      <Building2 size={20} />
-                    </div>
+                    <Building2 size={20} className="text-primary shrink-0" />
                     <span className="font-semibold text-on-surface">{dept.name}</span>
                   </div>
                 </TableCell>
@@ -179,7 +162,7 @@ export const DepartmentListPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     {dept.manager_name ? (
                       <>
-                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                        <div className="w-6 h-6 rounded-full border border-on-surface/15 flex items-center justify-center text-[10px] font-bold text-primary bg-transparent shrink-0">
                           {dept.manager_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                         </div>
                         <span className="text-sm font-medium text-on-surface">{dept.manager_name}</span>
@@ -190,9 +173,9 @@ export const DepartmentListPage: React.FC = () => {
                   </div>
                 </TableCell>
                 <TableCell className="py-4">
-                  <code className="text-xs bg-surface-container px-2 py-1 rounded border border-outline-variant text-on-surface-variant">
+                  <span className="text-xs text-on-surface-variant/70 font-mono">
                     {dept.id.substring(0, 8)}...
-                  </code>
+                  </span>
                 </TableCell>
                 <TableCell className="py-4 text-right">
                   <div className="flex items-center justify-end gap-2 pr-4">

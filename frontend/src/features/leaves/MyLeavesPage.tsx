@@ -105,7 +105,7 @@ export const MyLeavesPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase italic flex items-center gap-3">
+          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase flex items-center gap-3">
             <PlaneTakeoff size={28} />
             Mes Congés
           </h1>
@@ -161,7 +161,7 @@ export const MyLeavesPage: React.FC = () => {
             const leaveColor = (typeof lt === 'object' && lt ? lt.color : null) || '#6B7280';
 
             return (
-              <Card key={leave.id} className="premium-card p-4 hover:shadow-md transition-shadow">
+              <Card key={leave.id} className="premium-card p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     {/* Type badge */}

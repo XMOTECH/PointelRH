@@ -204,7 +204,7 @@ function CreateTaskModal({ missionId, onClose }: { missionId: string; onClose: (
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-on-surface-variant mb-1 block">Priorite</label>
-              <select value={form.priority || 'medium'} onChange={e => setForm(f => ({ ...f, priority: e.target.value as any }))}
+              <select value={form.priority || 'medium'} onChange={e => setForm(f => ({ ...f, priority: e.target.value as CreateMyTaskDTO['priority'] }))}
                 className="w-full h-10 px-3 text-sm rounded-xl border border-outline-variant bg-surface-container-lowest outline-none">
                 <option value="low">Basse</option>
                 <option value="medium">Moyenne</option>
@@ -479,7 +479,7 @@ export function MyMissionDetailPage() {
   const badge = STATUS_BADGE[m.status] || STATUS_BADGE.draft;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-8 space-y-6 max-w-7xl mx-auto">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 w-full">
       {/* Back */}
       <button onClick={() => navigate('/my-missions')} className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-medium">
         <ArrowLeft size={16} /> Retour a mes missions

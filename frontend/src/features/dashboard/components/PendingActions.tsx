@@ -65,24 +65,16 @@ export function PendingActions({ attendances, attendancesLoading, pendingLeaves,
   const isLoading = activeTab === 'anomalies' ? attendancesLoading : sirhLoading;
 
   return (
-    <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
-        <div>
-          <h3 className="text-lg font-display font-bold text-on-surface">Actions Requises</h3>
-          <p className="text-[11px] font-medium text-on-surface-variant/50 uppercase tracking-widest mt-1">
-            Elements en attente de votre attention
-          </p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex bg-surface-container-low p-1 rounded-lg border border-outline-variant/20">
+    <div className="bg-surface-container-lowest rounded-2xl border border-on-surface/15 p-6 shadow-none">
+      {/* Header Tabs Navigation */}
+      <div className="flex items-center justify-between border-b border-on-surface/10 pb-4 mb-4">
+        <div className="flex bg-surface-container-low p-1 rounded-xl border border-on-surface/10">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                "flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all",
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all",
                 activeTab === tab.key
                   ? "bg-primary text-on-primary shadow-sm"
                   : "text-on-surface-variant/60 hover:text-on-surface"
@@ -91,7 +83,7 @@ export function PendingActions({ attendances, attendancesLoading, pendingLeaves,
               {tab.label}
               {tab.count > 0 && (
                 <span className={cn(
-                  "text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
+                  "text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center",
                   activeTab === tab.key
                     ? "bg-on-primary/20 text-on-primary"
                     : "bg-surface-container-highest text-on-surface-variant"
@@ -112,13 +104,13 @@ export function PendingActions({ attendances, attendancesLoading, pendingLeaves,
           {/* Anomalies Tab */}
           {activeTab === 'anomalies' && (
             <>
-              <div className="grid grid-cols-6 px-4 py-3 text-[10px] font-space font-semibold text-on-surface-variant/50 uppercase tracking-[0.15em] border-b border-outline-variant/30">
-                <span>Employé</span>
-                <span>Heure</span>
-                <span>Retard</span>
-                <span>Lieu</span>
-                <span>Statut</span>
-                <span className="text-right">Action</span>
+              <div className="grid grid-cols-6 px-4 py-3 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-[0.15em] border-b border-on-surface/10">
+                <span>Employé ↕</span>
+                <span>Heure ↕</span>
+                <span>Retard ↕</span>
+                <span>Lieu ↕</span>
+                <span>Statut ↕</span>
+                <span className="text-right">Action ↕</span>
               </div>
               {failures.length === 0 ? (
                 <div className="py-12 text-center text-on-surface-variant/40 text-sm italic">

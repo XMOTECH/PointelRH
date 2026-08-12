@@ -59,10 +59,10 @@ export function SettingsPage() {
   const rhSettings = settings?.rh_policy || {};
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase italic">
+        <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase">
           Paramètres Système
         </h1>
         <p className="text-on-surface-variant mt-1 font-medium">
@@ -110,7 +110,7 @@ export function SettingsPage() {
               <div className="flex items-center gap-4 text-primary border-b border-outline-variant pb-6">
                  <div className="p-3 bg-primary/10 rounded-2xl"><Building2 size={24} /></div>
                  <div>
-                    <h3 className="text-xl font-black uppercase italic tracking-tight">Profil de la Société</h3>
+                    <h3 className="text-xl font-black uppercase tracking-tight">Profil de la Société</h3>
                     <p className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest mt-0.5">Identité visuelle et contact</p>
                  </div>
               </div>
@@ -119,7 +119,7 @@ export function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                       <label className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em] ml-1">Nom de l'Entreprise</label>
-                      <Input name="company_name" defaultValue={companySettings.company_name} placeholder="Ex: Pointel Tech" required />
+                      <Input name="company_name" defaultValue={companySettings.company_name} placeholder="Ex: Lumina RH S.N." required />
                    </div>
                    <div className="space-y-2">
                       <label className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em] ml-1">SIRET / Identifiant</label>
@@ -127,7 +127,7 @@ export function SettingsPage() {
                    </div>
                    <div className="space-y-2">
                       <label className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em] ml-1">Email de Contact</label>
-                      <Input name="contact_email" type="email" defaultValue={companySettings.contact_email} placeholder="hr@pointel.com" />
+                      <Input name="contact_email" type="email" defaultValue={companySettings.contact_email} placeholder="hr@luminarh.com" />
                    </div>
                    <div className="space-y-2">
                       <label className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em] ml-1">Fuseau Horaire</label>
@@ -154,7 +154,7 @@ export function SettingsPage() {
               <div className="flex items-center gap-4 text-primary border-b border-outline-variant pb-6">
                  <div className="p-3 bg-primary/10 rounded-2xl"><ShieldCheck size={24} /></div>
                  <div>
-                    <h3 className="text-xl font-black uppercase italic tracking-tight">Règles de Pointage</h3>
+                    <h3 className="text-xl font-black uppercase tracking-tight">Règles de Pointage</h3>
                     <p className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest mt-0.5">Tolérances et seuils globaux</p>
                  </div>
               </div>

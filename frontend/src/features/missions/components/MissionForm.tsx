@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '../../../components/ui/Button';
 import { missionsApi } from '../api/missions.api';
 import type { CreateMissionDTO } from '../api/missions.api';
@@ -67,7 +68,7 @@ export function MissionForm({ isOpen, onClose, onSuccess }: MissionFormProps) {
       onClose();
     } catch (error) {
       console.error('Failed to create mission', error);
-      alert('Erreur lors de la création de la mission');
+      toast.error('Erreur lors de la création de la mission');
     } finally {
       setLoading(false);
     }
