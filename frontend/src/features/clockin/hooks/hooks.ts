@@ -7,7 +7,6 @@ import { useQuery } from '@tanstack/react-query';
 import { DELAYS } from '../constants';
 import { employeesApi } from '../../employees/api/employees.api';
 import { clockInApi } from '../api/clockin.api';
-import type { TodayStatusResponse } from '../types';
 
 /**
  * Hook pour gérer l'horloge en temps réel
@@ -44,17 +43,39 @@ export function useQRCodeData(employeeId: string | undefined): { qrToken: string
  * Retourne l'attendance du jour + indicateurs isCheckedIn / isCheckedOut
  */
 export function useTodayStatus(employeeId: string | undefined) {
-  const { data: todayAttendance = null, isLoading } = useQuery<TodayStatusResponse | null>({
+  const { data: rawTodayAttendance = null, isLoading } = useQuery<any>({
     queryKey: ['today-status', employeeId],
     queryFn: () => clockInApi.getTodayStatus(employeeId!),
     enabled: !!employeeId,
-    refetchInterval: 30_000,
+    refetchInterval: 5_000,
   });
 
-  const isCheckedIn = !!todayAttendance?.checked_in_at;
-  const isCheckedOut = !!todayAttendance?.checked_out_at;
+  const todayAttendance = rawTodayAttendance ? {
+    ...rawTodayAttendance,
+    checked_in_at: rawTodayAttendance.checked_in_at || rawTodayAttendance.clockIn || rawTodayAttendance.clock_in || null,
+    checked_out_at: rawTodayAttendance.checked_out_at || rawTodayAttendance.clockOut || rawTodayAttendance.clock_out || null,
+  } : null;
 
-  return { todayAttendance, isCheckedIn, isCheckedOut, isLoading };
+  // En multi-session : l'employé est en poste si une session est actuellement ouverte (clockOut == null)
+  const hasActiveSession = rawTodayAttendance?.hasActiveSession !== undefined
+    ? rawTodayAttendance.hasActiveSession
+    : (!!todayAttendance?.checked_in_at && !todayAttendance?.checked_out_at);
+
+  const isCheckedIn = hasActiveSession;
+  const isCheckedOut = !hasActiveSession && ((rawTodayAttendance?.sessionsCount ?? 0) > 0 || !!todayAttendance?.checked_out_at);
+  const canClockIn = rawTodayAttendance?.canClockIn !== undefined ? rawTodayAttendance.canClockIn : !hasActiveSession;
+  const canClockOut = rawTodayAttendance?.canClockOut !== undefined ? rawTodayAttendance.canClockOut : hasActiveSession;
+
+  return {
+    todayAttendance,
+    isCheckedIn,
+    isCheckedOut,
+    hasActiveSession,
+    canClockIn,
+    canClockOut,
+    sessions: rawTodayAttendance?.sessions || [],
+    isLoading,
+  };
 }
 
 /**

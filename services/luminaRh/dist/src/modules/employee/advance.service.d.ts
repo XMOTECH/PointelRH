@@ -22,6 +22,8 @@ export declare class AdvanceService {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
     } & {
         id: string;
@@ -35,17 +37,7 @@ export declare class AdvanceService {
         repaid: boolean;
     }>;
     findAllForEmployee(employeeId: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        employeeId: string;
-        type: string;
-        amount: import("@prisma/client/runtime/library").Decimal;
-        reason: string | null;
-        repaid: boolean;
-    }[]>;
-    findAll(companyId: string): Promise<({
+        amount: number;
         employee: {
             department: {
                 id: string;
@@ -73,19 +65,60 @@ export declare class AdvanceService {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
-    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: string;
         employeeId: string;
         type: string;
-        amount: import("@prisma/client/runtime/library").Decimal;
         reason: string | null;
         repaid: boolean;
-    })[]>;
-    updateStatus(id: string, status: string): Promise<{
+    }[]>;
+    findAll(companyId: string): Promise<{
+        amount: number;
+        employee: {
+            department: {
+                id: string;
+                name: string;
+                createdAt: Date;
+                updatedAt: Date;
+                companyId: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            companyId: string;
+            email: string;
+            departmentId: string;
+            userId: string;
+            scheduleId: string | null;
+            firstName: string;
+            lastName: string;
+            pinCode: string | null;
+            contractType: string;
+            hireDate: Date;
+            status: string;
+            baseSalary: import("@prisma/client/runtime/library").Decimal;
+            transportAllowance: import("@prisma/client/runtime/library").Decimal;
+            maritalStatus: string;
+            taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
+        };
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        employeeId: string;
+        type: string;
+        reason: string | null;
+        repaid: boolean;
+    }[]>;
+    updateStatus(id: string, status: string, companyId?: string): Promise<{
         employee: {
             id: string;
             createdAt: Date;
@@ -105,6 +138,8 @@ export declare class AdvanceService {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
     } & {
         id: string;

@@ -13,8 +13,10 @@ export declare class AnalyticsService {
         department_name: string;
         employee_count: number;
     }[]>;
-    getPresenceTrend(companyId: string): Promise<{
+    getPresenceTrend(companyId: string, days?: number): Promise<{
         date: string;
+        total_employees: number;
+        present_count: number;
         present: number;
         absent: number;
         late: number;

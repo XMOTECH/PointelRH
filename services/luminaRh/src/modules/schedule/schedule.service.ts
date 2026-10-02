@@ -12,6 +12,9 @@ export class ScheduleService {
       data: {
         companyId,
         name: dto.name,
+        startTime: dto.start_time || '08:00',
+        endTime: dto.end_time || '17:00',
+        graceMinutes: dto.grace_minutes ?? 15,
       },
     });
 
@@ -45,7 +48,10 @@ export class ScheduleService {
     const updated = await this.prisma.schedule.update({
       where: { id },
       data: {
-        name: dto.name,
+        ...(dto.name ? { name: dto.name } : {}),
+        ...(dto.start_time ? { startTime: dto.start_time } : {}),
+        ...(dto.end_time ? { endTime: dto.end_time } : {}),
+        ...(dto.grace_minutes !== undefined ? { graceMinutes: dto.grace_minutes } : {}),
       },
     });
 
@@ -62,14 +68,22 @@ export class ScheduleService {
     return { success: true };
   }
 
-  private mapToResource(schedule: { id: string; name: string; createdAt: Date; updatedAt: Date }) {
+  private mapToResource(schedule: {
+    id: string;
+    name: string;
+    startTime?: string | null;
+    endTime?: string | null;
+    graceMinutes?: number | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
     return {
       id: schedule.id,
       name: schedule.name,
-      start_time: null,
-      end_time: null,
-      work_days: [],
-      grace_minutes: null,
+      start_time: schedule.startTime || '08:00',
+      end_time: schedule.endTime || '17:00',
+      work_days: [1, 2, 3, 4, 5],
+      grace_minutes: schedule.graceMinutes ?? 15,
       created_at: schedule.createdAt,
       updated_at: schedule.updatedAt,
     };

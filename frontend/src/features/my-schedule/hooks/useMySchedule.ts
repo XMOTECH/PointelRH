@@ -12,3 +12,10 @@ export function useMySchedule() {
     enabled: !!employeeId,
   });
 }
+
+export function useMyShifts(date?: string) {
+  return useQuery({
+    queryKey: ['my-shifts', date],
+    queryFn: () => scheduleApi.getMyShifts(date),
+  });
+}

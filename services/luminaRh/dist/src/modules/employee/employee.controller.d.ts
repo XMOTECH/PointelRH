@@ -1,7 +1,7 @@
-import type { Response } from 'express';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { CurrentUserDto } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 export declare class EmployeeController {
     private readonly employeeService;
@@ -27,6 +27,7 @@ export declare class EmployeeController {
                 startTime: string | null;
                 endTime: string | null;
                 graceMinutes: number;
+                workDays: number[];
             } | null;
         } & {
             id: string;
@@ -47,6 +48,8 @@ export declare class EmployeeController {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
     }>;
     findAll(companyId: string, departmentId?: string, status?: string, contractType?: string, role?: string): Promise<{
@@ -68,6 +71,7 @@ export declare class EmployeeController {
                 startTime: string | null;
                 endTime: string | null;
                 graceMinutes: number;
+                workDays: number[];
             } | null;
             user: {
                 isActive: boolean;
@@ -92,6 +96,8 @@ export declare class EmployeeController {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         })[];
     }>;
     findOne(companyId: string, id: string): Promise<{
@@ -113,6 +119,7 @@ export declare class EmployeeController {
                 startTime: string | null;
                 endTime: string | null;
                 graceMinutes: number;
+                workDays: number[];
             } | null;
             user: {
                 id: string;
@@ -146,6 +153,8 @@ export declare class EmployeeController {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
     }>;
     update(companyId: string, id: string, updateDto: UpdateEmployeeDto): Promise<{
@@ -168,6 +177,7 @@ export declare class EmployeeController {
                 startTime: string | null;
                 endTime: string | null;
                 graceMinutes: number;
+                workDays: number[];
             } | null;
         } & {
             id: string;
@@ -188,13 +198,15 @@ export declare class EmployeeController {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
     }>;
     remove(companyId: string, id: string): Promise<{
         success: boolean;
         message: string;
     }>;
-    getFaceEnrollment(id: string): Promise<{
+    getFaceEnrollment(user: CurrentUserDto, id: string): Promise<{
         success: boolean;
         data: {
             enrolled: boolean;
@@ -202,13 +214,13 @@ export declare class EmployeeController {
             labels: string[];
         };
     }>;
-    enrollFace(id: string, body: {
+    enrollFace(user: CurrentUserDto, id: string, body: {
         descriptors: number[][];
     }): Promise<{
         success: boolean;
         message: string;
     }>;
-    deleteFaceEnrollment(id: string): Promise<{
+    deleteFaceEnrollment(user: CurrentUserDto, id: string): Promise<{
         success: boolean;
         message: string;
     }>;
@@ -232,6 +244,7 @@ export declare class EmployeeController {
                 startTime: string | null;
                 endTime: string | null;
                 graceMinutes: number;
+                workDays: number[];
             } | null;
         } & {
             id: string;
@@ -252,8 +265,10 @@ export declare class EmployeeController {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
     }>;
-    getWorkCertificate(companyId: string, id: string, res: Response): Promise<void>;
-    getSoldeDeToutCompte(companyId: string, id: string, res: Response): Promise<void>;
+    getWorkCertificate(companyId: string, id: string): Promise<string>;
+    getSoldeDeToutCompte(companyId: string, id: string): Promise<string>;
 }

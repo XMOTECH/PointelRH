@@ -7,33 +7,36 @@ export declare class DepartmentService {
     create(companyId: string, dto: CreateDepartmentDto): Promise<{
         id: string;
         name: string;
-        parent_id: null;
+        manager_name: string | null;
+        employee_count: number;
         created_at: Date;
         updated_at: Date;
     }>;
     findAll(companyId: string): Promise<{
         id: string;
         name: string;
-        parent_id: null;
+        manager_name: string | null;
+        employee_count: number;
         created_at: Date;
         updated_at: Date;
     }[]>;
     findOne(companyId: string, id: string): Promise<{
         id: string;
         name: string;
-        parent_id: null;
+        manager_name: string | null;
+        employee_count: number;
         created_at: Date;
         updated_at: Date;
     }>;
     update(companyId: string, id: string, dto: UpdateDepartmentDto): Promise<{
         id: string;
         name: string;
-        parent_id: null;
+        manager_name: string | null;
+        employee_count: number;
         created_at: Date;
         updated_at: Date;
     }>;
     remove(companyId: string, id: string): Promise<{
         success: boolean;
     }>;
-    private mapToResource;
 }

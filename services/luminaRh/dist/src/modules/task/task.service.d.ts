@@ -170,7 +170,7 @@ export declare class TaskService {
         created_at: any;
         updated_at: any;
     }>;
-    addComment(taskId: string, employeeId: string, content: string, attachments?: any[]): Promise<{
+    addComment(taskId: string, employeeId: string | null, content: string, attachments?: any[]): Promise<{
         id: string;
         content: string;
         employee_name: string;

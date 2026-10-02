@@ -62,7 +62,7 @@ export class KeycloakAdminService {
     tempPassword: string;
     role: string; // 'employee', 'manager', 'admin'
   }): Promise<string> {
-    const authServerUrl = this.config.get<string>('KEYCLOAK_AUTH_SERVER_URL', 'http://localhost:8085');
+    const authServerUrl = this.config.get<string>('KEYCLOAK_AUTH_SERVER_URL') || 'http://keycloak:8080';
     const realm = this.config.get<string>('KEYCLOAK_REALM', 'luminarh');
     const adminToken = await this.getAdminToken();
 
@@ -174,7 +174,7 @@ export class KeycloakAdminService {
    */
   async resetUserCredentials(email: string, newPassword?: string): Promise<string | null> {
     try {
-      const authServerUrl = this.config.get<string>('KEYCLOAK_AUTH_SERVER_URL', 'http://localhost:8085');
+      const authServerUrl = this.config.get<string>('KEYCLOAK_AUTH_SERVER_URL') || 'http://keycloak:8080';
       const realm = this.config.get<string>('KEYCLOAK_REALM', 'luminarh');
       const adminToken = await this.getAdminToken();
 

@@ -76,6 +76,7 @@ export declare class MissionService {
         created_at: any;
         updated_at: any;
     }>;
+    private filterCompanyEmployees;
     update(companyId: string, id: string, dto: UpdateMissionDto): Promise<{
         id: any;
         title: any;

@@ -46,16 +46,8 @@ let AdvanceService = class AdvanceService {
         });
     }
     async findAllForEmployee(employeeId) {
-        return this.prisma.advanceRequest.findMany({
+        const list = await this.prisma.advanceRequest.findMany({
             where: { employeeId },
-            orderBy: { createdAt: 'desc' },
-        });
-    }
-    async findAll(companyId) {
-        return this.prisma.advanceRequest.findMany({
-            where: {
-                employee: { companyId },
-            },
             include: {
                 employee: {
                     include: { department: true },
@@ -63,16 +55,43 @@ let AdvanceService = class AdvanceService {
             },
             orderBy: { createdAt: 'desc' },
         });
+        return list.map((r) => ({
+            ...r,
+            amount: Number(r.amount),
+        }));
     }
-    async updateStatus(id, status) {
+    async findAll(companyId) {
+        const list = await this.prisma.advanceRequest.findMany({
+            where: companyId
+                ? {
+                    employee: { companyId },
+                }
+                : {},
+            include: {
+                employee: {
+                    include: { department: true },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        return list.map((r) => ({
+            ...r,
+            amount: Number(r.amount),
+        }));
+    }
+    async updateStatus(id, status, companyId) {
         if (status !== 'approved' && status !== 'rejected') {
             throw new common_1.BadRequestException('Le statut doit être "approved" ou "rejected"');
         }
-        const request = await this.prisma.advanceRequest.findUnique({
-            where: { id },
+        const request = await this.prisma.advanceRequest.findFirst({
+            where: {
+                id,
+                ...(companyId ? { employee: { companyId } } : {}),
+            },
+            include: { employee: true },
         });
         if (!request) {
-            throw new common_1.NotFoundException('Demande d\'acompte introuvable');
+            throw new common_1.NotFoundException('Demande d\'acompte introuvable dans votre entreprise');
         }
         return this.prisma.advanceRequest.update({
             where: { id },

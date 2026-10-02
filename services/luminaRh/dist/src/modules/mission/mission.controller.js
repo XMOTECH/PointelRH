@@ -65,6 +65,9 @@ let MissionController = class MissionController {
         };
     }
     async uploadDocuments(companyId, id, files) {
+        if (!files || !Array.isArray(files) || files.length === 0) {
+            throw new common_1.BadRequestException('Liste de fichiers manquante ou invalide');
+        }
         const docs = await this.missionService.uploadDocuments(companyId, id, files);
         return {
             success: true,

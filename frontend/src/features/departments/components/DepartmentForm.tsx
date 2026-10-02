@@ -38,8 +38,8 @@ export const DepartmentForm: React.FC<Props> = ({ isOpen, onClose, onSubmit, ini
   }, [initialData, reset, isOpen]);
 
   const { data: employees } = useQuery({
-    queryKey: ['employees', 'managers'],
-    queryFn: () => employeesApi.getEmployees({ role: 'manager' }),
+    queryKey: ['employees', 'all-for-select'],
+    queryFn: () => employeesApi.getEmployees(),
     enabled: isOpen,
   });
 

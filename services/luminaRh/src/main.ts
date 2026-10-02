@@ -1,10 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter(),
+  );
   
   // Set global API prefix to match legacy microservices structure
   app.setGlobalPrefix('api');
@@ -15,12 +19,12 @@ async function bootstrap() {
     : ['http://localhost:5180', 'http://127.0.0.1:5180', 'http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
       // Allow requests with no origin or allowed dev origins (including port 5180)
       if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1):(517[0-9]|518[0-9]|3000)$/.test(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`Origin ${origin} is not allowed by CORS`));
+        callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -56,10 +60,10 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  const port = Number(process.env.PORT) || 3000;
+  await app.listen(port, '0.0.0.0');
   const logger = new Logger('Bootstrap');
-  logger.log(`LuminaRH Monolith is running on port ${port}`);
+  logger.log(`LuminaRH Monolith is running on port ${port} (Fastify)`);
   logger.log(`Swagger documentation is available at http://localhost:${port}/docs`);
 }
 bootstrap();

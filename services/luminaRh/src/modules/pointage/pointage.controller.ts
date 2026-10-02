@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam }
 import { PointageService } from './pointage.service';
 import { ClockInDto } from './dto/clock-in.dto';
 import { ClockOutDto } from './dto/clock-out.dto';
+import { PunchDto } from './dto/punch.dto';
 import { CurrentUser, CurrentUserDto } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Pointages')
@@ -11,22 +12,44 @@ import { CurrentUser, CurrentUserDto } from '../../common/decorators/current-use
 export class PointageController {
   constructor(private readonly pointageService: PointageService) {}
 
+  @Public()
+  @Post('punch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Pointage universel intelligent (Smart Punch / Toggle)',
+    description: 'Bascule automatiquement entre Entrée et Sortie selon l\'état de la session active de l\'employé, sans provoquer d\'erreur 409.',
+  })
+  @ApiQuery({ name: 'company_id', required: false, description: 'UUID de l\'entreprise' })
+  @ApiResponse({ status: 200, description: 'Pointage enregistré avec succès (Entrée ou Sortie).' })
+  async punch(
+    @CurrentUser() user: CurrentUserDto,
+    @Query('company_id') queryCompanyId: string,
+    @Body() punchDto: PunchDto,
+  ) {
+    const explicitCompanyId = queryCompanyId || punchDto.companyId || punchDto.company_id || user?.companyId;
+    const result = await this.pointageService.punch(punchDto, explicitCompanyId);
+    return {
+      success: true,
+      ...result,
+    };
+  }
+
   @Public() // Allow kiosks and mobile apps to submit clock-ins without user login constraints
   @Post('clock-in')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Enregistrer une entrée (Clock In)',
-    description: 'Enregistre le pointage d\'arrivée d\'un employé via PIN, QR Code ou Reconnaissance Faciale. Cette route est publique car elle est appelée directement par les kiosques de pointage physiques.',
+    description: 'Enregistre le pointage d\'arrivée d\'un employé via PIN, QR Code, Reconnaissance Faciale ou Web.',
   })
   @ApiQuery({ name: 'company_id', required: false, description: 'UUID de l\'entreprise (peut également être passé dans le payload)' })
   @ApiResponse({ status: 201, description: 'Pointage enregistré avec succès.' })
   @ApiResponse({ status: 400, description: 'Données invalides ou pointage en dehors de la zone de géolocalisation autorisée.' })
   async clockIn(
+    @CurrentUser() user: CurrentUserDto,
     @Query('company_id') queryCompanyId: string,
     @Body() clockInDto: ClockInDto,
   ) {
-    // If query has company_id, use it, otherwise require payload company_id
-    const companyId = queryCompanyId || clockInDto.payload?.companyId;
+    const companyId = queryCompanyId || clockInDto.companyId || clockInDto.company_id || clockInDto.payload?.companyId || clockInDto.payload?.company_id || user?.companyId;
     const attendance = await this.pointageService.clockIn(companyId, clockInDto);
     return {
       success: true,
@@ -48,7 +71,7 @@ export class PointageController {
     @CurrentUser() user: CurrentUserDto,
     @Body() clockOutDto: ClockOutDto,
   ) {
-    const employeeId = clockOutDto?.employee_id || clockOutDto?.employeeId || user?.employeeId;
+    const employeeId = clockOutDto?.employee_id || clockOutDto?.employeeId || user?.employeeId || user?.id;
     if (!employeeId) {
       throw new BadRequestException('ID employé manquant pour le pointage de sortie');
     }
@@ -69,11 +92,15 @@ export class PointageController {
   })
   @ApiResponse({ status: 200, description: 'Statut du pointage du jour récupéré.' })
   @ApiResponse({ status: 401, description: 'Session non authentifiée.' })
-  async getMyToday(@CurrentUser() user: CurrentUserDto) {
-    if (!user.employeeId) {
+  async getMyToday(
+    @CurrentUser() user: CurrentUserDto,
+    @Query('employee_id') queryEmployeeId?: string,
+  ) {
+    const targetId = queryEmployeeId || user?.employeeId || user?.id;
+    if (!targetId) {
       return { success: true, data: null };
     }
-    const attendance = await this.pointageService.getTodayStatus(user.employeeId);
+    const attendance = await this.pointageService.getTodayStatus(targetId);
     return {
       success: true,
       data: attendance,
@@ -178,15 +205,11 @@ export class PointageController {
     }
 
     const attendances = await this.pointageService.getHistory(user.companyId, {
-      departmentId: undefined,
-      locationId: undefined,
-      date: undefined,
+      employeeId: id,
     });
-    // Filter specifically for this employee
-    const employeeAttendances = attendances.filter(a => a.employeeId === id);
     return {
       success: true,
-      data: employeeAttendances,
+      data: attendances,
     };
   }
 }

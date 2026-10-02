@@ -76,7 +76,7 @@ let AuthService = AuthService_1 = class AuthService {
             if (!response.ok) {
                 const errText = await response.text();
                 this.logger.error('Keycloak token error:', errText);
-                if (errText.includes('Account is not fully set up') || errText.includes('invalid_grant')) {
+                if (errText.includes('Account is not fully set up')) {
                     this.logger.log(`Tentative de déblocage automatique de l'accès Keycloak pour ${loginDto.email}...`);
                     await this.keycloakAdmin.resetUserCredentials(loginDto.email, loginDto.password);
                     response = await fetchToken();

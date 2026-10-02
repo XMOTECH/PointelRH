@@ -71,21 +71,30 @@ let EmployeeController = class EmployeeController {
             message: 'Employé supprimé avec succès',
         };
     }
-    async getFaceEnrollment(id) {
+    async getFaceEnrollment(user, id) {
+        if (user?.role === 'employee' && user?.employeeId !== id) {
+            throw new common_1.ForbiddenException('Vous ne pouvez consulter que vos propres données faciales');
+        }
         const status = await this.employeeService.getFaceEnrollment(id);
         return {
             success: true,
             data: status,
         };
     }
-    async enrollFace(id, body) {
+    async enrollFace(user, id, body) {
+        if (user?.role === 'employee' && user?.employeeId !== id) {
+            throw new common_1.ForbiddenException('Vous ne pouvez modifier que vos propres données faciales');
+        }
         await this.employeeService.enrollFace(id, body.descriptors || []);
         return {
             success: true,
             message: 'Données faciales enregistrées avec succès',
         };
     }
-    async deleteFaceEnrollment(id) {
+    async deleteFaceEnrollment(user, id) {
+        if (user?.role === 'employee' && user?.employeeId !== id) {
+            throw new common_1.ForbiddenException('Vous ne pouvez supprimer que vos propres données faciales');
+        }
         await this.employeeService.deleteFaceEnrollment(id);
         return {
             success: true,
@@ -100,7 +109,7 @@ let EmployeeController = class EmployeeController {
             data: employee,
         };
     }
-    async getWorkCertificate(companyId, id, res) {
+    async getWorkCertificate(companyId, id) {
         const employee = await this.employeeService.findOne(companyId, id);
         const today = (0, escape_html_1.escapeHtml)(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }));
         const hireDate = (0, escape_html_1.escapeHtml)(new Date(employee.hireDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }));
@@ -163,10 +172,9 @@ let EmployeeController = class EmployeeController {
       </body>
       </html>
     `;
-        res.setHeader('Content-Type', 'text/html');
-        res.status(200).send(html);
+        return html;
     }
-    async getSoldeDeToutCompte(companyId, id, res) {
+    async getSoldeDeToutCompte(companyId, id) {
         const employee = await this.employeeService.findOne(companyId, id);
         const today = (0, escape_html_1.escapeHtml)(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }));
         const firstName = (0, escape_html_1.escapeHtml)(employee.firstName);
@@ -277,8 +285,7 @@ let EmployeeController = class EmployeeController {
       </body>
       </html>
     `;
-        res.setHeader('Content-Type', 'text/html');
-        res.status(200).send(html);
+        return html;
     }
 };
 exports.EmployeeController = EmployeeController;
@@ -380,9 +387,10 @@ __decorate([
     (0, nest_keycloak_connect_1.Roles)({ roles: ['realm:employee', 'realm:admin', 'realm:manager', 'realm:super_admin'] }),
     (0, swagger_1.ApiOperation)({ summary: 'Obtenir l\'état d\'enregistrement facial d\'un employé' }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'UUID de l\'employé' }),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [current_user_decorator_1.CurrentUserDto, String]),
     __metadata("design:returntype", Promise)
 ], EmployeeController.prototype, "getFaceEnrollment", null);
 __decorate([
@@ -390,10 +398,11 @@ __decorate([
     (0, nest_keycloak_connect_1.Roles)({ roles: ['realm:employee', 'realm:admin', 'realm:manager', 'realm:super_admin'] }),
     (0, swagger_1.ApiOperation)({ summary: 'Enregistrer les descripteurs faciaux d\'un employé' }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'UUID de l\'employé' }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [current_user_decorator_1.CurrentUserDto, String, Object]),
     __metadata("design:returntype", Promise)
 ], EmployeeController.prototype, "enrollFace", null);
 __decorate([
@@ -401,9 +410,10 @@ __decorate([
     (0, nest_keycloak_connect_1.Roles)({ roles: ['realm:employee', 'realm:admin', 'realm:manager', 'realm:super_admin'] }),
     (0, swagger_1.ApiOperation)({ summary: 'Supprimer les données faciales d\'un employé' }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'UUID de l\'employé' }),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [current_user_decorator_1.CurrentUserDto, String]),
     __metadata("design:returntype", Promise)
 ], EmployeeController.prototype, "deleteFaceEnrollment", null);
 __decorate([
@@ -422,11 +432,11 @@ __decorate([
     (0, nest_keycloak_connect_1.Roles)({ roles: ['realm:admin', 'realm:super_admin'] }),
     (0, swagger_1.ApiOperation)({ summary: 'Générer le certificat de travail au format imprimable' }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'UUID de l\'employé' }),
+    (0, common_1.Header)('Content-Type', 'text/html'),
     __param(0, (0, current_user_decorator_1.CurrentUser)('companyId')),
     __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], EmployeeController.prototype, "getWorkCertificate", null);
 __decorate([
@@ -434,11 +444,11 @@ __decorate([
     (0, nest_keycloak_connect_1.Roles)({ roles: ['realm:admin', 'realm:super_admin'] }),
     (0, swagger_1.ApiOperation)({ summary: 'Générer le reçu de solde de tout compte au format imprimable' }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'UUID de l\'employé' }),
+    (0, common_1.Header)('Content-Type', 'text/html'),
     __param(0, (0, current_user_decorator_1.CurrentUser)('companyId')),
     __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], EmployeeController.prototype, "getSoldeDeToutCompte", null);
 exports.EmployeeController = EmployeeController = __decorate([

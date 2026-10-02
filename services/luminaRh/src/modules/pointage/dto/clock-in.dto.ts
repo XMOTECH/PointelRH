@@ -18,6 +18,24 @@ export class ClockInDto {
   payload!: any; // { pin: '...' } ou { token: '...' }
 
   @ApiProperty({
+    example: 'uuid-company',
+    description: 'UUID de l\'entreprise',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  company_id?: string;
+
+  @ApiProperty({
+    example: 'uuid-company',
+    description: 'UUID de l\'entreprise (camelCase)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
+
+  @ApiProperty({
     example: 14.6937,
     description: 'La latitude de géolocalisation actuelle du terminal de pointage',
     required: false,

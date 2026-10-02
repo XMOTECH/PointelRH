@@ -69,9 +69,8 @@ function TeamTaskRow({ task, onDelete }: { task: Task; onDelete: (id: string) =>
       className={`premium-card p-4 ${task.status === 'done' ? 'opacity-60' : ''}`}
     >
       <div className="flex items-center gap-4">
-        {/* Status icon */}
-        <div className={`w-9 h-9 rounded-xl ${status.bg} flex items-center justify-center shrink-0`}>
-          <StatusIcon size={18} className={`${status.color} ${task.status === 'in_progress' ? 'animate-spin' : ''}`} />
+        <div className="shrink-0">
+          <StatusIcon size={20} className={`${status.color} ${task.status === 'in_progress' ? 'animate-spin' : ''}`} />
         </div>
 
         {/* Content */}

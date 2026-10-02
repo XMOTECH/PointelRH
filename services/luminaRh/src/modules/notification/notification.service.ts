@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+// @ts-ignore
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
@@ -16,12 +17,14 @@ export class NotificationService {
     const smtpHost = this.config.get<string>('SMTP_HOST', 'smtp.gmail.com');
     const smtpPort = Number(this.config.get('SMTP_PORT', 587));
     const smtpSecure = this.config.get('SMTP_SECURE') === 'true' || this.config.get('SMTP_SECURE') === true;
-    const rawUser = this.config.get<string>('SMTP_USER', 'luminarhsn@gmail.com');
-    const rawPass = this.config.get<string>('SMTP_PASS', 'htlkmlnitskgeacs');
-    const smtpUser = rawUser ? rawUser.replace(/^["']|["']$/g, '').trim() : 'luminarhsn@gmail.com';
-    const smtpPass = rawPass ? rawPass.replace(/^["']|["']$/g, '').replace(/\s+/g, '').trim() : 'htlkmlnitskgeacs';
+    const rawUser = this.config.get<string>('SMTP_USER', '');
+    const rawPass = this.config.get<string>('SMTP_PASS', '');
+    const smtpUser = rawUser ? rawUser.replace(/^["']|["']$/g, '').trim() : undefined;
+    const smtpPass = rawPass ? rawPass.replace(/^["']|["']$/g, '').replace(/\s+/g, '').trim() : undefined;
 
-    this.logger.log(`[Diagnostic SMTP] Utilisateur: '${smtpUser}' (${smtpUser?.length} chars), Pass: '${smtpPass ? smtpPass.substring(0, 4) + '***' + smtpPass.substring(smtpPass.length - 4) : 'absent'}' (${smtpPass?.length} chars)`);
+    if (!smtpUser || !smtpPass) {
+      this.logger.warn('[SMTP] SMTP_USER ou SMTP_PASS non configuré. Les emails seront désactivés.');
+    }
 
     this.transporter = nodemailer.createTransport({
       host: smtpHost,

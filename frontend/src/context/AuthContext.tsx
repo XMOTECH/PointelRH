@@ -83,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignorer les erreurs lors de la déconnexion
     } finally {
       sessionStorage.clear();
+      localStorage.clear();
       setUser(null);
     }
   }, []);

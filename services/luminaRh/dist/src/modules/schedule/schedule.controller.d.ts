@@ -10,10 +10,10 @@ export declare class ScheduleController {
         data: {
             id: string;
             name: string;
-            start_time: null;
-            end_time: null;
-            work_days: never[];
-            grace_minutes: null;
+            start_time: string;
+            end_time: string;
+            work_days: number[];
+            grace_minutes: number;
             created_at: Date;
             updated_at: Date;
         };
@@ -23,10 +23,10 @@ export declare class ScheduleController {
         data: {
             id: string;
             name: string;
-            start_time: null;
-            end_time: null;
-            work_days: never[];
-            grace_minutes: null;
+            start_time: string;
+            end_time: string;
+            work_days: number[];
+            grace_minutes: number;
             created_at: Date;
             updated_at: Date;
         }[];
@@ -36,10 +36,10 @@ export declare class ScheduleController {
         data: {
             id: string;
             name: string;
-            start_time: null;
-            end_time: null;
-            work_days: never[];
-            grace_minutes: null;
+            start_time: string;
+            end_time: string;
+            work_days: number[];
+            grace_minutes: number;
             created_at: Date;
             updated_at: Date;
         };
@@ -50,10 +50,10 @@ export declare class ScheduleController {
         data: {
             id: string;
             name: string;
-            start_time: null;
-            end_time: null;
-            work_days: never[];
-            grace_minutes: null;
+            start_time: string;
+            end_time: string;
+            work_days: number[];
+            grace_minutes: number;
             created_at: Date;
             updated_at: Date;
         };

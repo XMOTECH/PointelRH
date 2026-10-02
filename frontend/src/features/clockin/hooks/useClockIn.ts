@@ -31,9 +31,11 @@ export function useClockIn() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['today-status'] });
     },
-    onError: (error) => {
-      // Log l'erreur pour le debugging en développement
+    onError: (error: any) => {
       console.error('Clock-in error:', error);
+      // Même en cas d'erreur 409 (déjà pointé), on rafraîchit le statut d'aujourd'hui
+      queryClient.invalidateQueries({ queryKey: ['today-status'] });
+      queryClient.invalidateQueries({ queryKey: ['attendances'] });
     },
   });
 }

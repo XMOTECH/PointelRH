@@ -20,6 +20,13 @@ function snakeToCamel(str: string): string {
 export function toSnakeCase(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (obj instanceof Date) return obj.toISOString();
+  // Handle Prisma Decimal / decimal.js instances
+  if (typeof obj === 'object' && typeof obj.toNumber === 'function') {
+    return obj.toNumber();
+  }
+  if (typeof obj === 'object' && obj.d && Array.isArray(obj.d) && typeof obj.s === 'number') {
+    return Number(obj);
+  }
   if (Array.isArray(obj)) return obj.map(toSnakeCase);
   if (typeof obj === 'object') {
     const result: Record<string, any> = {};

@@ -69,6 +69,11 @@ export const CreateLeaveRequestModal: React.FC<Props> = ({ onClose, onSuccess })
       return;
     }
 
+    if (insufficientBalance) {
+      toast.error('Votre solde de congés est insuffisant pour cette demande');
+      return;
+    }
+
     if (attachment) {
       const fd = new FormData();
       fd.append('leave_type_id', form.leave_type_id);
@@ -279,6 +284,7 @@ export const CreateLeaveRequestModal: React.FC<Props> = ({ onClose, onSuccess })
               type="submit"
               disabled={
                 createMutation.isPending ||
+                Boolean(insufficientBalance) ||
                 !form.leave_type_id ||
                 !form.start_date ||
                 !form.end_date ||

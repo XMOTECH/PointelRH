@@ -1,0 +1,42 @@
+export enum EvaluationStatus {
+  NOT_STARTED = 'NOT_STARTED',
+  SELF_EVALUATION = 'SELF_EVALUATION',
+  MANAGER_REVIEW = 'MANAGER_REVIEW',
+  CALIBRATION = 'CALIBRATION',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum CampaignStatus {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  CLOSED = 'CLOSED',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum TemplateCategory {
+  ANNUAL = 'ANNUAL',
+  PROBATION = 'PROBATION',
+  PROFESSIONAL = 'PROFESSIONAL',
+  QUARTERLY = 'QUARTERLY',
+}
+
+export enum ObjectiveCategory {
+  INDIVIDUAL = 'INDIVIDUAL',
+  TEAM = 'TEAM',
+  STRATEGIC = 'STRATEGIC',
+}
+
+export enum ObjectiveStatus {
+  NOT_STARTED = 'NOT_STARTED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  ACHIEVED = 'ACHIEVED',
+  EXCEEDED = 'EXCEEDED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum SkillCategory {
+  TECHNICAL = 'TECHNICAL',
+  SOFT = 'SOFT',
+  LEADERSHIP = 'LEADERSHIP',
+}

@@ -21,7 +21,10 @@ export function LoginPage() {
       else if (user.role === 'employee') navigate('/clock-in');
       else navigate('/dashboard');
     } catch (err) {
-      const errorMsg = (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Identifiants invalides. Veuillez réessayer.';
+      const data = (err as { response?: { data?: { message?: string; error?: string } } }).response?.data;
+      const errorMsg = (typeof data?.message === 'string' ? data.message : null) || 
+                       (data?.error && data.error !== 'Unauthorized' ? data.error : null) || 
+                       'Identifiants invalides. Veuillez vérifier votre email et mot de passe.';
       setError(errorMsg);
     } finally {
       setIsLoading(false);

@@ -162,25 +162,39 @@ export function EmployeeDetailModal({ open, onClose, employee }: Props) {
           <div className={sectionClass}>
             <div className="flex items-center gap-2 text-primary mb-1">
               <KeyRound size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Acces & Identifiants</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Accès & Code PIN Kiosque</span>
             </div>
-            <p className="text-xs text-on-surface-variant">
-              Generer un nouveau code PIN et mot de passe, puis les envoyer par email a l'employe.
+
+            {((employee as any).pinCode || (employee as any).pin_code) ? (
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-surface-container-low rounded-xl border border-on-surface/10 mb-2">
+                <span className="text-xs text-on-surface-variant font-medium">Code PIN actuel :</span>
+                <span className="text-base font-mono font-bold tracking-widest text-primary">
+                  {(employee as any).pinCode || (employee as any).pin_code}
+                </span>
+              </div>
+            ) : (
+              <div className="px-3.5 py-2 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-700 text-xs font-medium mb-2">
+                Aucun code PIN attribué. L'employé ne peut pas pointer sur le kiosque.
+              </div>
+            )}
+
+            <p className="text-xs text-on-surface-variant mb-2">
+              Générer un nouveau code PIN à 4 chiffres et l'envoyer par email à l'employé pour le pointage sur borne Kiosque.
             </p>
             <button
               onClick={() => generatePin.mutate(employee.id)}
               disabled={generatePin.isPending || !employee.email}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-primary/20 bg-primary/5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-primary/20 bg-primary/5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {generatePin.isPending ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <Mail size={16} />
               )}
-              {generatePin.isPending ? 'Envoi en cours...' : 'Envoyer PIN & mot de passe par email'}
+              {generatePin.isPending ? 'Génération en cours...' : 'Générer & Envoyer PIN par email'}
             </button>
             {!employee.email && (
-              <p className="text-xs text-red-500">Cet employe n'a pas d'adresse email configuree.</p>
+              <p className="text-xs text-red-500 mt-1">Cet employé n'a pas d'adresse email configurée.</p>
             )}
           </div>
 
@@ -222,13 +236,12 @@ export function EmployeeDetailModal({ open, onClose, employee }: Props) {
                 onClick={async () => {
                   try {
                     const response = await api.get(`/api/employees/${employee.id}/documents/work-certificate`, {
-                      responseType: 'text',
+                      responseType: 'blob',
                     });
-                    const printWindow = window.open('', '_blank');
-                    if (printWindow) {
-                      printWindow.document.write(response.data);
-                      printWindow.document.close();
-                    } else {
+                    const blob = new Blob([response.data], { type: response.headers['content-type'] || 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const printWindow = window.open(url, '_blank');
+                    if (!printWindow) {
                       toast.error("Veuillez autoriser les fenêtres surgissantes pour imprimer.");
                     }
                   } catch (err) {
@@ -244,13 +257,12 @@ export function EmployeeDetailModal({ open, onClose, employee }: Props) {
                 onClick={async () => {
                   try {
                     const response = await api.get(`/api/employees/${employee.id}/documents/solde-de-tout-compte`, {
-                      responseType: 'text',
+                      responseType: 'blob',
                     });
-                    const printWindow = window.open('', '_blank');
-                    if (printWindow) {
-                      printWindow.document.write(response.data);
-                      printWindow.document.close();
-                    } else {
+                    const blob = new Blob([response.data], { type: response.headers['content-type'] || 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const printWindow = window.open(url, '_blank');
+                    if (!printWindow) {
                       toast.error("Veuillez autoriser les fenêtres surgissantes pour imprimer.");
                     }
                   } catch (err) {

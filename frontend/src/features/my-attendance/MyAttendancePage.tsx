@@ -2,10 +2,10 @@ import { motion } from 'framer-motion';
 import { History, Clock, AlertTriangle, Timer } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useMyAttendance } from './hooks/useMyAttendance';
-import type { Attendance } from './types';
+import { AttendanceHeatmap } from './components/AttendanceHeatmap';
 
 function formatMinutes(minutes: number | null): string {
   if (minutes === null || minutes === undefined) return '—';
@@ -23,21 +23,32 @@ function formatTime(iso: string | null): string {
   }
 }
 
-function statusBadgeVariant(status: string): 'success' | 'warning' | 'error' | 'default' {
-  switch (status.toLowerCase()) {
-    case 'present': return 'success';
-    case 'late': return 'warning';
-    case 'absent': return 'error';
-    default: return 'default';
+
+
+function getAttendanceLateness(a: any): number {
+  if (a.late_minutes != null && a.late_minutes > 0) return a.late_minutes;
+  if (a.lateMinutes != null && a.lateMinutes > 0) return a.lateMinutes;
+
+  const inTimeStr = a.checked_in_at || a.clock_in || a.clockIn;
+  if (!inTimeStr) return 0;
+
+  const clockInDate = new Date(inTimeStr);
+  const expectedDate = new Date(clockInDate);
+  expectedDate.setHours(8, 0, 0, 0); // Horaire standard 08:00
+  const graceMs = 15 * 60 * 1000; // 15 min de tolérance
+
+  if (clockInDate.getTime() > expectedDate.getTime() + graceMs) {
+    return Math.max(0, Math.floor((clockInDate.getTime() - expectedDate.getTime()) / 60000));
   }
+  return 0;
 }
 
 export default function MyAttendancePage() {
   const { data: attendances = [], isLoading } = useMyAttendance();
 
   const totalCount = attendances.length;
-  const lateCount = attendances.filter((a: Attendance) => a.late_minutes > 0).length;
-  const totalWorkMinutes = attendances.reduce((sum: number, a: Attendance) => sum + (a.work_minutes || 0), 0);
+  const lateCount = attendances.filter((a: any) => getAttendanceLateness(a) > 0).length;
+  const totalWorkMinutes = attendances.reduce((sum: number, a: any) => sum + (a.work_minutes || a.workMinutes || 0), 0);
 
   if (isLoading) {
     return (
@@ -61,38 +72,29 @@ export default function MyAttendancePage() {
       className="space-y-6 w-full"
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-on-surface">Mon Historique de Pointage</h1>
-          <p className="text-sm text-on-surface-variant mt-1">{totalCount} pointage{totalCount !== 1 ? 's' : ''}</p>
-        </div>
-        <History size={28} className="text-on-surface-variant/30" />
+      <div>
+        <h1 className="text-2xl font-display font-bold text-on-surface">Mon Historique de Pointage</h1>
+        <p className="text-sm text-on-surface-variant mt-1">{totalCount} pointage{totalCount !== 1 ? 's' : ''}</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <Clock size={20} className="text-primary" />
-          </div>
+          <Clock size={22} className="text-primary shrink-0" />
           <div>
             <p className="text-2xl font-bold text-on-surface">{totalCount}</p>
             <p className="text-xs text-on-surface-variant">Total pointages</p>
           </div>
         </Card>
         <Card className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center shrink-0">
-            <AlertTriangle size={20} className="text-yellow-600" />
-          </div>
+          <AlertTriangle size={22} className="text-amber-500 shrink-0" />
           <div>
             <p className="text-2xl font-bold text-on-surface">{lateCount}</p>
             <p className="text-xs text-on-surface-variant">Retards</p>
           </div>
         </Card>
         <Card className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-            <Timer size={20} className="text-green-600" />
-          </div>
+          <Timer size={22} className="text-emerald-600 shrink-0" />
           <div>
             <p className="text-2xl font-bold text-on-surface">{formatMinutes(totalWorkMinutes)}</p>
             <p className="text-xs text-on-surface-variant">Heures travaillées</p>
@@ -100,59 +102,124 @@ export default function MyAttendancePage() {
         </Card>
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Derniers pointages</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {attendances.length === 0 ? (
-            <div className="text-center py-12">
-              <History size={48} className="mx-auto text-on-surface-variant/20 mb-4" />
-              <p className="text-on-surface-variant">Aucun pointage enregistré</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-surface-container">
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Date</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Entrée</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Sortie</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Durée</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Retard</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Statut</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Lieu</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-container/50">
-                  {attendances.map((a: Attendance) => (
-                    <tr key={a.id} className="hover:bg-surface-container/30 transition-colors">
-                      <td className="py-3 px-2 font-medium text-on-surface">
-                        {format(parseISO(a.work_date), 'dd MMM yyyy', { locale: fr })}
+      {/* GitHub-Style Attendance Heatmap Graph */}
+      <AttendanceHeatmap attendances={attendances} />
+
+      {/* Table Unifiée Style Admin */}
+      <div className="bg-surface-container-lowest border border-on-surface/15 rounded-2xl shadow-none overflow-hidden">
+        <div className="px-6 py-4 border-b border-on-surface/10 flex items-center justify-between">
+          <h2 className="text-base font-bold text-on-surface">Derniers pointages</h2>
+          <span className="text-xs text-on-surface-variant font-medium">{attendances.length} entrée{attendances.length > 1 ? 's' : ''}</span>
+        </div>
+        
+        {attendances.length === 0 ? (
+          <div className="text-center py-12">
+            <History size={40} className="mx-auto text-on-surface-variant/30 mb-3" />
+            <p className="text-sm font-medium text-on-surface-variant">Aucun pointage enregistré</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-on-surface/10 bg-surface-container-low/30">
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Date <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Heure d'Entrée <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Heure de Sortie <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Durée Effectuée <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Retard <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Statut <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Lieu / Canal <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-on-surface/10">
+                {attendances.map((a: any) => {
+                  const inTimeStr = a.checked_in_at || a.clock_in || a.clockIn;
+                  const outTimeStr = a.checked_out_at || a.clock_out || a.clockOut;
+                  const rawDate = a.work_date || inTimeStr || a.createdAt || a.created_at;
+
+                  // Calculation of work duration if not provided directly
+                  let workMins = a.work_minutes ?? a.workMinutes;
+                  const isToday = rawDate && new Date(rawDate).toDateString() === new Date().toDateString();
+
+                  if ((workMins === null || workMins === undefined || workMins === 0) && inTimeStr) {
+                    if (outTimeStr) {
+                      const diffMs = new Date(outTimeStr).getTime() - new Date(inTimeStr).getTime();
+                      workMins = Math.max(0, Math.floor(diffMs / 60000));
+                    } else if (isToday) {
+                      const diffMs = new Date().getTime() - new Date(inTimeStr).getTime();
+                      workMins = Math.max(0, Math.floor(diffMs / 60000));
+                    }
+                  }
+
+                  const lateMins = getAttendanceLateness(a);
+                  const isLate = lateMins > 0;
+
+                  return (
+                    <tr key={a.id} className="hover:bg-surface-container-low/50 border-b border-on-surface/10 last:border-b-0 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-on-surface whitespace-nowrap">
+                        {(() => {
+                          if (!rawDate) return 'Aujourd\'hui';
+                          try {
+                            return format(parseISO(rawDate), 'dd MMMM yyyy', { locale: fr });
+                          } catch {
+                            return 'Aujourd\'hui';
+                          }
+                        })()}
                       </td>
-                      <td className="py-3 px-2 text-on-surface-variant">{formatTime(a.checked_in_at)}</td>
-                      <td className="py-3 px-2 text-on-surface-variant">{formatTime(a.checked_out_at)}</td>
-                      <td className="py-3 px-2 text-on-surface-variant">{formatMinutes(a.work_minutes)}</td>
-                      <td className="py-3 px-2">
-                        {a.late_minutes > 0 ? (
-                          <Badge variant="warning">{a.late_minutes}min</Badge>
+                      <td className="py-3.5 px-4 font-medium text-on-surface whitespace-nowrap">
+                        {formatTime(inTimeStr)}
+                      </td>
+                      <td className="py-3.5 px-4 text-on-surface-variant whitespace-nowrap">
+                        {outTimeStr ? formatTime(outTimeStr) : <span className="text-amber-600 font-semibold text-xs bg-amber-500/10 px-2 py-0.5 rounded-full">En cours</span>}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono font-medium text-on-surface whitespace-nowrap">
+                        {!outTimeStr && isToday ? (
+                          <span className="text-primary font-bold text-xs bg-primary/10 px-2.5 py-0.5 rounded-full">
+                            {formatMinutes(workMins)} (en cours)
+                          </span>
+                        ) : !outTimeStr ? (
+                          <span className="text-on-surface-variant/70 text-xs italic">Non clôturé</span>
                         ) : (
-                          <span className="text-on-surface-variant">—</span>
+                          formatMinutes(workMins)
                         )}
                       </td>
-                      <td className="py-3 px-2">
-                        <Badge variant={statusBadgeVariant(a.status)}>{a.status_label}</Badge>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {isLate ? (
+                          <Badge variant="warning">{formatMinutes(lateMins)} de retard</Badge>
+                        ) : (
+                          <span className="text-xs text-emerald-600 font-semibold">À l'heure</span>
+                        )}
                       </td>
-                      <td className="py-3 px-2 text-on-surface-variant">{a.location_name || '—'}</td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <Badge variant={isLate ? 'warning' : 'success'}>
+                          {isLate ? 'Retard' : 'Présent'}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-on-surface-variant whitespace-nowrap text-xs">
+                        {a.location?.name || a.location_name || a.deviceType || a.device_type || '—'}
+                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

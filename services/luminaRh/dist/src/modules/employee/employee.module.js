@@ -18,7 +18,7 @@ let EmployeeModule = class EmployeeModule {
 exports.EmployeeModule = EmployeeModule;
 exports.EmployeeModule = EmployeeModule = __decorate([
     (0, common_1.Module)({
-        controllers: [employee_controller_1.EmployeeController, employee_me_controller_1.EmployeeMeController, advance_controller_1.AdvanceController],
+        controllers: [advance_controller_1.AdvanceController, employee_me_controller_1.EmployeeMeController, employee_controller_1.EmployeeController],
         providers: [employee_service_1.EmployeeService, advance_service_1.AdvanceService],
         exports: [employee_service_1.EmployeeService, advance_service_1.AdvanceService],
     })

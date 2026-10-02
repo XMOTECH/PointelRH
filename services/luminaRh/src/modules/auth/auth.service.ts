@@ -84,8 +84,8 @@ export class AuthService {
         const errText = await response.text();
         this.logger.error('Keycloak token error:', errText);
 
-        // Auto-fix : Si le compte a des requiredActions ("Account is not fully set up")
-        if (errText.includes('Account is not fully set up') || errText.includes('invalid_grant')) {
+        // Auto-fix : Uniquement si le compte a des requiredActions ("Account is not fully set up")
+        if (errText.includes('Account is not fully set up')) {
           this.logger.log(`Tentative de déblocage automatique de l'accès Keycloak pour ${loginDto.email}...`);
           await this.keycloakAdmin.resetUserCredentials(loginDto.email, loginDto.password);
           

@@ -68,7 +68,7 @@ services:
       context: ./services/luminaRh
       dockerfile: Dockerfile
     container_name: luminarh-service
-    command: npm run start
+    command: sh -c "npm install --no-audit --legacy-peer-deps && npx prisma generate && npm run build && npm run start:prod"
     restart: unless-stopped
     ports:
       - "8001:3000"   # Expose directement sur le port 8001 (remplace Kong)

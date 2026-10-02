@@ -27,11 +27,17 @@ export function AdvancesPage() {
   const [actioning, setActioning] = useState<string | null>(null);
 
   const fetchRequests = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/api/employees/advances');
+      let res;
+      try {
+        res = await api.get('/api/employees/advances');
+      } catch {
+        res = await api.get('/api/advances');
+      }
       setRequests(res.data?.data || []);
-    } catch (err) {
-      toast.error('Erreur lors du chargement des demandes');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Erreur lors du chargement des demandes');
     } finally {
       setLoading(false);
     }
@@ -44,7 +50,11 @@ export function AdvancesPage() {
   const handleAction = async (id: string, status: 'approved' | 'rejected') => {
     setActioning(id);
     try {
-      await api.patch(`/api/employees/advances/${id}/status`, { status });
+      try {
+        await api.patch(`/api/employees/advances/${id}/status`, { status });
+      } catch {
+        await api.patch(`/api/advances/${id}/status`, { status });
+      }
       toast.success(status === 'approved' ? 'Demande approuvée' : 'Demande rejetée');
       fetchRequests();
     } catch (err: any) {
@@ -107,7 +117,8 @@ export function AdvancesPage() {
                   <tr key={req.id} className="hover:bg-surface-container-low/10 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-on-surface text-sm">
-                        {req.employee?.first_name} {req.employee?.last_name}
+                        {req.employee?.first_name || (req.employee as any)?.firstName}{' '}
+                        {req.employee?.last_name || (req.employee as any)?.lastName}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-xs font-medium text-on-surface-variant/80">
@@ -119,13 +130,13 @@ export function AdvancesPage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 font-bold text-on-surface text-sm">
-                      {req.amount.toLocaleString('fr-FR')} FCFA
+                      {Number(req.amount || 0).toLocaleString('fr-FR')} FCFA
                     </td>
                     <td className="px-6 py-4 text-xs text-on-surface-variant/80 max-w-[200px] truncate" title={req.reason || undefined}>
                       {req.reason || <span className="text-on-surface-variant/40 italic">Aucun</span>}
                     </td>
                     <td className="px-6 py-4 text-xs text-on-surface-variant/60">
-                      {new Date(req.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(req.createdAt || (req as any).created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-6 py-4">
                       {getStatusBadge(req.status)}

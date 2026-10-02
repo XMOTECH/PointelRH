@@ -7,4 +7,9 @@ export class UpdateDepartmentDto {
   @IsNotEmpty({ message: 'Le nom du département ne peut pas être vide' })
   @IsOptional()
   name?: string;
+
+  @ApiProperty({ example: 'uuid-employee', description: 'ID de l\'employé manager', required: false })
+  @IsString()
+  @IsOptional()
+  manager_id?: string;
 }

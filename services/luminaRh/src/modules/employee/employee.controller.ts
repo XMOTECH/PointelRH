@@ -1,11 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Header, ForbiddenException } from '@nestjs/common';
 import { Roles } from 'nest-keycloak-connect';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentUser, CurrentUserDto } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { escapeHtml } from '../../common/utils/escape-html';
 
@@ -142,7 +141,13 @@ export class EmployeeController {
   @Roles({ roles: ['realm:employee', 'realm:admin', 'realm:manager', 'realm:super_admin'] })
   @ApiOperation({ summary: 'Obtenir l\'état d\'enregistrement facial d\'un employé' })
   @ApiParam({ name: 'id', description: 'UUID de l\'employé' })
-  async getFaceEnrollment(@Param('id') id: string) {
+  async getFaceEnrollment(
+    @CurrentUser() user: CurrentUserDto,
+    @Param('id') id: string,
+  ) {
+    if (user?.role === 'employee' && user?.employeeId !== id) {
+      throw new ForbiddenException('Vous ne pouvez consulter que vos propres données faciales');
+    }
     const status = await this.employeeService.getFaceEnrollment(id);
     return {
       success: true,
@@ -155,9 +160,13 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Enregistrer les descripteurs faciaux d\'un employé' })
   @ApiParam({ name: 'id', description: 'UUID de l\'employé' })
   async enrollFace(
+    @CurrentUser() user: CurrentUserDto,
     @Param('id') id: string,
     @Body() body: { descriptors: number[][] },
   ) {
+    if (user?.role === 'employee' && user?.employeeId !== id) {
+      throw new ForbiddenException('Vous ne pouvez modifier que vos propres données faciales');
+    }
     await this.employeeService.enrollFace(id, body.descriptors || []);
     return {
       success: true,
@@ -169,7 +178,13 @@ export class EmployeeController {
   @Roles({ roles: ['realm:employee', 'realm:admin', 'realm:manager', 'realm:super_admin'] })
   @ApiOperation({ summary: 'Supprimer les données faciales d\'un employé' })
   @ApiParam({ name: 'id', description: 'UUID de l\'employé' })
-  async deleteFaceEnrollment(@Param('id') id: string) {
+  async deleteFaceEnrollment(
+    @CurrentUser() user: CurrentUserDto,
+    @Param('id') id: string,
+  ) {
+    if (user?.role === 'employee' && user?.employeeId !== id) {
+      throw new ForbiddenException('Vous ne pouvez supprimer que vos propres données faciales');
+    }
     await this.employeeService.deleteFaceEnrollment(id);
     return {
       success: true,
@@ -197,10 +212,10 @@ export class EmployeeController {
   @Roles({ roles: ['realm:admin', 'realm:super_admin'] })
   @ApiOperation({ summary: 'Générer le certificat de travail au format imprimable' })
   @ApiParam({ name: 'id', description: 'UUID de l\'employé' })
+  @Header('Content-Type', 'text/html')
   async getWorkCertificate(
     @CurrentUser('companyId') companyId: string,
     @Param('id') id: string,
-    @Res() res: Response,
   ) {
     const employee = await this.employeeService.findOne(companyId, id);
     const today = escapeHtml(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }));
@@ -266,18 +281,17 @@ export class EmployeeController {
       </html>
     `;
 
-    res.setHeader('Content-Type', 'text/html');
-    res.status(200).send(html);
+    return html;
   }
 
   @Get(':id/documents/solde-de-tout-compte')
   @Roles({ roles: ['realm:admin', 'realm:super_admin'] })
   @ApiOperation({ summary: 'Générer le reçu de solde de tout compte au format imprimable' })
   @ApiParam({ name: 'id', description: 'UUID de l\'employé' })
+  @Header('Content-Type', 'text/html')
   async getSoldeDeToutCompte(
     @CurrentUser('companyId') companyId: string,
     @Param('id') id: string,
-    @Res() res: Response,
   ) {
     const employee = await this.employeeService.findOne(companyId, id);
     const today = escapeHtml(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }));
@@ -395,8 +409,7 @@ export class EmployeeController {
       </html>
     `;
 
-    res.setHeader('Content-Type', 'text/html');
-    res.status(200).send(html);
+    return html;
   }
 }
 

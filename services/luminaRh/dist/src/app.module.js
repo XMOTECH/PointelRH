@@ -25,8 +25,12 @@ const leave_module_1 = require("./modules/leave/leave.module");
 const department_module_1 = require("./modules/department/department.module");
 const schedule_module_1 = require("./modules/schedule/schedule.module");
 const payroll_module_1 = require("./modules/payroll/payroll.module");
+const onboarding_module_1 = require("./modules/onboarding/onboarding.module");
+const offboarding_module_1 = require("./modules/offboarding/offboarding.module");
+const performance_module_1 = require("./modules/performance/performance.module");
 const db_user_interceptor_1 = require("./common/interceptors/db-user.interceptor");
 const case_conversion_interceptor_1 = require("./common/interceptors/case-conversion.interceptor");
+const app_role_guard_1 = require("./common/guards/app-role.guard");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 let AppModule = class AppModule {
@@ -52,6 +56,9 @@ exports.AppModule = AppModule = __decorate([
             department_module_1.DepartmentModule,
             schedule_module_1.ScheduleModule,
             payroll_module_1.PayrollModule,
+            onboarding_module_1.OnboardingModule,
+            offboarding_module_1.OffboardingModule,
+            performance_module_1.PerformanceModule,
             nest_keycloak_connect_1.KeycloakConnectModule.registerAsync({
                 inject: [config_1.ConfigService],
                 useFactory: (config) => ({
@@ -79,7 +86,7 @@ exports.AppModule = AppModule = __decorate([
             },
             {
                 provide: core_1.APP_GUARD,
-                useClass: nest_keycloak_connect_1.RoleGuard,
+                useClass: app_role_guard_1.AppRoleGuard,
             },
             {
                 provide: core_1.APP_INTERCEPTOR,

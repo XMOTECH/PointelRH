@@ -4,7 +4,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { 
   KeycloakConnectModule, 
   ResourceGuard, 
-  RoleGuard, 
   AuthGuard,
   TokenValidation
 } from 'nest-keycloak-connect';
@@ -22,8 +21,12 @@ import { LeaveModule } from './modules/leave/leave.module';
 import { DepartmentModule } from './modules/department/department.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { OffboardingModule } from './modules/offboarding/offboarding.module';
+import { PerformanceModule } from './modules/performance/performance.module';
 import { DbUserInterceptor } from './common/interceptors/db-user.interceptor';
 import { CaseConversionInterceptor } from './common/interceptors/case-conversion.interceptor';
+import { AppRoleGuard } from './common/guards/app-role.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -46,6 +49,9 @@ import { AppService } from './app.service';
     DepartmentModule,
     ScheduleModule,
     PayrollModule,
+    OnboardingModule,
+    OffboardingModule,
+    PerformanceModule,
     KeycloakConnectModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -73,7 +79,7 @@ import { AppService } from './app.service';
     },
     {
       provide: APP_GUARD,
-      useClass: RoleGuard,
+      useClass: AppRoleGuard,
     },
     {
       provide: APP_INTERCEPTOR,

@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ClockInDto } from './dto/clock-in.dto';
 import { ClockOutDto } from './dto/clock-out.dto';
+import { PunchDto } from './dto/punch.dto';
 export declare class PointageService implements OnModuleInit {
     private readonly prisma;
     private readonly eventEmitter;
@@ -17,7 +18,17 @@ export declare class PointageService implements OnModuleInit {
     handleFaceDeleted(payload: {
         employeeId: string;
     }): Promise<void>;
-    clockIn(companyId: string, dto: ClockInDto): Promise<{
+    resolveEmployee(dto: {
+        channel: string;
+        payload?: any;
+        companyId?: string;
+        company_id?: string;
+    }, explicitCompanyId?: string): Promise<any>;
+    clockIn(companyId: string | undefined, dto: ClockInDto): Promise<{
+        clock_in: Date;
+        clock_out: Date | null;
+        checked_in_at: Date;
+        checked_out_at: Date | null;
         employee: {
             id: string;
             createdAt: Date;
@@ -37,6 +48,8 @@ export declare class PointageService implements OnModuleInit {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
         location: {
             id: string;
@@ -51,7 +64,6 @@ export declare class PointageService implements OnModuleInit {
             radius: number;
             qrToken: string | null;
         } | null;
-    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -66,22 +78,35 @@ export declare class PointageService implements OnModuleInit {
         isLate: boolean;
         lateMinutes: number;
     }>;
-    clockOut(employeeId: string, dto: ClockOutDto): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        latitude: number | null;
-        longitude: number | null;
-        employeeId: string;
-        locationId: string | null;
-        clockIn: Date;
-        clockOut: Date | null;
-        deviceType: string;
-        ipAddress: string | null;
-        isLate: boolean;
-        lateMinutes: number;
-    }>;
-    getTodayStatus(employeeId: string): Promise<({
+    clockOut(employeeId: string, dto?: ClockOutDto): Promise<{
+        clock_in: Date;
+        clock_out: Date | null;
+        checked_in_at: Date;
+        checked_out_at: Date | null;
+        work_minutes: number;
+        workMinutes: number;
+        employee: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            companyId: string;
+            email: string;
+            departmentId: string;
+            userId: string;
+            scheduleId: string | null;
+            firstName: string;
+            lastName: string;
+            pinCode: string | null;
+            contractType: string;
+            hireDate: Date;
+            status: string;
+            baseSalary: import("@prisma/client/runtime/library").Decimal;
+            transportAllowance: import("@prisma/client/runtime/library").Decimal;
+            maritalStatus: string;
+            taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
+        };
         location: {
             id: string;
             name: string;
@@ -95,7 +120,6 @@ export declare class PointageService implements OnModuleInit {
             radius: number;
             qrToken: string | null;
         } | null;
-    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -109,12 +133,124 @@ export declare class PointageService implements OnModuleInit {
         ipAddress: string | null;
         isLate: boolean;
         lateMinutes: number;
-    }) | null>;
+    }>;
+    punch(dto: PunchDto, explicitCompanyId?: string): Promise<{
+        action: string;
+        attendance: {
+            clock_in: Date;
+            clock_out: Date | null;
+            checked_in_at: Date;
+            checked_out_at: Date | null;
+            employee: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                companyId: string;
+                email: string;
+                departmentId: string;
+                userId: string;
+                scheduleId: string | null;
+                firstName: string;
+                lastName: string;
+                pinCode: string | null;
+                contractType: string;
+                hireDate: Date;
+                status: string;
+                baseSalary: import("@prisma/client/runtime/library").Decimal;
+                transportAllowance: import("@prisma/client/runtime/library").Decimal;
+                maritalStatus: string;
+                taxParts: number;
+                isCadre: boolean;
+                jobTitle: string | null;
+            };
+            location: {
+                id: string;
+                name: string;
+                isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
+                companyId: string;
+                address: string | null;
+                latitude: number;
+                longitude: number;
+                radius: number;
+                qrToken: string | null;
+            } | null;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            latitude: number | null;
+            longitude: number | null;
+            employeeId: string;
+            locationId: string | null;
+            clockIn: Date;
+            clockOut: Date | null;
+            deviceType: string;
+            ipAddress: string | null;
+            isLate: boolean;
+            lateMinutes: number;
+        };
+        message: string;
+    }>;
+    getTodayStatus(employeeId: string): Promise<{
+        clock_in: Date;
+        clock_out: Date | null;
+        checked_in_at: Date;
+        checked_out_at: Date | null;
+        work_minutes: number;
+        workMinutes: number;
+        sessionsCount: number;
+        hasActiveSession: boolean;
+        activeSessionId: string | null;
+        canClockIn: boolean;
+        canClockOut: boolean;
+        sessions: {
+            id: string;
+            clockIn: Date;
+            clockOut: Date | null;
+            isLate: boolean;
+            lateMinutes: number;
+            durationMinutes: number;
+        }[];
+        location: {
+            id: string;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            companyId: string;
+            address: string | null;
+            latitude: number;
+            longitude: number;
+            radius: number;
+            qrToken: string | null;
+        } | null;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        latitude: number | null;
+        longitude: number | null;
+        employeeId: string;
+        locationId: string | null;
+        clockIn: Date;
+        clockOut: Date | null;
+        deviceType: string;
+        ipAddress: string | null;
+        isLate: boolean;
+        lateMinutes: number;
+    } | null>;
     getHistory(companyId: string, filters: {
         departmentId?: string;
         locationId?: string;
         date?: string;
-    }): Promise<({
+        employeeId?: string;
+    }): Promise<{
+        clock_in: Date;
+        clock_out: Date | null;
+        checked_in_at: Date;
+        checked_out_at: Date | null;
+        work_minutes: number | null;
+        workMinutes: number | null;
         employee: {
             id: string;
             createdAt: Date;
@@ -134,6 +270,8 @@ export declare class PointageService implements OnModuleInit {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
         location: {
             id: string;
@@ -148,7 +286,6 @@ export declare class PointageService implements OnModuleInit {
             radius: number;
             qrToken: string | null;
         } | null;
-    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -162,8 +299,14 @@ export declare class PointageService implements OnModuleInit {
         ipAddress: string | null;
         isLate: boolean;
         lateMinutes: number;
-    })[]>;
-    getByEmployeeIds(companyId: string, employeeIds: string[]): Promise<({
+    }[]>;
+    getByEmployeeIds(companyId: string, employeeIds: string[]): Promise<{
+        clock_in: Date;
+        clock_out: Date | null;
+        checked_in_at: Date;
+        checked_out_at: Date | null;
+        work_minutes: number | null;
+        workMinutes: number | null;
         employee: {
             id: string;
             createdAt: Date;
@@ -183,6 +326,8 @@ export declare class PointageService implements OnModuleInit {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
         location: {
             id: string;
@@ -197,7 +342,6 @@ export declare class PointageService implements OnModuleInit {
             radius: number;
             qrToken: string | null;
         } | null;
-    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -211,7 +355,7 @@ export declare class PointageService implements OnModuleInit {
         ipAddress: string | null;
         isLate: boolean;
         lateMinutes: number;
-    })[]>;
+    }[]>;
     private calculateLateness;
     private getDistance;
 }

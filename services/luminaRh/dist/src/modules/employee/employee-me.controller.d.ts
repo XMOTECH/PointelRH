@@ -22,6 +22,7 @@ export declare class EmployeeMeController {
                 startTime: string | null;
                 endTime: string | null;
                 graceMinutes: number;
+                workDays: number[];
             } | null;
             user: {
                 id: string;
@@ -55,6 +56,8 @@ export declare class EmployeeMeController {
             transportAllowance: import("@prisma/client/runtime/library").Decimal;
             maritalStatus: string;
             taxParts: number;
+            isCadre: boolean;
+            jobTitle: string | null;
         };
     }>;
 }

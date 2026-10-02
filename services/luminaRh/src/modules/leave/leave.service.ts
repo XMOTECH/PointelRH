@@ -39,26 +39,49 @@ export class LeaveService {
       throw new NotFoundException('Demande de congé introuvable');
     }
 
-    // Update status
-    const updated = await this.prisma.leaveRequest.update({
-      where: { id },
-      data: {
-        status: dto.status,
-        rejectionReason: dto.rejection_reason || null,
-        approvedBy: dto.status === 'approved' ? approverId : null,
-        approvedAt: dto.status === 'approved' ? new Date() : null,
-      },
-      include: {
-        employee: true,
-        leaveType: true,
-      },
-    });
-
-    // If approved, update balance
-    if (dto.status === 'approved') {
-      const days = request.daysCount || this.calculateDays(request.startDate, request.endDate, request.halfDay);
-      await this.deductBalance(request.employeeId, request.leaveTypeId, days);
+    if (request.status !== 'pending') {
+      throw new BadRequestException(`Cette demande de congé a déjà été traitée (statut actuel: ${request.status})`);
     }
+
+    const days = request.daysCount || this.calculateDays(request.startDate, request.endDate, request.halfDay);
+    const leaveYear = request.startDate.getFullYear();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const up = await tx.leaveRequest.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          rejectionReason: dto.rejection_reason || null,
+          approvedBy: dto.status === 'approved' ? approverId : null,
+          approvedAt: dto.status === 'approved' ? new Date() : null,
+        },
+        include: {
+          employee: true,
+          leaveType: true,
+        },
+      });
+
+      if (dto.status === 'approved') {
+        await tx.leaveBalance.updateMany({
+          where: { employeeId: request.employeeId, leaveTypeId: request.leaveTypeId, year: leaveYear },
+          data: {
+            pending: { decrement: days },
+            used: { increment: days },
+            remaining: { decrement: days },
+          },
+        });
+      } else if (dto.status === 'rejected') {
+        // Release pending balance upon rejection
+        await tx.leaveBalance.updateMany({
+          where: { employeeId: request.employeeId, leaveTypeId: request.leaveTypeId, year: leaveYear },
+          data: {
+            pending: { decrement: days },
+          },
+        });
+      }
+
+      return up;
+    });
 
     return this.mapToLeaveRequestResource(updated);
   }
@@ -128,17 +151,17 @@ export class LeaveService {
       leave_type: {
         id: b.leaveType.id,
         name: b.leaveType.name,
-        max_days_per_year: b.leaveType.maxDaysPerYear,
+        max_days_per_year: b.leaveType.maxDaysPerYear ? Number(b.leaveType.maxDaysPerYear) : null,
         requires_attachment: b.leaveType.requiresAttachment,
         paid: b.leaveType.paid,
         color: b.leaveType.color,
         is_active: b.leaveType.isActive,
       },
       year: b.year,
-      allocated: b.allocated,
-      used: b.used,
-      pending: b.pending,
-      remaining: b.remaining,
+      allocated: Number(b.allocated || 0),
+      used: Number(b.used || 0),
+      pending: Number(b.pending || 0),
+      remaining: Number(b.remaining || 0),
     }));
   }
 
@@ -158,39 +181,47 @@ export class LeaveService {
 
     const days = this.calculateDays(start, end, dto.half_day || false);
 
-    // Verify balance
+    // Verify balance factoring in pending requests
     const balances = await this.findMyBalance(employeeId, start.getFullYear());
     const balance = balances.find(b => b.leave_type_id === dto.leave_type_id);
-    if (balance && Number(balance.remaining) < days) {
-      throw new BadRequestException(`Solde insuffisant. Jours demandés: ${days}, Solde restant: ${balance.remaining}`);
+    if (balance) {
+      const netAvailable = Number(balance.remaining) - Number(balance.pending);
+      if (netAvailable < days) {
+        throw new BadRequestException(
+          `Solde insuffisant. Jours demandés: ${days}, Solde net disponible (après demandes en attente): ${netAvailable}`
+        );
+      }
     }
 
-    // Save request
-    const request = await this.prisma.leaveRequest.create({
-      data: {
-        employeeId,
-        leaveTypeId: dto.leave_type_id,
-        startDate: start,
-        endDate: end,
-        reason: dto.reason || null,
-        status: 'pending',
-        halfDay: dto.half_day || false,
-        halfDayPeriod: dto.half_day_period || null,
-        daysCount: days,
-        attachmentPath: file ? file.path || file.url : null,
-      },
-      include: {
-        employee: true,
-        leaveType: true,
-      },
-    });
+    // Save request and update pending balance atomically
+    const request = await this.prisma.$transaction(async (tx) => {
+      const req = await tx.leaveRequest.create({
+        data: {
+          employeeId,
+          leaveTypeId: dto.leave_type_id,
+          startDate: start,
+          endDate: end,
+          reason: dto.reason || null,
+          status: 'pending',
+          halfDay: dto.half_day || false,
+          halfDayPeriod: dto.half_day_period || null,
+          daysCount: days,
+          attachmentPath: file ? file.path || file.url : null,
+        },
+        include: {
+          employee: true,
+          leaveType: true,
+        },
+      });
 
-    // Update pending balance
-    await this.prisma.leaveBalance.updateMany({
-      where: { employeeId, leaveTypeId: dto.leave_type_id, year: start.getFullYear() },
-      data: {
-        pending: { increment: days },
-      },
+      await tx.leaveBalance.updateMany({
+        where: { employeeId, leaveTypeId: dto.leave_type_id, year: start.getFullYear() },
+        data: {
+          pending: { increment: days },
+        },
+      });
+
+      return req;
     });
 
     return this.mapToLeaveRequestResource(request);
@@ -209,16 +240,20 @@ export class LeaveService {
       throw new BadRequestException('Seules les demandes de congé en attente peuvent être annulées');
     }
 
-    // Release pending balance
     const days = request.daysCount || 0;
-    await this.prisma.leaveBalance.updateMany({
-      where: { employeeId, leaveTypeId: request.leaveTypeId, year: request.startDate.getFullYear() },
-      data: {
-        pending: { decrement: days },
-      },
+
+    await this.prisma.$transaction(async (tx) => {
+      // Release pending balance
+      await tx.leaveBalance.updateMany({
+        where: { employeeId, leaveTypeId: request.leaveTypeId, year: request.startDate.getFullYear() },
+        data: {
+          pending: { decrement: days },
+        },
+      });
+
+      await tx.leaveRequest.delete({ where: { id } });
     });
 
-    await this.prisma.leaveRequest.delete({ where: { id } });
     return { success: true, message: 'Demande de congé annulée avec succès' };
   }
 
@@ -271,14 +306,14 @@ export class LeaveService {
       leave_type: r.leaveType ? {
         id: r.leaveType.id,
         name: r.leaveType.name,
-        max_days_per_year: r.leaveType.maxDaysPerYear,
+        max_days_per_year: r.leaveType.maxDaysPerYear ? Number(r.leaveType.maxDaysPerYear) : null,
         requires_attachment: r.leaveType.requiresAttachment,
         paid: r.leaveType.paid,
         color: r.leaveType.color,
         is_active: r.leaveType.isActive,
       } : r.leaveTypeId,
-      start_date: r.startDate.toISOString().split('T')[0],
-      end_date: r.endDate.toISOString().split('T')[0],
+      start_date: r.startDate ? r.startDate.toISOString().split('T')[0] : '',
+      end_date: r.endDate ? r.endDate.toISOString().split('T')[0] : '',
       reason: r.reason,
       rejection_reason: r.rejectionReason,
       status: r.status,
@@ -287,8 +322,8 @@ export class LeaveService {
       attachment_path: r.attachmentPath,
       half_day: r.halfDay,
       half_day_period: r.halfDayPeriod,
-      days_count: r.daysCount,
-      created_at: r.createdAt.toISOString(),
+      days_count: r.daysCount ? Number(r.daysCount) : 0,
+      created_at: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
       employee: r.employee ? {
         id: r.employee.id,
         first_name: r.employee.firstName,

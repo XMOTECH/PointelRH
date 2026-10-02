@@ -69,7 +69,7 @@ export class AdvanceController {
   // ==========================================
 
   @ApiTags('Employees')
-  @Get('employees/advances')
+  @Get(['employees/advances', 'advances'])
   @Roles({ roles: ['realm:admin', 'realm:super_admin'] })
   @ApiOperation({
     summary: 'Lister toutes les demandes d\'acomptes/prêts de l\'entreprise',
@@ -84,17 +84,18 @@ export class AdvanceController {
   }
 
   @ApiTags('Employees')
-  @Patch('employees/advances/:id/status')
+  @Patch(['employees/advances/:id/status', 'advances/:id/status'])
   @Roles({ roles: ['realm:admin', 'realm:super_admin'] })
   @ApiOperation({
     summary: 'Valider ou rejeter une demande de prêt social',
     description: 'Permet au RH d\'accepter (approved) ou de refuser (rejected) la demande de financement.',
   })
   async updateAdvanceStatus(
+    @CurrentUser('companyId') companyId: string,
     @Param('id') id: string,
     @Body() body: { status: string },
   ) {
-    const updated = await this.advanceService.updateStatus(id, body.status);
+    const updated = await this.advanceService.updateStatus(id, body.status, companyId);
     return {
       success: true,
       message: `Demande de prêt social mise à jour : ${body.status}`,

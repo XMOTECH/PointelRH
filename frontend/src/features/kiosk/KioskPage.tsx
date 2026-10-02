@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { CheckCircle2, LogOut, ScanFace, KeyRound, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Numpad } from '../../components/ui/Numpad';
 import { useRealTimeClock } from '../clockin/hooks/hooks';
-import { useClockIn } from '../clockin/hooks/useClockIn';
-import { useClockOut } from '../clockin/hooks/useClockOut';
+import { usePunch } from '../clockin/hooks/usePunch';
 import { useFaceDetection } from '../clockin/hooks/useFaceDetection';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
@@ -22,52 +22,43 @@ export default function KioskPage() {
 
   const currentTime = useRealTimeClock();
   const {
-    mutate: clockIn,
-    isPending: clockInPending,
-    error: clockInError,
-    isSuccess: clockInSuccess,
-    data: clockInData,
-    reset: resetClockIn
-  } = useClockIn();
+    mutate: punch,
+    isPending,
+    error: punchError,
+    isSuccess,
+    data: punchData,
+    reset: resetPunch,
+  } = usePunch();
 
-  const {
-    mutate: clockOut,
-    isPending: clockOutPending,
-    error: clockOutError,
-    isSuccess: clockOutSuccess,
-    data: clockOutData,
-    reset: resetClockOut
-  } = useClockOut();
   const { user } = useAuth();
-
-  const companyId = user?.company_id || new URLSearchParams(window.location.search).get('company_id');
-
-  const isPending = clockInPending || clockOutPending;
-  const isSuccess = clockInSuccess || clockOutSuccess;
+  const companyId = (user as any)?.companyId || user?.company_id || new URLSearchParams(window.location.search).get('company_id') || new URLSearchParams(window.location.search).get('companyId') || undefined;
 
   // ── PIN Logic ──────────────────────────────────────────
   const handlePinSubmit = useCallback((pinCode: string) => {
-    if (!companyId) return;
-
-    clockIn({
+    punch({
       channel: 'pin',
       company_id: companyId,
-      payload: { pin_code: pinCode },
+      companyId: companyId,
+      payload: { pin: pinCode, pin_code: pinCode, pinCode: pinCode },
     }, {
-      onError: (error) => {
-        const err = error as { response?: { status?: number; data?: { employee_id?: string } } };
-        if (err?.response?.status === 409 && err?.response?.data?.employee_id) {
-          const empId = err.response.data.employee_id;
-          setAction('checkout');
-          resetClockIn();
-          clockOut({
-            employee_id: empId,
-            company_id: companyId || undefined
-          });
-        }
-      }
+      onSuccess: (res) => {
+        setAction(res.action === 'CLOCK_IN' ? 'checkin' : 'checkout');
+        setSuccessMsg(res.message);
+        setTimeout(() => {
+          setPin('');
+          setSuccessMsg('');
+          setAction('checkin');
+          resetPunch();
+        }, 4000);
+      },
+      onError: () => {
+        setTimeout(() => {
+          setPin('');
+          resetPunch();
+        }, 3000);
+      },
     });
-  }, [companyId, clockIn, clockOut, resetClockIn]);
+  }, [companyId, punch, resetPunch]);
 
   // Auto-submit when 4 digits
   useEffect(() => {
@@ -78,93 +69,29 @@ export default function KioskPage() {
 
   // ── Face Logic ──────────────────────────────────────────
   const handleFaceClockIn = useCallback((descriptor: number[]) => {
-    if (!companyId) return;
-
-    clockIn({
+    punch({
       channel: 'face',
       company_id: companyId,
+      companyId: companyId,
       payload: { descriptor },
     }, {
-      onError: (error) => {
-        const err = error as { response?: { status?: number; data?: { employee_id?: string } } };
-        if (err?.response?.status === 409 && err?.response?.data?.employee_id) {
-          const empId = err.response.data.employee_id;
-          setAction('checkout');
-          resetClockIn();
-          clockOut({
-            employee_id: empId,
-            company_id: companyId || undefined
-          });
-        }
-      }
-    });
-  }, [companyId, clockIn, clockOut, resetClockIn]);
-
-  // ── Success/Error effects (shared) ─────────────────────
-  useEffect(() => {
-    if (clockInSuccess && clockInData) {
-      const firstName = clockInData.employee?.first_name || 'Employé';
-      const timeStr = format(new Date(), 'HH:mm');
-
-      const successTimer = setTimeout(() => {
-        setSuccessMsg(`Bonjour ${firstName}, pointage enregistré à ${timeStr}`);
-      }, 0);
-
-      const resetTimer = setTimeout(() => {
-        setPin('');
-        setSuccessMsg('');
-        setAction('checkin');
-        resetClockIn();
-      }, 4000);
-
-      return () => {
-        clearTimeout(successTimer);
-        clearTimeout(resetTimer);
-      };
-    }
-
-    if (clockInError) {
-      const err = clockInError as { response?: { status?: number } };
-      if (err?.response?.status !== 409) {
-        const errorTimer = setTimeout(() => {
+      onSuccess: (res) => {
+        setAction(res.action === 'CLOCK_IN' ? 'checkin' : 'checkout');
+        setSuccessMsg(res.message);
+        setTimeout(() => {
           setPin('');
-        }, 0);
-        return () => clearTimeout(errorTimer);
-      }
-    }
-  }, [clockInSuccess, clockInError, clockInData, resetClockIn]);
-
-  useEffect(() => {
-    if (clockOutSuccess && clockOutData) {
-      const workMins = clockOutData.work_minutes;
-      const hours = workMins ? Math.floor(workMins / 60) : 0;
-      const mins = workMins ? workMins % 60 : 0;
-
-      const successTimer = setTimeout(() => {
-        setSuccessMsg(`Sortie enregistrée, durée ${hours}h${String(mins).padStart(2, '0')}`);
-      }, 0);
-
-      const resetTimer = setTimeout(() => {
-        setPin('');
-        setSuccessMsg('');
-        setAction('checkin');
-        resetClockOut();
-      }, 4000);
-
-      return () => {
-        clearTimeout(successTimer);
-        clearTimeout(resetTimer);
-      };
-    }
-
-    if (clockOutError) {
-      const errorTimer = setTimeout(() => {
-        setPin('');
-        setAction('checkin');
-      }, 0);
-      return () => clearTimeout(errorTimer);
-    }
-  }, [clockOutSuccess, clockOutError, clockOutData, resetClockOut]);
+          setSuccessMsg('');
+          setAction('checkin');
+          resetPunch();
+        }, 4000);
+      },
+      onError: () => {
+        setTimeout(() => {
+          resetPunch();
+        }, 3000);
+      },
+    });
+  }, [companyId, punch, resetPunch]);
 
   // ── PIN Keyboard ───────────────────────────────────────
   const handleKeyPress = useCallback((key: string) => {
@@ -188,7 +115,8 @@ export default function KioskPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mode, handleKeyPress, handleDelete]);
 
-  const isCheckout = action === 'checkout';
+  const isCheckout = action === 'checkout' || (punchData?.action === 'CLOCK_OUT');
+  const isLeaving = isCheckout || (successMsg.toLowerCase().includes('départ') || successMsg.toLowerCase().includes('au revoir'));
 
   return (
     <div className="relative min-h-screen lg:h-screen w-full flex flex-col bg-surface font-inter text-on-surface overflow-y-auto lg:overflow-hidden">
@@ -197,47 +125,57 @@ export default function KioskPage() {
         <div className="flex items-center">
           <LuminaLogo variant="horizontal" size="lg" showTagline={true} />
         </div>
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Mode Toggle */}
-          <div className="flex items-center rounded-full bg-surface-container-low p-1 gap-1">
-            <button
-              onClick={() => { setMode('pin'); setPin(''); }}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
-                mode === 'pin'
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
-              )}
-            >
-              <KeyRound size={12} />
-              PIN
-            </button>
-            <button
-              onClick={() => setMode('face')}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
-                mode === 'face'
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
-              )}
-            >
-              <ScanFace size={12} />
-              Visage
-            </button>
-          </div>
+        
+        {/* Mode Switcher Segmented Control */}
+        <div className="flex items-center gap-1.5 p-1 bg-surface-container-low rounded-full border border-on-surface/10">
+          <button
+            onClick={() => { setMode('pin'); resetPunch(); }}
+            className={cn(
+              "flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-wide uppercase transition-all duration-300",
+              mode === 'pin'
+                ? "bg-primary text-on-primary shadow-sm"
+                : "text-on-surface-variant hover:text-on-surface"
+            )}
+          >
+            <KeyRound size={14} />
+            <span>Code PIN</span>
+          </button>
+          <button
+            onClick={() => { setMode('face'); resetPunch(); }}
+            className={cn(
+              "flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-wide uppercase transition-all duration-300",
+              mode === 'face'
+                ? "bg-primary text-on-primary shadow-sm"
+                : "text-on-surface-variant hover:text-on-surface"
+            )}
+          >
+            <ScanFace size={14} />
+            <span>Visage</span>
+          </button>
+        </div>
+
+        {/* Live Indicator */}
+        <div className="flex items-center space-x-3 bg-surface-container-low px-4 py-2 rounded-full border border-on-surface/10">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-bold tracking-widest text-on-surface-variant uppercase font-space">
+            Kiosque Connecté
+          </span>
         </div>
       </header>
 
-      <main className="flex flex-1 items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 min-h-0 overflow-y-auto lg:overflow-hidden">
-        <div className="flex flex-col lg:flex-row w-full max-w-6xl items-center justify-between gap-8 md:gap-12 lg:gap-16 xl:gap-24 my-auto">
-
-          {/* Clock Section */}
-          <div className="flex flex-col space-y-2 sm:space-y-3 lg:space-y-4 flex-1 text-center lg:text-left items-center lg:items-start">
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col justify-center px-4 sm:px-8 md:px-12 lg:px-16 py-4 md:py-6 w-full max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 lg:gap-16 w-full">
+          {/* Time Display */}
+          <div className="flex flex-col items-center lg:items-start space-y-1 sm:space-y-2 select-none text-center lg:text-left">
             <h2 className={cn(
-              "text-xs font-bold tracking-[0.4em] uppercase",
+              "text-xs md:text-sm font-black tracking-widest uppercase mb-1 font-space transition-colors",
               isCheckout ? "text-orange-500" : "text-primary"
             )}>
-              {isCheckout ? 'Pointage de Sortie' : 'Pointage d\'Entrée'}
+              Pointage Intelligent
             </h2>
             <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[11rem] font-medium leading-[0.85] tracking-tighter text-on-surface font-space">
               {format(currentTime, 'HH:mm')}
@@ -245,7 +183,6 @@ export default function KioskPage() {
             <div className="text-xl sm:text-2xl md:text-3xl font-light text-on-surface-variant tracking-tight pl-0 lg:pl-2 capitalize">
               {format(currentTime, "EEEE d MMMM yyyy", { locale: fr })}
             </div>
-
           </div>
 
           {/* Interaction Module */}
@@ -255,15 +192,13 @@ export default function KioskPage() {
               isCheckout={isCheckout}
               isPending={isPending}
               isSuccess={isSuccess}
-              clockInError={clockInError}
-              clockOutError={clockOutError}
+              error={punchError}
               onKeyPress={handleKeyPress}
               onDelete={handleDelete}
               onCancel={() => {
                 setAction('checkin');
                 setPin('');
-                resetClockIn();
-                resetClockOut();
+                resetPunch();
               }}
             />
           ) : (
@@ -271,8 +206,7 @@ export default function KioskPage() {
               isCheckout={isCheckout}
               isPending={isPending}
               onFaceDetected={handleFaceClockIn}
-              clockInError={clockInError}
-              clockOutError={clockOutError}
+              error={punchError}
             />
           )}
         </div>
@@ -293,21 +227,21 @@ export default function KioskPage() {
         >
            <div className={cn(
              "flex h-32 w-32 items-center justify-center rounded-full animate-pulse",
-             successMsg.startsWith('Sortie')
+             isLeaving
                ? "bg-orange-500 shadow-[0_20px_60px_rgba(234,88,12,0.3)]"
                : "bg-primary shadow-[0_20px_60px_rgba(0,82,204,0.3)]"
            )}>
-             {successMsg.startsWith('Sortie')
+             {isLeaving
                ? <LogOut className="h-16 w-16 text-white" />
                : <CheckCircle2 className="h-16 w-16 text-white" />
              }
            </div>
            <div className="text-center">
-             <h3 className="text-5xl font-bold font-space tracking-tighter text-on-surface mb-2">
-               {successMsg.split(',')[0]}
+             <h3 className="text-4xl md:text-5xl font-bold font-space tracking-tighter text-on-surface mb-2">
+               {successMsg}
              </h3>
-             <p className="text-lg font-medium text-on-surface-variant">
-               {successMsg.split(',')[1] || (successMsg.startsWith('Sortie') ? 'Bonne soirée !' : 'Pointage enregistré.')}
+             <p className="text-on-surface-variant font-medium text-lg">
+               {isLeaving ? 'Bon repos et à bientôt !' : 'Bonne journée de travail !'}
              </p>
            </div>
         </div>
@@ -316,35 +250,39 @@ export default function KioskPage() {
   );
 }
 
-// ── PIN Module ────────────────────────────────────────────
+// ── PIN Module ─────────────────────────────────────────────
 
 interface PinModuleProps {
   pin: string;
   isCheckout: boolean;
   isPending: boolean;
   isSuccess: boolean;
-  clockInError: Error | null;
-  clockOutError: Error | null;
+  error: Error | null;
   onKeyPress: (key: string) => void;
   onDelete: () => void;
   onCancel: () => void;
 }
 
-function PinModule({ pin, isCheckout, isPending, isSuccess, clockInError, clockOutError, onKeyPress, onDelete, onCancel }: PinModuleProps) {
+function PinModule({
+  pin,
+  isCheckout,
+  isPending,
+  isSuccess,
+  error,
+  onKeyPress,
+  onDelete,
+  onCancel,
+}: PinModuleProps) {
   return (
-    <div className="flex flex-col items-center p-2 sm:p-4 w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[420px] transition-all duration-500 shrink-0">
-      <p className={cn(
-        "mb-4 md:mb-6 text-[10px] font-bold tracking-[0.3em] uppercase",
-        isCheckout ? "text-orange-600" : "text-on-surface-variant"
-      )}>
-        {isCheckout ? 'PIN pour la sortie' : 'Saisissez votre PIN'}
-      </p>
-
-      {isCheckout && (
-        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
-          <LogOut className="h-5 w-5 text-orange-600" />
-        </div>
-      )}
+    <div className="flex flex-col items-center w-full max-w-[280px] sm:max-w-xs md:max-w-sm shrink-0">
+      <div className="text-center mb-6">
+        <h3 className="text-base sm:text-lg font-bold text-on-surface">
+          Entrez votre code PIN
+        </h3>
+        <p className="text-xs text-on-surface-variant mt-1">
+          Code à 4 chiffres pour enregistrer votre pointage
+        </p>
+      </div>
 
       {/* PIN Indicators */}
       <div className="mb-5 md:mb-8 flex space-x-4 sm:space-x-5">
@@ -372,15 +310,10 @@ function PinModule({ pin, isCheckout, isPending, isSuccess, clockInError, clockO
         disabled={isPending || isSuccess}
       />
 
-      <div className="h-8 mt-8 flex items-center justify-center w-full">
-        {clockInError && !isCheckout && (clockInError as { response?: { status?: number } })?.response?.status !== 409 && (
-          <p className="text-[10px] font-bold tracking-widest text-red-500 uppercase animate-bounce">
-            PIN incorrect. réessayez.
-          </p>
-        )}
-        {clockOutError && (
-          <p className="text-[10px] font-bold tracking-widest text-red-500 uppercase animate-bounce">
-            Erreur lors de la sortie.
+      <div className="h-8 mt-6 flex items-center justify-center w-full">
+        {error && (
+          <p className="text-[11px] font-bold tracking-widest text-red-500 uppercase animate-bounce">
+            {(error as any)?.response?.data?.message || 'PIN incorrect. Réessayez.'}
           </p>
         )}
         {isPending && (
@@ -398,7 +331,7 @@ function PinModule({ pin, isCheckout, isPending, isSuccess, clockInError, clockO
               "text-[10px] font-bold tracking-widest uppercase",
               isCheckout ? "text-orange-600" : "text-primary"
             )}>
-              {isCheckout ? 'Sortie...' : 'Validation'}
+              Validation...
             </span>
           </div>
         )}
@@ -416,19 +349,17 @@ function PinModule({ pin, isCheckout, isPending, isSuccess, clockInError, clockO
   );
 }
 
-// ── Face Module ───────────────────────────────────────────
+// ── Face Module (Studio Viewfinder) ────────────────────────
 
 interface FaceModuleProps {
   isCheckout: boolean;
   isPending: boolean;
   onFaceDetected: (descriptor: number[]) => void;
-  clockInError: Error | null;
-  clockOutError: Error | null;
+  error: Error | null;
 }
 
-function FaceModule({ isCheckout, isPending, onFaceDetected, clockInError, clockOutError }: FaceModuleProps) {
+function FaceModule({ isCheckout, isPending, onFaceDetected, error }: FaceModuleProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number>(0);
   const cooldownRef = useRef(false);
@@ -466,14 +397,14 @@ function FaceModule({ isCheckout, isPending, onFaceDetected, clockInError, clock
     };
   }, [modelsLoaded]);
 
-  // Boucle de détection automatique (kiosk: auto clock-in quand un visage est détecté)
+  // Boucle de détection temps réel fluide
   useEffect(() => {
     if (!cameraReady || !modelsLoaded || !videoRef.current) return;
 
     let running = true;
 
     const detect = async () => {
-      if (!running || !videoRef.current || !canvasRef.current) return;
+      if (!running || !videoRef.current) return;
       if (videoRef.current.readyState < 2) {
         animFrameRef.current = requestAnimationFrame(detect);
         return;
@@ -483,124 +414,130 @@ function FaceModule({ isCheckout, isPending, onFaceDetected, clockInError, clock
 
       if (!running) return;
 
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (result) {
+        setFaceDetected(true);
 
-        if (result) {
-          setFaceDetected(true);
-          const { x, y, width, height } = result.detection.box;
-          ctx.strokeStyle = '#00B5AD';
-          ctx.lineWidth = 4;
-          const cornerLen = 25;
-          // Draw corners
-          ctx.beginPath(); ctx.moveTo(x, y + cornerLen); ctx.lineTo(x, y); ctx.lineTo(x + cornerLen, y); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(x + width - cornerLen, y); ctx.lineTo(x + width, y); ctx.lineTo(x + width, y + cornerLen); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(x, y + height - cornerLen); ctx.lineTo(x, y + height); ctx.lineTo(x + cornerLen, y + height); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(x + width - cornerLen, y + height); ctx.lineTo(x + width, y + height); ctx.lineTo(x + width, y + height - cornerLen); ctx.stroke();
-
-          // Auto clock-in en kiosk (avec cooldown pour éviter les doublons)
-          if (!isPending && !cooldownRef.current) {
-            cooldownRef.current = true;
-            onFaceDetected(result.descriptor);
-            // Cooldown de 5 secondes
-            setTimeout(() => { cooldownRef.current = false; }, 5000);
-          }
-        } else {
-          setFaceDetected(false);
+        // Déclenchement automatique
+        if (!isPending && !cooldownRef.current) {
+          cooldownRef.current = true;
+          onFaceDetected(result.descriptor);
+          setTimeout(() => { cooldownRef.current = false; }, 4000);
         }
+      } else {
+        setFaceDetected(false);
       }
 
       setTimeout(() => {
         if (running) animFrameRef.current = requestAnimationFrame(detect);
-      }, 300);
+      }, 70);
     };
 
     animFrameRef.current = requestAnimationFrame(detect);
     return () => { running = false; };
   }, [cameraReady, modelsLoaded, detectFace, isPending, onFaceDetected]);
 
-  const errorMsg = clockInError && (clockInError as { response?: { status?: number } })?.response?.status !== 409
-    ? 'Visage non reconnu'
-    : clockOutError
-      ? 'Erreur lors de la sortie'
-      : null;
+  const hasError = !!error;
+  const isTargetLocked = faceDetected || isPending;
 
   return (
-    <div className="flex flex-col items-center p-2 sm:p-4 w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[420px] transition-all duration-500 shrink-0">
-      <p className={cn(
-        "mb-4 md:mb-6 text-[10px] font-bold tracking-[0.3em] uppercase",
-        isCheckout ? "text-orange-600" : "text-on-surface-variant"
-      )}>
-        {isCheckout ? 'Reconnaissance pour sortie' : 'Regardez la caméra'}
-      </p>
-
-      {/* Video */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          aspectRatio: '4/3',
-          borderRadius: '24px',
-          overflow: 'hidden',
-          backgroundColor: '#1a1a2e',
-        }}
-      >
+    <div className="flex flex-col items-center w-full max-w-[380px] sm:max-w-[420px] lg:max-w-[460px] shrink-0">
+      <div className={`relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-900 border transition-all duration-300 shadow-sm ${
+        hasError
+          ? 'border-rose-500 ring-4 ring-rose-500/20'
+          : isTargetLocked
+          ? 'border-emerald-400 ring-4 ring-emerald-400/20'
+          : 'border-on-surface/15'
+      }`}>
+        
+        {/* Live Camera Stream */}
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
-        />
-        <canvas
-          ref={canvasRef}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', transform: 'scaleX(-1)', pointerEvents: 'none' }}
+          className="w-full h-full object-cover scale-x-[-1]"
         />
 
-        {/* Overlay guide */}
-        {!faceDetected && cameraReady && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-            <div style={{ width: '55%', aspectRatio: '3/4', border: '2px dashed rgba(255,255,255,0.4)', borderRadius: '50%' }} />
-          </div>
-        )}
+        {/* Floating Minimal HUD Target Reticle */}
+        <div className="absolute inset-6 pointer-events-none flex items-center justify-center">
+          <div
+            className={`absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 rounded-tl-lg transition-colors duration-300 ${
+              isTargetLocked ? 'border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]' : 'border-white/40'
+            }`}
+          />
+          <div
+            className={`absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 rounded-tr-lg transition-colors duration-300 ${
+              isTargetLocked ? 'border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]' : 'border-white/40'
+            }`}
+          />
+          <div
+            className={`absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 rounded-bl-lg transition-colors duration-300 ${
+              isTargetLocked ? 'border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]' : 'border-white/40'
+            }`}
+          />
+          <div
+            className={`absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 rounded-br-lg transition-colors duration-300 ${
+              isTargetLocked ? 'border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]' : 'border-white/40'
+            }`}
+          />
 
-        {/* Loading overlay */}
-        {(modelsLoading || !cameraReady) && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', gap: '12px' }}>
-            <Loader2 size={36} className="animate-spin text-white" />
-            <p className="text-white/70 text-xs">{modelsLoading ? 'Chargement IA...' : 'Caméra...'}</p>
+          {!isTargetLocked && !hasError && cameraReady && (
+            <motion.div
+              animate={{ y: ['-90%', '90%'] }}
+              transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+              className="w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent shadow-[0_0_8px_rgba(34,211,238,0.8)] opacity-75"
+            />
+          )}
+        </div>
+
+        {/* Status Pill in Viewfinder */}
+        <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none px-4">
+          <div className={`backdrop-blur-md px-4 py-1.5 rounded-full flex items-center gap-2 text-xs font-semibold shadow-md transition-all ${
+            hasError
+              ? 'bg-rose-950/80 border border-rose-500/30 text-rose-300'
+              : isPending
+              ? 'bg-emerald-950/80 border border-emerald-500/30 text-emerald-300'
+              : faceDetected
+              ? 'bg-emerald-950/80 border border-emerald-500/30 text-emerald-300'
+              : 'bg-slate-950/70 border border-white/10 text-white'
+          }`}>
+            {(!cameraReady || modelsLoading) && (
+              <>
+                <Loader2 size={13} className="animate-spin text-white/70" />
+                <span>{modelsLoading ? 'Initialisation de l\'IA...' : 'Activation caméra...'}</span>
+              </>
+            )}
+            {cameraReady && !modelsLoading && !faceDetected && !isPending && !hasError && (
+              <>
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span>{isCheckout ? 'Regardez la caméra pour enregistrer votre départ' : 'Positionnez votre visage devant la caméra'}</span>
+              </>
+            )}
+            {faceDetected && !isPending && !hasError && (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="text-emerald-300">Visage détecté • Identification...</span>
+              </>
+            )}
+            {isPending && !hasError && (
+              <>
+                <Loader2 size={13} className="animate-spin text-emerald-400" />
+                <span className="text-emerald-300">Pointage en cours...</span>
+              </>
+            )}
+            {hasError && (
+              <>
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                <span className="text-rose-300">{(error as any)?.response?.data?.message || 'Visage non reconnu'}</span>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Status */}
-      <div className="h-8 mt-6 flex items-center justify-center w-full">
-        {isPending && (
-          <div className="flex items-center space-x-2">
-            <Loader2 size={14} className={cn("animate-spin", isCheckout ? "text-orange-500" : "text-primary")} />
-            <span className={cn("text-[10px] font-bold tracking-widest uppercase", isCheckout ? "text-orange-600" : "text-primary")}>
-              Reconnaissance...
-            </span>
-          </div>
-        )}
-        {errorMsg && (
-          <p className="text-[10px] font-bold tracking-widest text-red-500 uppercase animate-bounce">
-            {errorMsg}
-          </p>
-        )}
-        {!isPending && !errorMsg && cameraReady && (
-          <p className={cn(
-            "text-[10px] font-bold tracking-widest uppercase",
-            faceDetected ? "text-green-600" : "text-on-surface-variant"
-          )}>
-            {faceDetected ? 'Visage détecté — identification...' : 'En attente d\'un visage...'}
-          </p>
-        )}
-      </div>
+      <p className="text-xs text-on-surface-variant font-medium text-center mt-3">
+        L'identification et le pointage d'arrivée ou de départ s'enregistrent automatiquement sans contact.
+      </p>
     </div>
   );
 }

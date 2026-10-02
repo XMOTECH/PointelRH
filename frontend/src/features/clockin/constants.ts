@@ -6,7 +6,7 @@
 // Messages utilisateur
 export const CLOCK_IN_MESSAGES = {
   title: 'Espace Pointage',
-  description: 'Utilisez l\'application mobile pour scanner le QR Code sur site.',
+  description: 'Enregistrez votre présence en un clic ou via la reconnaissance faciale.',
   pending: 'Enregistrement...',
   success: 'Pointé avec succès',
   successDetail: (time: string) => `Votre présence a été enregistrée à ${time}.`,

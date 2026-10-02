@@ -10,7 +10,8 @@ export declare class DepartmentController {
         data: {
             id: string;
             name: string;
-            parent_id: null;
+            manager_name: string | null;
+            employee_count: number;
             created_at: Date;
             updated_at: Date;
         };
@@ -20,7 +21,8 @@ export declare class DepartmentController {
         data: {
             id: string;
             name: string;
-            parent_id: null;
+            manager_name: string | null;
+            employee_count: number;
             created_at: Date;
             updated_at: Date;
         }[];
@@ -30,7 +32,8 @@ export declare class DepartmentController {
         data: {
             id: string;
             name: string;
-            parent_id: null;
+            manager_name: string | null;
+            employee_count: number;
             created_at: Date;
             updated_at: Date;
         };
@@ -41,7 +44,8 @@ export declare class DepartmentController {
         data: {
             id: string;
             name: string;
-            parent_id: null;
+            manager_name: string | null;
+            employee_count: number;
             created_at: Date;
             updated_at: Date;
         };

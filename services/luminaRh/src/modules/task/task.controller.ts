@@ -89,11 +89,11 @@ export class TaskController {
   @ApiResponse({ status: 201, description: 'Commentaire ajouté.' })
   async addComment(
     @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('employeeId') employeeId: string | null,
     @Body('content') content: string,
     @Body('attachments') attachments?: any[],
   ) {
-    const comment = await this.taskService.addComment(id, userId, content, attachments);
+    const comment = await this.taskService.addComment(id, employeeId || null, content, attachments);
     return {
       success: true,
       data: comment,

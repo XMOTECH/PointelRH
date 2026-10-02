@@ -1,21 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, XCircle, Calendar, Clock, MoreVertical } from 'lucide-react';
+import { CheckCircle2, XCircle, Calendar, Clock } from 'lucide-react';
 import { leavesApi, type LeaveRequest } from './api/leaves.api';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
-import { Badge } from '@/components/ui/Badge';
-import { Spinner } from '@/components/ui/Spinner';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { PageHeader } from '@/components/common/PageHeader';
+import { TabsFilter } from '@/components/common/TabsFilter';
+import { EmptyState } from '@/components/common/EmptyState';
+import { UserAvatarCell } from '@/components/common/UserAvatarCell';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export const AdminLeaveRequestsPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const [filter, setFilter] = React.useState<LeaveRequest['status'] | 'all'>('all');
-  const [rejectingId, setRejectingId] = React.useState<string | null>(null);
-  const [rejectionReason, setRejectionReason] = React.useState('');
+  const [filter, setFilter] = useState<LeaveRequest['status'] | 'all'>('all');
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['admin-leaves'],
@@ -38,24 +42,22 @@ export const AdminLeaveRequestsPage: React.FC = () => {
     filter === 'all' ? true : req.status === filter
   );
 
-  const getStatusBadge = (status: LeaveRequest['status']) => {
-    switch (status) {
-      case 'approved': return <Badge variant="success" className="bg-green-100 text-green-700 border-green-200">Approuvé</Badge>;
-      case 'rejected': return <Badge variant="error">Refusé</Badge>;
-      case 'pending': return <Badge variant="warning" className="bg-amber-100 text-amber-700 border-amber-200">En attente</Badge>;
-      case 'escalated': return <Badge variant="info" className="bg-indigo-100 text-indigo-700 border-indigo-200">Escaladé</Badge>;
-      default: return <Badge variant="default">{status}</Badge>;
+  function safeText(val: any, fallback = ''): string {
+    if (typeof val === 'string') return val;
+    if (typeof val === 'number') return String(val);
+    if (typeof val === 'object' && val !== null) {
+      if (typeof val.name === 'string') return val.name;
+      if (typeof val.label === 'string') return val.label;
+      if (typeof val.title === 'string') return val.title;
     }
-  };
+    return fallback;
+  }
 
-  const getTypeName = (req: LeaveRequest) => {
-    const lt = req.leave_type;
-    return typeof lt === 'object' && lt ? lt.name : (lt || 'Congé');
-  };
+  const getTypeName = (req: LeaveRequest) => safeText(req.leave_type, 'Congé');
 
   const getTypeColor = (req: LeaveRequest) => {
     const lt = req.leave_type;
-    return (typeof lt === 'object' && lt ? lt.color : null) || '#6B7280';
+    return (typeof lt === 'object' && lt && typeof lt.color === 'string' ? lt.color : null) || '#3B82F6';
   };
 
   const handleReject = (id: string) => {
@@ -67,178 +69,194 @@ export const AdminLeaveRequestsPage: React.FC = () => {
     }
   };
 
-  if (isLoading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
+  const pendingCount = requests?.filter((r) => r.status === 'pending').length;
+
+  const tabOptions = [
+    { id: 'all', label: 'Toutes les demandes', count: requests?.length },
+    { id: 'pending', label: 'En attente', count: pendingCount },
+    { id: 'approved', label: 'Approuvées' },
+    { id: 'rejected', label: 'Refusées' },
+  ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase">
-            Gestion des Congés
-          </h1>
-          <p className="text-on-surface-variant mt-1 font-medium">
-            Révision et validation des demandes d'absence des employés.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 bg-surface-container-low p-1 rounded-xl border border-outline-variant">
-           {(['all', 'pending', 'approved', 'rejected'] as const).map((s) => (
-             <button
-               key={s}
-               onClick={() => setFilter(s)}
-               className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                 filter === s
-                   ? 'bg-surface-container-lowest text-primary shadow-sm ring-1 ring-outline-variant'
-                   : 'text-on-surface-variant/40 hover:text-on-surface'
-               }`}
-             >
-               {s === 'all' ? 'Tous' : s === 'pending' ? 'Attente' : s === 'approved' ? 'Validés' : 'Refusés'}
-             </button>
-           ))}
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* ── 1. Page Header ── */}
+      <PageHeader
+        title="Gestion des Absences & Congés"
+        subtitle="Examinez et validez les demandes d'absence et congés payés déposées par les collaborateurs."
+      >
+        <TabsFilter
+          tabs={tabOptions}
+          activeTab={filter}
+          onChange={(tab) => setFilter(tab as any)}
+        />
+      </PageHeader>
 
-      {/* Main Table */}
-      <Card className="premium-card overflow-hidden">
+      {/* ── 2. Table ── */}
+      <Card className="overflow-hidden border-on-surface/10 bg-surface-container-lowest">
         <Table>
           <TableHeader>
-            <TableRow className="bg-surface-container-low/30 border-b border-outline-variant">
-              <TableHead className="py-4 font-bold text-[10px] uppercase tracking-widest">Employé</TableHead>
-              <TableHead className="py-4 font-bold text-[10px] uppercase tracking-widest">Type / Dates</TableHead>
-              <TableHead className="py-4 font-bold text-[10px] uppercase tracking-widest">Statut</TableHead>
-              <TableHead className="py-4 font-bold text-[10px] uppercase tracking-widest text-right">Actions</TableHead>
+            <TableRow className="bg-surface-container-low/50 hover:bg-surface-container-low/50 border-b border-on-surface/10">
+              <TableHead className="py-3.5 pl-6 font-semibold text-on-surface-variant text-xs">Collaborateur</TableHead>
+              <TableHead className="py-3.5 font-semibold text-on-surface-variant text-xs">Nature de l'absence / Dates</TableHead>
+              <TableHead className="py-3.5 font-semibold text-on-surface-variant text-xs">Statut</TableHead>
+              <TableHead className="py-3.5 pr-6 font-semibold text-on-surface-variant text-xs text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {filteredRequests?.map((req: LeaveRequest) => {
-              const employeeName = req.employee
-                ? `${req.employee.first_name} ${req.employee.last_name}`
-                : (req.employee_name || 'Employé inconnu');
 
-              return (
-                <React.Fragment key={req.id}>
-                  <TableRow className="group hover:bg-surface-container-low/50 border-b border-outline-variant/30 last:border-0 transition-colors">
-                    <TableCell className="py-4">
-                       <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                            style={{ backgroundColor: getTypeColor(req) }}
-                          >
-                             {employeeName[0]}
-                          </div>
-                          <div className="flex flex-col">
-                             <span className="font-bold text-on-surface">{employeeName}</span>
-                          </div>
-                       </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                       <div className="flex flex-col gap-1">
+          <TableBody>
+            {isLoading ? (
+              <Skeleton.TableRow columns={4} rows={4} />
+            ) : filteredRequests?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="py-8">
+                  <EmptyState
+                    icon={Calendar}
+                    title="Aucune demande de congé"
+                    description="Aucune demande d'absence ne correspond au filtre actuellement sélectionné."
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRequests?.map((req: LeaveRequest) => {
+                const employeeName = req.employee
+                  ? `${req.employee.first_name} ${req.employee.last_name}`
+                  : (req.employee_name || 'Employé');
+
+                return (
+                  <React.Fragment key={req.id}>
+                    <TableRow className="hover:bg-surface-container-low/40 border-b border-on-surface/5 last:border-b-0 transition-colors">
+                      {/* Collaborateur */}
+                      <TableCell className="py-3.5 pl-6">
+                        <UserAvatarCell
+                          name={employeeName}
+                          subtitle="Collaborateur"
+                        />
+                      </TableCell>
+
+                      {/* Nature de l'absence & Dates */}
+                      <TableCell className="py-3.5">
+                        <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getTypeColor(req) }} />
-                             <span className="text-sm font-semibold text-on-surface">{getTypeName(req)}</span>
-                             {req.days_count && (
-                               <span className="text-[10px] font-bold bg-surface-container-low px-2 py-0.5 rounded-full text-on-surface-variant flex items-center gap-1">
-                                 <Clock size={10} />
-                                 {req.days_count}j
-                               </span>
-                             )}
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: getTypeColor(req) }}
+                            />
+                            <span className="text-xs sm:text-sm font-semibold text-on-surface">
+                              {getTypeName(req)}
+                            </span>
+                            {req.days_count && (
+                              <span className="text-[11px] font-semibold bg-surface-container-low px-2 py-0.5 rounded-full text-on-surface-variant flex items-center gap-1">
+                                <Clock size={11} />
+                                {req.days_count} j
+                              </span>
+                            )}
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-on-surface-variant/60">
-                             <Calendar size={12} />
-                             <span>{format(new Date(req.start_date), 'dd MMM', { locale: fr })} - {format(new Date(req.end_date), 'dd MMM yyyy', { locale: fr })}</span>
-                             {req.half_day && (
-                               <span className="text-[10px] bg-surface-container-low px-1.5 py-0.5 rounded">
-                                 {req.half_day_period === 'morning' ? 'Matin' : 'AM'}
-                               </span>
-                             )}
+
+                          <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+                            <Calendar size={12} className="shrink-0 opacity-70" />
+                            <span>
+                              {format(new Date(req.start_date), 'dd MMM', { locale: fr })} -{' '}
+                              {format(new Date(req.end_date), 'dd MMM yyyy', { locale: fr })}
+                            </span>
+                            {req.half_day && (
+                              <span className="text-[10px] bg-surface-container-high px-1.5 py-0.2 rounded font-medium">
+                                {req.half_day_period === 'morning' ? 'Matinée' : 'Après-midi'}
+                              </span>
+                            )}
                           </div>
+
                           {req.status === 'approved' && req.approver && (
-                            <span className="text-[10px] text-on-surface-variant/40">
+                            <span className="text-[11px] text-emerald-700 font-medium">
                               Approuvé par {req.approver.first_name} {req.approver.last_name}
-                              {req.approved_at && ` le ${format(new Date(req.approved_at), 'dd/MM/yyyy', { locale: fr })}`}
+                              {req.approved_at &&
+                                ` le ${format(new Date(req.approved_at), 'dd/MM/yyyy', { locale: fr })}`}
                             </span>
                           )}
+
                           {req.status === 'rejected' && req.rejection_reason && (
-                            <span className="text-[10px] text-red-600">Motif : {req.rejection_reason}</span>
+                            <span className="text-[11px] text-rose-700 font-medium">
+                              Motif : {req.rejection_reason}
+                            </span>
                           )}
-                       </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                       {getStatusBadge(req.status)}
-                    </TableCell>
-                    <TableCell className="py-4 text-right">
-                       {(req.status === 'pending' || req.status === 'escalated') ? (
-                         <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="tertiary"
-                              size="sm"
-                              className="hover:bg-green-50 hover:text-green-600 !p-2"
-                              onClick={() => updateStatusMutation.mutate({ id: req.id, status: 'approved' })}
-                            >
-                               <CheckCircle2 size={18} />
-                            </Button>
-                            <Button
-                              variant="tertiary"
-                              size="sm"
-                              className="hover:bg-red-50 hover:text-red-600 !p-2"
-                              onClick={() => handleReject(req.id)}
-                            >
-                               <XCircle size={18} />
-                            </Button>
-                         </div>
-                       ) : (
-                         <Button variant="tertiary" size="sm" className="btn-ghost !p-2">
-                            <MoreVertical size={16} />
-                         </Button>
-                       )}
-                    </TableCell>
-                  </TableRow>
-                  {/* Rejection reason input */}
-                  {rejectingId === req.id && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="py-2 px-4">
-                        <div className="flex items-center gap-2 bg-red-50 rounded-xl p-3 border border-red-200">
-                          <input
-                            type="text"
-                            placeholder="Motif du refus (optionnel)"
-                            value={rejectionReason}
-                            onChange={(e) => setRejectionReason(e.target.value)}
-                            className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-red-200 bg-white focus:outline-none focus:ring-2 focus:ring-red-300"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleReject(req.id);
-                              if (e.key === 'Escape') setRejectingId(null);
-                            }}
-                          />
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            className="!bg-red-600 hover:!bg-red-700 text-white"
-                            onClick={() => handleReject(req.id)}
-                            disabled={updateStatusMutation.isPending}
-                          >
-                            Confirmer le refus
-                          </Button>
-                          <Button
-                            variant="tertiary"
-                            size="sm"
-                            onClick={() => setRejectingId(null)}
-                          >
-                            Annuler
-                          </Button>
                         </div>
                       </TableCell>
+
+                      {/* Statut sans tiret du bas */}
+                      <TableCell className="py-3.5">
+                        <StatusBadge status={req.status} />
+                      </TableCell>
+
+                      {/* Actions */}
+                      <TableCell className="py-3.5 pr-6 text-right">
+                        {req.status === 'pending' || req.status === 'escalated' ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="text-emerald-700 hover:bg-emerald-50 !px-2.5"
+                              onClick={() => updateStatusMutation.mutate({ id: req.id, status: 'approved' })}
+                              title="Approuver la demande"
+                            >
+                              <CheckCircle2 size={16} />
+                              <span className="hidden sm:inline text-xs ml-1 font-semibold">Approuver</span>
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="text-rose-700 hover:bg-rose-50 !px-2.5"
+                              onClick={() => handleReject(req.id)}
+                              title="Refuser la demande"
+                            >
+                              <XCircle size={16} />
+                              <span className="hidden sm:inline text-xs ml-1 font-semibold">Refuser</span>
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-on-surface-variant/60">Traité</span>
+                        )}
+                      </TableCell>
                     </TableRow>
-                  )}
-                </React.Fragment>
-              );
-            })}
-            {filteredRequests?.length === 0 && (
-              <TableRow>
-                 <TableCell colSpan={4} className="h-40 text-center opacity-40 italic">
-                    Aucune demande de congé à afficher.
-                 </TableCell>
-              </TableRow>
+
+                    {/* Zone de saisie du motif de refus si activée */}
+                    {rejectingId === req.id && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-3 px-6 bg-rose-50/50 border-b border-rose-200/60">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="text"
+                              placeholder="Indiquez le motif du refus (requis pour le collaborateur)..."
+                              value={rejectionReason}
+                              onChange={(e) => setRejectionReason(e.target.value)}
+                              className="flex-1 h-9 px-3 text-xs sm:text-sm rounded-xl border border-rose-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 text-on-surface"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleReject(req.id);
+                                if (e.key === 'Escape') setRejectingId(null);
+                              }}
+                            />
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleReject(req.id)}
+                              disabled={updateStatusMutation.isPending}
+                            >
+                              Confirmer le refus
+                            </Button>
+                            <Button
+                              variant="tertiary"
+                              size="sm"
+                              onClick={() => setRejectingId(null)}
+                            >
+                              Annuler
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>

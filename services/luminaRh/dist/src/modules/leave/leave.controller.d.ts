@@ -21,7 +21,7 @@ export declare class LeaveController {
             attachment_path: any;
             half_day: any;
             half_day_period: any;
-            days_count: any;
+            days_count: number;
             created_at: any;
             employee: {
                 id: any;
@@ -48,7 +48,7 @@ export declare class LeaveController {
             attachment_path: any;
             half_day: any;
             half_day_period: any;
-            days_count: any;
+            days_count: number;
             created_at: any;
             employee: {
                 id: any;

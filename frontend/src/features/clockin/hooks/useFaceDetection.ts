@@ -47,9 +47,11 @@ export function useFaceDetection() {
     loadModels();
   }, []);
 
+  // Options optimisées pour une exécution ultra-rapide
+  const detectorOptions = useRef(new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 1 }));
+
   /**
-   * Détecter un visage et extraire le descripteur 128-dim
-   * @returns Le descripteur ou null si aucun visage détecté
+   * Détecter un visage et extraire le descripteur 128-dim de manière optimisée
    */
   const detectFace = useCallback(
     async (
@@ -57,23 +59,28 @@ export function useFaceDetection() {
     ): Promise<{ descriptor: number[]; detection: faceapi.FaceDetection } | null> => {
       if (!modelsLoaded) return null;
 
-      const result = await faceapi
-        .detectSingleFace(videoOrCanvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
-        .withFaceLandmarks()
-        .withFaceDescriptor();
+      try {
+        const result = await faceapi
+          .detectSingleFace(videoOrCanvas, detectorOptions.current)
+          .withFaceLandmarks()
+          .withFaceDescriptor();
 
-      if (!result) return null;
+        if (!result) return null;
 
-      return {
-        descriptor: Array.from(result.descriptor),
-        detection: result.detection,
-      };
+        return {
+          descriptor: Array.from(result.descriptor),
+          detection: result.detection,
+        };
+      } catch (err) {
+        console.warn('Face detection pass warning:', err);
+        return null;
+      }
     },
     [modelsLoaded]
   );
 
   /**
-   * Détecter uniquement la présence d'un visage (sans descriptor, plus rapide)
+   * Détection de présence ultra-légère pour le suivi de cadrage (~20ms)
    */
   const detectFacePresence = useCallback(
     async (
@@ -81,12 +88,12 @@ export function useFaceDetection() {
     ): Promise<faceapi.FaceDetection | null> => {
       if (!modelsLoaded) return null;
 
-      const result = await faceapi.detectSingleFace(
-        videoOrCanvas,
-        new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })
-      );
-
-      return result || null;
+      try {
+        const result = await faceapi.detectSingleFace(videoOrCanvas, detectorOptions.current);
+        return result || null;
+      } catch {
+        return null;
+      }
     },
     [modelsLoaded]
   );

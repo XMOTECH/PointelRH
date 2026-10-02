@@ -1,6 +1,9 @@
-import { Plus, Search, Filter } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import { UserPlus } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { Select } from '../../components/ui/Select';
+import { PageHeader } from '../../components/common/PageHeader';
+import { SearchInput } from '../../components/common/SearchInput';
 import { useEmployees } from './hooks/useEmployees';
 import { useCreateEmployee } from './hooks/useCreateEmployee';
 import { useUpdateEmployee } from './hooks/useUpdateEmployee';
@@ -30,7 +33,7 @@ export function EmployeeListPage() {
   const deleteMutation = useDeleteEmployee();
   const statusMutation = useUpdateEmployeeStatus();
 
-  // client-side filtering
+  // Client-side filtering
   const filteredEmployees = employees.filter((emp: Employee) => {
     const searchLower = searchQuery.toLowerCase();
     const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
@@ -38,28 +41,32 @@ export function EmployeeListPage() {
     const deptName = typeof deptObj === 'string' ? deptObj : (deptObj?.name || '');
     const deptId = typeof deptObj === 'string' ? '' : (deptObj?.id || '');
 
-    const matchesSearch = fullName.includes(searchLower) || 
-                          emp.email.toLowerCase().includes(searchLower) ||
-                          deptName.toLowerCase().includes(searchLower);
-    
+    const matchesSearch =
+      fullName.includes(searchLower) ||
+      emp.email.toLowerCase().includes(searchLower) ||
+      deptName.toLowerCase().includes(searchLower);
+
     const matchesDept = selectedDept === 'all' || deptId === selectedDept || deptName === selectedDept;
 
     return matchesSearch && matchesDept;
   });
 
-  // Extract unique departments for the filter
-  const departments = useMemo(() => {
+  // Unique departments for selector
+  const departmentOptions = useMemo(() => {
     const depts = new Map<string, string>();
-    employees.forEach(emp => {
+    employees.forEach((emp) => {
       const dept = emp.department;
       if (dept && typeof dept !== 'string') {
         depts.set(dept.id, dept.name);
       }
     });
-    return Array.from(depts.entries()).map(([id, name]) => ({ id, name }));
+    return [
+      { value: 'all', label: 'Tous les départements' },
+      ...Array.from(depts.entries()).map(([id, name]) => ({ value: id, label: name })),
+    ];
   }, [employees]);
 
-  // --- Handlers ---
+  // Handlers
   const handleOpenCreate = () => {
     setEditingEmployee(null);
     setFormOpen(true);
@@ -74,11 +81,18 @@ export function EmployeeListPage() {
     if (editingEmployee) {
       updateMutation.mutate(
         { id: editingEmployee.id, data: data as UpdateEmployeePayload },
-        { onSuccess: () => { setFormOpen(false); setEditingEmployee(null); } },
+        {
+          onSuccess: () => {
+            setFormOpen(false);
+            setEditingEmployee(null);
+          },
+        }
       );
     } else {
       createMutation.mutate(data as CreateEmployeePayload, {
-        onSuccess: () => { setFormOpen(false); },
+        onSuccess: () => {
+          setFormOpen(false);
+        },
       });
     }
   };
@@ -86,7 +100,9 @@ export function EmployeeListPage() {
   const handleDelete = () => {
     if (!deletingEmployee) return;
     deleteMutation.mutate(deletingEmployee.id, {
-      onSuccess: () => { setDeletingEmployee(null); },
+      onSuccess: () => {
+        setDeletingEmployee(null);
+      },
     });
   };
 
@@ -98,52 +114,50 @@ export function EmployeeListPage() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-8"
+      className="space-y-6"
     >
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase">
-            Employés
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-40" size={16} />
-             <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher..."
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-container-low border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-             />
+      {/* En-tête de page standardisé */}
+      <PageHeader
+        title="Gestion des Collaborateurs"
+        subtitle="Consultez, ajoutez et gérez les effectifs, départements et affectations de l'entreprise."
+        actions={
+          <Button
+            variant="primary"
+            onClick={handleOpenCreate}
+            className="flex items-center gap-2 whitespace-nowrap"
+          >
+            <UserPlus size={18} />
+            <span>Nouveau Collaborateur</span>
+          </Button>
+        }
+      >
+        {/* Barre d'outils de filtrage */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+          <div className="w-full sm:w-80">
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Rechercher par nom, email..."
+              shortcut="/"
+            />
           </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-40" size={16} />
-            <select
+          <div className="w-full sm:w-60">
+            <Select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="pl-10 pr-4 py-2.5 bg-surface-container-low border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none appearance-none cursor-pointer min-w-[160px]"
-            >
-              <option value="all">Tous les services</option>
-              {departments.map(dept => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
-            </select>
+              options={departmentOptions}
+            />
           </div>
-          <Button className="flex items-center gap-2 whitespace-nowrap" onClick={handleOpenCreate}>
-            <Plus size={18} />
-            Ajouter un Employé
-          </Button>
         </div>
-      </div>
+      </PageHeader>
 
-      {/* Error State */}
+      {/* Alerte d'erreur de synchronisation */}
       {error && (
-        <div className="p-6 bg-red-50 text-red-600 rounded-2xl border border-red-100 flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-          <span className="text-sm font-bold uppercase tracking-tight">Erreur de synchronisation des données</span>
+        <div className="p-4 bg-rose-50 text-rose-700 rounded-2xl border border-rose-200/80 flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+          <span className="text-xs font-semibold">
+            Erreur lors de la récupération des données collaborateurs.
+          </span>
         </div>
       )}
 
@@ -155,12 +169,16 @@ export function EmployeeListPage() {
         onEdit={handleOpenEdit}
         onDelete={(emp) => setDeletingEmployee(emp)}
         onStatusChange={handleStatusChange}
+        onCreate={handleOpenCreate}
       />
 
       {/* Form Modal (create / edit) */}
       <EmployeeFormModal
         open={formOpen}
-        onClose={() => { setFormOpen(false); setEditingEmployee(null); }}
+        onClose={() => {
+          setFormOpen(false);
+          setEditingEmployee(null);
+        }}
         onSubmit={handleFormSubmit}
         isLoading={editingEmployee ? updateMutation.isPending : createMutation.isPending}
         employee={editingEmployee}
@@ -169,7 +187,11 @@ export function EmployeeListPage() {
       {/* Delete Dialog */}
       <DeleteEmployeeDialog
         open={!!deletingEmployee}
-        employeeName={deletingEmployee ? `${deletingEmployee.first_name} ${deletingEmployee.last_name}` : ''}
+        employeeName={
+          deletingEmployee
+            ? `${deletingEmployee.first_name} ${deletingEmployee.last_name}`
+            : ''
+        }
         onClose={() => setDeletingEmployee(null)}
         onConfirm={handleDelete}
         isLoading={deleteMutation.isPending}
@@ -181,8 +203,6 @@ export function EmployeeListPage() {
         onClose={() => setViewingEmployee(null)}
         employee={viewingEmployee}
       />
-
-      <div className="h-10" />
     </motion.div>
   );
 }

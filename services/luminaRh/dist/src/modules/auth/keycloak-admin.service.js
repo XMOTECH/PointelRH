@@ -56,7 +56,7 @@ let KeycloakAdminService = KeycloakAdminService_1 = class KeycloakAdminService {
         throw new common_1.InternalServerErrorException('Impossible d\'obtenir le token d\'administration Keycloak');
     }
     async createUser(payload) {
-        const authServerUrl = this.config.get('KEYCLOAK_AUTH_SERVER_URL', 'http://localhost:8085');
+        const authServerUrl = this.config.get('KEYCLOAK_AUTH_SERVER_URL') || 'http://keycloak:8080';
         const realm = this.config.get('KEYCLOAK_REALM', 'luminarh');
         const adminToken = await this.getAdminToken();
         const createUserUrl = `${authServerUrl}/admin/realms/${realm}/users`;
@@ -152,7 +152,7 @@ let KeycloakAdminService = KeycloakAdminService_1 = class KeycloakAdminService {
     }
     async resetUserCredentials(email, newPassword) {
         try {
-            const authServerUrl = this.config.get('KEYCLOAK_AUTH_SERVER_URL', 'http://localhost:8085');
+            const authServerUrl = this.config.get('KEYCLOAK_AUTH_SERVER_URL') || 'http://keycloak:8080';
             const realm = this.config.get('KEYCLOAK_REALM', 'luminarh');
             const adminToken = await this.getAdminToken();
             const searchUrl = `${authServerUrl}/admin/realms/${realm}/users?email=${encodeURIComponent(email)}`;

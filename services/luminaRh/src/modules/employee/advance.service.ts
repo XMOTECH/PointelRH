@@ -42,17 +42,8 @@ export class AdvanceService {
   }
 
   async findAllForEmployee(employeeId: string) {
-    return this.prisma.advanceRequest.findMany({
+    const list = await this.prisma.advanceRequest.findMany({
       where: { employeeId },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  async findAll(companyId: string) {
-    return this.prisma.advanceRequest.findMany({
-      where: {
-        employee: { companyId },
-      },
       include: {
         employee: {
           include: { department: true },
@@ -60,19 +51,47 @@ export class AdvanceService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return list.map((r) => ({
+      ...r,
+      amount: Number(r.amount),
+    }));
   }
 
-  async updateStatus(id: string, status: string) {
+  async findAll(companyId: string) {
+    const list = await this.prisma.advanceRequest.findMany({
+      where: companyId
+        ? {
+            employee: { companyId },
+          }
+        : {},
+      include: {
+        employee: {
+          include: { department: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return list.map((r) => ({
+      ...r,
+      amount: Number(r.amount),
+    }));
+  }
+
+  async updateStatus(id: string, status: string, companyId?: string) {
     if (status !== 'approved' && status !== 'rejected') {
       throw new BadRequestException('Le statut doit être "approved" ou "rejected"');
     }
 
-    const request = await this.prisma.advanceRequest.findUnique({
-      where: { id },
+    const request = await this.prisma.advanceRequest.findFirst({
+      where: {
+        id,
+        ...(companyId ? { employee: { companyId } } : {}),
+      },
+      include: { employee: true },
     });
 
     if (!request) {
-      throw new NotFoundException('Demande d\'acompte introuvable');
+      throw new NotFoundException('Demande d\'acompte introuvable dans votre entreprise');
     }
 
     return this.prisma.advanceRequest.update({

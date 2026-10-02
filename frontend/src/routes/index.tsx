@@ -30,6 +30,9 @@ import { CompanyListPage } from '../features/admin/companies/CompanyListPage';
 import { PayrollPage } from '../features/payroll/PayrollPage';
 import { AdvancesPage } from '../features/advances/AdvancesPage';
 import { MyAdvancesPage } from '../features/my-advances/MyAdvancesPage';
+import { OnboardingDashboardPage, CandidatePortalPage } from '../features/onboarding';
+import { OffboardingDashboardPage } from '../features/offboarding';
+import { PerformanceDashboardPage } from '../features/performance';
 
 function RoleBasedRedirect() {
   const { user, loading } = useAuth();
@@ -76,32 +79,47 @@ export function AppRoutes() {
         {/* Public */}
         <Route path="/login/*" element={<LoginPage />} />
         <Route path="/kiosk" element={<KioskPage />} />
+        <Route path="/onboarding/portal/:token" element={<CandidatePortalPage />} />
 
-        {/* Admin/Manager/Employee Layout */}
+        {/* Admin-only routes */}
         <Route element={
-          <ProtectedRoute roles={['admin', 'manager', 'employee', 'super_admin']}>
+          <ProtectedRoute roles={['admin', 'super_admin']}>
             <DashboardLayout />
           </ProtectedRoute>
         }>
-          {/* Admin & Manager routes */}
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/monitor" element={<LiveMonitorPage />} />
-          <Route path="/locations" element={<QrLocationsPage />} />
+          <Route path="/departments" element={<DepartmentListPage />} />
           <Route path="/employees" element={<EmployeeListPage />} />
           <Route path="/managers" element={<ManagerListPage />} />
-          <Route path="/departments" element={<DepartmentListPage />} />
           <Route path="/schedules" element={<ScheduleListPage />} />
+          <Route path="/locations" element={<QrLocationsPage />} />
+          <Route path="/payroll" element={<PayrollPage />} />
+          <Route path="/advances" element={<AdvancesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+
+        {/* Admin & Manager routes */}
+        <Route element={
+          <ProtectedRoute roles={['admin', 'manager', 'super_admin']}>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/onboarding" element={<OnboardingDashboardPage />} />
+          <Route path="/offboarding" element={<OffboardingDashboardPage />} />
+          <Route path="/monitor" element={<LiveMonitorPage />} />
           <Route path="/schedules/planning" element={<WeeklyPlanningPage />} />
           <Route path="/leaves" element={<AdminLeaveRequestsPage />} />
           <Route path="/missions" element={<MissionsPage />} />
           <Route path="/missions/:id/tracking" element={<MissionTrackingPage />} />
           <Route path="/team-tasks" element={<TeamTasksPage />} />
-          <Route path="/payroll" element={<PayrollPage />} />
-          <Route path="/advances" element={<AdvancesPage />} />
-          <Route path="/admin/users" element={<div className="p-8"><h1 className="text-2xl font-bold mb-4">Gestion des Utilisateurs</h1><p className="text-on-surface-variant">Chargement du module...</p></div>} />
-          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
 
-          {/* Employee routes */}
+        {/* Employee routes */}
+        <Route element={
+          <ProtectedRoute roles={['employee', 'admin', 'manager', 'super_admin']}>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }>
           <Route path="/clock-in" element={<ClockInPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/my-profile" element={<MyProfilePage />} />
@@ -112,9 +130,10 @@ export function AppRoutes() {
           <Route path="/my-attendance" element={<MyAttendancePage />} />
           <Route path="/my-schedule" element={<MySchedulePage />} />
           <Route path="/my-advances" element={<MyAdvancesPage />} />
+          <Route path="/performance" element={<PerformanceDashboardPage />} />
         </Route>
 
-        {/* Super Admin routes — separate ProtectedRoute */}
+        {/* Super Admin routes */}
         <Route element={
           <ProtectedRoute roles={['super_admin']}>
             <DashboardLayout />

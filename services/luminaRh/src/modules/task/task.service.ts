@@ -304,7 +304,7 @@ export class TaskService {
     return this.mapToTaskResource(updated);
   }
 
-  async addComment(taskId: string, employeeId: string, content: string, attachments?: any[]) {
+  async addComment(taskId: string, employeeId: string | null, content: string, attachments?: any[]) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
     });

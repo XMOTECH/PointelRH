@@ -52,8 +52,8 @@ let TaskController = class TaskController {
             message: 'Tâche supprimée avec succès',
         };
     }
-    async addComment(id, userId, content, attachments) {
-        const comment = await this.taskService.addComment(id, userId, content, attachments);
+    async addComment(id, employeeId, content, attachments) {
+        const comment = await this.taskService.addComment(id, employeeId || null, content, attachments);
         return {
             success: true,
             data: comment,
@@ -123,11 +123,11 @@ __decorate([
     (0, swagger_1.ApiParam)({ name: 'id', description: 'UUID de la tâche' }),
     (0, swagger_1.ApiResponse)({ status: 201, description: 'Commentaire ajouté.' }),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('employeeId')),
     __param(2, (0, common_1.Body)('content')),
     __param(3, (0, common_1.Body)('attachments')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, Array]),
+    __metadata("design:paramtypes", [String, Object, String, Array]),
     __metadata("design:returntype", Promise)
 ], TaskController.prototype, "addComment", null);
 exports.TaskController = TaskController = __decorate([

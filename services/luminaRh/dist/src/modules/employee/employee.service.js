@@ -163,7 +163,12 @@ let EmployeeService = class EmployeeService {
     }
     async getFaceEnrollment(employeeId) {
         const descriptors = await this.prisma.faceDescriptor.findMany({
-            where: { employeeId },
+            where: {
+                OR: [
+                    { employeeId },
+                    { employee: { userId: employeeId } },
+                ],
+            },
         });
         return {
             enrolled: descriptors.length > 0,
@@ -172,27 +177,54 @@ let EmployeeService = class EmployeeService {
         };
     }
     async enrollFace(employeeId, descriptors) {
+        const emp = await this.prisma.employee.findFirst({
+            where: {
+                OR: [
+                    { id: employeeId },
+                    { userId: employeeId },
+                ],
+            },
+            select: { id: true },
+        });
+        const resolvedEmployeeId = emp ? emp.id : employeeId;
         await this.prisma.$transaction(async (tx) => {
             await tx.faceDescriptor.deleteMany({
-                where: { employeeId },
+                where: { employeeId: resolvedEmployeeId },
             });
             for (const entry of descriptors) {
                 const val = Array.isArray(entry) ? entry : entry.descriptor;
                 if (val) {
                     await tx.faceDescriptor.create({
                         data: {
-                            employeeId,
+                            employeeId: resolvedEmployeeId,
                             descriptor: JSON.stringify(val),
                         },
                     });
                 }
             }
         });
+        this.eventEmitter.emit('face.registered', { employeeId: resolvedEmployeeId });
     }
     async deleteFaceEnrollment(employeeId) {
-        await this.prisma.faceDescriptor.deleteMany({
-            where: { employeeId },
+        const emp = await this.prisma.employee.findFirst({
+            where: {
+                OR: [
+                    { id: employeeId },
+                    { userId: employeeId },
+                ],
+            },
+            select: { id: true },
         });
+        const resolvedEmployeeId = emp ? emp.id : employeeId;
+        await this.prisma.faceDescriptor.deleteMany({
+            where: {
+                OR: [
+                    { employeeId: resolvedEmployeeId },
+                    { employeeId },
+                ],
+            },
+        });
+        this.eventEmitter.emit('face.deleted', { employeeId: resolvedEmployeeId });
     }
     async generatePin(companyId, employeeId) {
         const employee = await this.findOne(companyId, employeeId);

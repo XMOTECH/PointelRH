@@ -20,7 +20,7 @@ export declare class LeaveService {
         attachment_path: any;
         half_day: any;
         half_day_period: any;
-        days_count: any;
+        days_count: number;
         created_at: any;
         employee: {
             id: any;
@@ -44,7 +44,7 @@ export declare class LeaveService {
         attachment_path: any;
         half_day: any;
         half_day_period: any;
-        days_count: any;
+        days_count: number;
         created_at: any;
         employee: {
             id: any;
@@ -68,7 +68,7 @@ export declare class LeaveService {
         attachment_path: any;
         half_day: any;
         half_day_period: any;
-        days_count: any;
+        days_count: number;
         created_at: any;
         employee: {
             id: any;
@@ -89,10 +89,10 @@ export declare class LeaveService {
             is_active: boolean;
         };
         year: number;
-        allocated: import("@prisma/client/runtime/library").Decimal;
-        used: import("@prisma/client/runtime/library").Decimal;
-        pending: import("@prisma/client/runtime/library").Decimal;
-        remaining: import("@prisma/client/runtime/library").Decimal;
+        allocated: number;
+        used: number;
+        pending: number;
+        remaining: number;
     }[]>;
     createMyLeave(employeeId: string, companyId: string, dto: CreateLeaveRequestDto, file?: any): Promise<{
         id: any;
@@ -110,7 +110,7 @@ export declare class LeaveService {
         attachment_path: any;
         half_day: any;
         half_day_period: any;
-        days_count: any;
+        days_count: number;
         created_at: any;
         employee: {
             id: any;

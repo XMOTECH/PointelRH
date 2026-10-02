@@ -5,7 +5,6 @@ import { useCompanies, useCreateCompany, useGlobalStats } from '../hooks/useComp
 import { CompanyTable } from './components/CompanyTable';
 import { CompanyCreateModal } from './components/CompanyCreateModal';
 import type { CreateCompanyData } from '../api/admin.api';
-import { cn } from '../../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function CompanyListPage() {

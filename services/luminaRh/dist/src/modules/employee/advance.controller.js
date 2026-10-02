@@ -54,8 +54,8 @@ let AdvanceController = class AdvanceController {
             data: requests,
         };
     }
-    async updateAdvanceStatus(id, body) {
-        const updated = await this.advanceService.updateStatus(id, body.status);
+    async updateAdvanceStatus(companyId, id, body) {
+        const updated = await this.advanceService.updateStatus(id, body.status, companyId);
         return {
             success: true,
             message: `Demande de prêt social mise à jour : ${body.status}`,
@@ -93,7 +93,7 @@ __decorate([
 ], AdvanceController.prototype, "getMyAdvances", null);
 __decorate([
     (0, swagger_1.ApiTags)('Employees'),
-    (0, common_1.Get)('employees/advances'),
+    (0, common_1.Get)(['employees/advances', 'advances']),
     (0, nest_keycloak_connect_1.Roles)({ roles: ['realm:admin', 'realm:super_admin'] }),
     (0, swagger_1.ApiOperation)({
         summary: 'Lister toutes les demandes d\'acomptes/prêts de l\'entreprise',
@@ -106,16 +106,17 @@ __decorate([
 ], AdvanceController.prototype, "getAllAdvances", null);
 __decorate([
     (0, swagger_1.ApiTags)('Employees'),
-    (0, common_1.Patch)('employees/advances/:id/status'),
+    (0, common_1.Patch)(['employees/advances/:id/status', 'advances/:id/status']),
     (0, nest_keycloak_connect_1.Roles)({ roles: ['realm:admin', 'realm:super_admin'] }),
     (0, swagger_1.ApiOperation)({
         summary: 'Valider ou rejeter une demande de prêt social',
         description: 'Permet au RH d\'accepter (approved) ou de refuser (rejected) la demande de financement.',
     }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('companyId')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
 ], AdvanceController.prototype, "updateAdvanceStatus", null);
 exports.AdvanceController = AdvanceController = __decorate([

@@ -12,15 +12,41 @@ const schedule_service_1 = require("./schedule.service");
 const schedule_controller_1 = require("./schedule.controller");
 const timeline_service_1 = require("./timeline.service");
 const timeline_controller_1 = require("./timeline.controller");
-const planning_controller_1 = require("./planning.controller");
+const planning_week_controller_1 = require("./controllers/planning-week.controller");
+const work_shift_controller_1 = require("./controllers/work-shift.controller");
+const shift_template_controller_1 = require("./controllers/shift-template.controller");
+const planning_compliance_service_1 = require("./services/planning-compliance.service");
+const planning_week_service_1 = require("./services/planning-week.service");
+const work_shift_service_1 = require("./services/work-shift.service");
+const shift_template_service_1 = require("./services/shift-template.service");
 let ScheduleModule = class ScheduleModule {
 };
 exports.ScheduleModule = ScheduleModule;
 exports.ScheduleModule = ScheduleModule = __decorate([
     (0, common_1.Module)({
-        controllers: [schedule_controller_1.ScheduleController, timeline_controller_1.TimelineController, planning_controller_1.PlanningController],
-        providers: [schedule_service_1.ScheduleService, timeline_service_1.TimelineService],
-        exports: [schedule_service_1.ScheduleService, timeline_service_1.TimelineService],
+        controllers: [
+            schedule_controller_1.ScheduleController,
+            timeline_controller_1.TimelineController,
+            planning_week_controller_1.PlanningWeekController,
+            work_shift_controller_1.WorkShiftController,
+            shift_template_controller_1.ShiftTemplateController,
+        ],
+        providers: [
+            schedule_service_1.ScheduleService,
+            timeline_service_1.TimelineService,
+            planning_compliance_service_1.PlanningComplianceService,
+            planning_week_service_1.PlanningWeekService,
+            work_shift_service_1.WorkShiftService,
+            shift_template_service_1.ShiftTemplateService,
+        ],
+        exports: [
+            schedule_service_1.ScheduleService,
+            timeline_service_1.TimelineService,
+            planning_compliance_service_1.PlanningComplianceService,
+            planning_week_service_1.PlanningWeekService,
+            work_shift_service_1.WorkShiftService,
+            shift_template_service_1.ShiftTemplateService,
+        ],
     })
 ], ScheduleModule);
 //# sourceMappingURL=schedule.module.js.map

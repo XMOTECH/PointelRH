@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, BadRequestException } from '@nestjs/common';
 import { Roles } from 'nest-keycloak-connect';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { MissionService } from './mission.service';
@@ -119,6 +119,9 @@ export class MissionController {
     @Param('id') id: string,
     @Body('files') files: any[],
   ) {
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      throw new BadRequestException('Liste de fichiers manquante ou invalide');
+    }
     const docs = await this.missionService.uploadDocuments(companyId, id, files);
     return {
       success: true,

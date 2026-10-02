@@ -1,7 +1,7 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["auth", "employee", "pointage", "notification", "analytics"]
+  schemas  = ["auth", "employee", "pointage", "notification", "analytics", "payroll", "performance"]
 }
 
 generator client {
@@ -21,14 +21,28 @@ model Company {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users          User[]
-  employees      Employee[]
-  departments    Department[]
-  schedules      Schedule[]
-  locations      Location[]
-  leaveTypes     LeaveType[]
-  missions       Mission[]
-  dailySnapshots DailySnapshot[]
+  users                  User[]
+  employees              Employee[]
+  departments            Department[]
+  schedules              Schedule[]
+  locations              Location[]
+  leaveTypes             LeaveType[]
+  missions               Mission[]
+  dailySnapshots         DailySnapshot[]
+  onboardingTemplates    OnboardingTemplate[]
+  onboardingSessions     OnboardingSession[]
+  offboardingTemplates   OffboardingTemplate[]
+  offboardingSessions    OffboardingSession[]
+  employeeDocuments      EmployeeDocument[]
+  payrollPeriods         PayrollPeriod[]
+  performanceTemplates   PerformanceTemplate[]
+  performanceCampaigns   PerformanceCampaign[]
+  performanceEvaluations PerformanceEvaluation[]
+  performanceObjectives  PerformanceObjective[]
+  skills                 Skill[]
+  planningWeeks          PlanningWeek[]
+  shiftTemplates         ShiftTemplate[]
+  shifts                 Shift[]
 
   @@map("companies")
   @@schema("auth")
@@ -79,21 +93,27 @@ model Department {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employees Employee[]
-  missions  Mission[]
+  company             Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employees           Employee[]
+  missions            Mission[]
+  onboardingTemplates OnboardingTemplate[]
+  offboardingTemplates OffboardingTemplate[]
+  planningWeeks        PlanningWeek[]
+  shiftTemplates       ShiftTemplate[]
+  shifts               Shift[]
 
   @@map("departments")
   @@schema("employee")
 }
 
 model Schedule {
-  id        String   @id @default(uuid())
-  companyId String   @map("company_id")
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
   name         String
   startTime    String?  @map("start_time")
   endTime      String?  @map("end_time")
   graceMinutes Int      @default(15) @map("grace_minutes")
+  workDays     Int[]    @default([1, 2, 3, 4, 5]) @map("work_days")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -121,6 +141,8 @@ model Employee {
   transportAllowance Decimal   @default(20800.0) @db.Decimal(12, 2) @map("transport_allowance")
   maritalStatus      String    @default("single") @map("marital_status")
   taxParts           Float     @default(1.0) @map("tax_parts")
+  isCadre            Boolean   @default(false) @map("is_cadre")
+  jobTitle           String?   @map("job_title")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
@@ -137,7 +159,16 @@ model Employee {
   assignments     MissionAssignment[]
   attendances     Attendance[]
   taskComments    TaskComment[]
-  advanceRequests AdvanceRequest[]
+  advanceRequests   AdvanceRequest[]
+  onboardingSession OnboardingSession?
+  offboardingSessions OffboardingSession[]
+  documents         EmployeeDocument[]
+  payslips          Payslip[]
+  payrollVariables  PayrollVariable[]
+  evaluationsAsEmployee PerformanceEvaluation[] @relation("EvaluationEmployee")
+  evaluationsAsEvaluator PerformanceEvaluation[] @relation("EvaluationEvaluator")
+  performanceObjectives  PerformanceObjective[]
+  employeeSkills         EmployeeSkill[]
 
   @@map("employees")
   @@schema("employee")
@@ -236,20 +267,83 @@ model Location {
   @@schema("employee")
 }
 
+model PlanningWeek {
+  id            String    @id @default(uuid())
+  companyId     String    @map("company_id")
+  departmentId  String?   @map("department_id")
+  weekStartDate DateTime  @map("week_start_date")
+  weekEndDate   DateTime  @map("week_end_date")
+  status        String    @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  publishedAt   DateTime? @map("published_at")
+  publishedBy   String?   @map("published_by")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  shifts     Shift[]
+
+  @@unique([companyId, weekStartDate, departmentId])
+  @@index([companyId, weekStartDate])
+  @@index([status])
+  @@map("planning_weeks")
+  @@schema("employee")
+}
+
+model ShiftTemplate {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  departmentId String?  @map("department_id")
+  name         String
+  startTime    String   @map("start_time")
+  endTime      String   @map("end_time")
+  breakMinutes Int      @default(0) @map("break_minutes")
+  color        String?  @default("#3B82F6")
+  jobTitle     String?  @map("job_title")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  shifts     Shift[]
+
+  @@map("shift_templates")
+  @@schema("employee")
+}
+
 model Shift {
-  id         String   @id @default(uuid())
-  employeeId String   @map("employee_id")
-  date       DateTime
-  startTime  String   @map("start_time")
-  endTime    String   @map("end_time")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  companyId      String    @map("company_id")
+  planningWeekId String?   @map("planning_week_id")
+  templateId     String?   @map("template_id")
+  employeeId     String?   @map("employee_id")
+  departmentId   String?   @map("department_id")
+  date           DateTime
+  startTime      String    @map("start_time")
+  endTime        String    @map("end_time")
+  breakMinutes   Int       @default(0) @map("break_minutes")
+  jobTitle       String?   @map("job_title")
+  color          String?   @default("#3B82F6")
+  notes          String?
+  status         String    @default("DRAFT") // DRAFT, PUBLISHED, CONFIRMED, CANCELLED
+  isUnassigned   Boolean   @default(false) @map("is_unassigned")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planningWeek PlanningWeek? @relation(fields: [planningWeekId], references: [id], onDelete: Cascade)
+  template     ShiftTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  employee     Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
+  @@index([companyId, date])
+  @@index([employeeId, date])
+  @@index([planningWeekId])
+  @@index([status])
   @@map("shifts")
   @@schema("employee")
-  @@index([employeeId, date])
 }
 
 model AdvanceRequest {
@@ -505,3 +599,588 @@ model EmployeeMonthlyStat {
   @@map("employee_monthly_stats")
   @@schema("analytics")
 }
+
+// ==========================================
+// 6. MODULE: ONBOARDING (schema: "employee")
+// ==========================================
+
+model OnboardingTemplate {
+  id           String   @id @default(uuid())
+  companyId    String   @map("company_id")
+  name         String
+  description  String?
+  contractType String?  @map("contract_type")
+  departmentId String?  @map("department_id")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company       Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department    Department?              @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  templateTasks OnboardingTemplateTask[]
+  sessions      OnboardingSession[]
+
+  @@map("onboarding_templates")
+  @@schema("employee")
+  @@index([companyId])
+}
+
+model OnboardingTemplateTask {
+  id             String   @id @default(uuid())
+  templateId     String   @map("template_id")
+  title          String
+  description    String?
+  category       String   @default("administrative")
+  targetRole     String   @default("candidate")
+  daysOffset     Int      @default(0) @map("days_offset")
+  isRequired     Boolean  @default(true) @map("is_required")
+  order          Int      @default(0)
+  prerequisiteId String?  @map("prerequisite_id")
+
+  prerequisite   OnboardingTemplateTask?  @relation("TemplateTaskPrerequisite", fields: [prerequisiteId], references: [id])
+  dependents     OnboardingTemplateTask[] @relation("TemplateTaskPrerequisite")
+  template       OnboardingTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_template_tasks")
+  @@schema("employee")
+  @@index([templateId])
+}
+
+model OnboardingSession {
+  id                  String    @id @default(uuid())
+  companyId           String    @map("company_id")
+  templateId          String    @map("template_id")
+  employeeId          String?   @unique @map("employee_id")
+  status              String    @default("DRAFT")
+  magicToken          String?   @unique @map("magic_token")
+  magicTokenExpiresAt DateTime? @map("magic_token_expires_at")
+  targetStartDate     DateTime  @map("target_start_date")
+  probationEndDate    DateTime? @map("probation_end_date")
+  stagingData         Json?     @map("staging_data")
+  progressPercent     Int       @default(0) @map("progress_percent")
+  completedAt         DateTime? @map("completed_at")
+  cancelledAt         DateTime? @map("cancelled_at")
+  cancelReason        String?   @map("cancel_reason")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  company             Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  template            OnboardingTemplate   @relation(fields: [templateId], references: [id])
+  employee            Employee?            @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  tasks               OnboardingTask[]
+  documents           EmployeeDocument[]
+  auditLogs           OnboardingAuditLog[]
+
+  @@map("onboarding_sessions")
+  @@schema("employee")
+  @@index([companyId])
+  @@index([status])
+}
+
+model OnboardingTask {
+  id                 String    @id @default(uuid())
+  sessionId          String    @map("session_id")
+  title              String
+  description        String?
+  category           String
+  assignedRole       String
+  assignedUserId     String?   @map("assigned_user_id")
+  status             String    @default("PENDING")
+  isRequired         Boolean   @default(true) @map("is_required")
+  dueDate            DateTime? @map("due_date")
+  completedAt        DateTime? @map("completed_at")
+  completedBy        String?   @map("completed_by")
+  rejectionReason    String?   @map("rejection_reason")
+  prerequisiteTaskId String?   @map("prerequisite_task_id")
+
+  prerequisiteTask   OnboardingTask?  @relation("TaskPrerequisite", fields: [prerequisiteTaskId], references: [id])
+  dependentTasks     OnboardingTask[] @relation("TaskPrerequisite")
+  session            OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_tasks")
+  @@schema("employee")
+  @@index([sessionId])
+  @@index([status])
+}
+
+model EmployeeDocument {
+  id              String    @id @default(uuid())
+  companyId       String    @map("company_id")
+  sessionId       String?   @map("session_id")
+  employeeId      String?   @map("employee_id")
+  documentType    String    @map("document_type")
+  fileName        String    @map("file_name")
+  fileSize        Int       @map("file_size")
+  mimeType        String    @map("mime_type")
+  storageKey      String    @map("storage_key")
+  status          String    @default("PENDING")
+  rejectionReason String?   @map("rejection_reason")
+  reviewedBy      String?   @map("reviewed_by")
+  reviewedAt      DateTime? @map("reviewed_at")
+  metadata        Json?     @map("metadata")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  session         OnboardingSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employee        Employee?          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_documents")
+  @@schema("employee")
+  @@index([sessionId])
+  @@index([employeeId])
+  @@index([companyId])
+  @@index([status])
+}
+
+model OnboardingAuditLog {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  action    String
+  actorId   String?  @map("actor_id")
+  actorIp   String?  @map("actor_ip")
+  fromState String?  @map("from_state")
+  toState   String?  @map("to_state")
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session   OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_audit_logs")
+  @@schema("employee")
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+// ==========================================
+// 6.b. MODULE: OFFBOARDING (schema: "employee")
+// ==========================================
+
+model OffboardingTemplate {
+  id            String   @id @default(uuid())
+  companyId     String   @map("company_id")
+  name          String
+  description   String?
+  departureType String?  @map("departure_type") // RESIGNATION, DISMISSAL, END_OF_CONTRACT, MUTUAL_AGREEMENT, RETIREMENT, etc.
+  departmentId  String?  @map("department_id")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  company       Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department    Department?              @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  templateTasks OffboardingTemplateTask[]
+  sessions      OffboardingSession[]
+
+  @@map("offboarding_templates")
+  @@schema("employee")
+  @@index([companyId])
+}
+
+model OffboardingTemplateTask {
+  id           String   @id @default(uuid())
+  templateId   String   @map("template_id")
+  title        String
+  description  String?
+  category     String   @default("administrative") // it, hr, finance, manager, logistics, administrative
+  assignedRole String   @default("admin") // admin, manager, it, hr, employee
+  daysOffset   Int      @default(0) @map("days_offset") // Relative to lastWorkingDate (negative = before, 0 = on day, positive = after)
+  isRequired   Boolean  @default(true) @map("is_required")
+  order        Int      @default(0)
+
+  template     OffboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("offboarding_template_tasks")
+  @@schema("employee")
+  @@index([templateId])
+}
+
+model OffboardingSession {
+  id                 String    @id @default(uuid())
+  companyId          String    @map("company_id")
+  employeeId         String    @map("employee_id")
+  templateId         String?   @map("template_id")
+  status             String    @default("INITIATED") // INITIATED, IN_PROGRESS, PENDING_DOCUMENTS, COMPLETED, CANCELLED
+  departureReason    String    @map("departure_reason") // RESIGNATION, DISMISSAL, END_OF_CONTRACT, MUTUAL_AGREEMENT, RETIREMENT, OTHER
+  noticePeriodType   String    @default("WORKED") @map("notice_period_type") // WORKED, EXEMPTED_PAID, EXEMPTED_UNPAID, NONE
+  notificationDate   DateTime  @default(now()) @map("notification_date")
+  lastWorkingDate    DateTime  @map("last_working_date")
+  contractEndDate    DateTime  @map("contract_end_date")
+  handoverNotes      String?   @db.Text @map("handover_notes")
+  exitInterviewNotes String?   @db.Text @map("exit_interview_notes")
+  reasonsFeedback    String?   @db.Text @map("reasons_feedback")
+  progressPercent    Int       @default(0) @map("progress_percent")
+  completedAt        DateTime? @map("completed_at")
+  completedBy        String?   @map("completed_by")
+  cancelledAt        DateTime? @map("cancelled_at")
+  cancelReason       String?   @map("cancel_reason")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  company            Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee           Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  template           OffboardingTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  tasks              OffboardingTask[]
+  auditLogs          OffboardingAuditLog[]
+
+  @@map("offboarding_sessions")
+  @@schema("employee")
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+model OffboardingTask {
+  id             String    @id @default(uuid())
+  sessionId      String    @map("session_id")
+  title          String
+  description    String?
+  category       String    @default("administrative") // it, hr, finance, manager, logistics, administrative
+  assignedRole   String    @default("admin")
+  assignedUserId String?   @map("assigned_user_id")
+  status         String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, WAIVED
+  isRequired     Boolean   @default(true) @map("is_required")
+  dueDate        DateTime? @map("due_date")
+  completedAt    DateTime? @map("completed_at")
+  completedBy    String?   @map("completed_by")
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  session        OffboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("offboarding_tasks")
+  @@schema("employee")
+  @@index([sessionId])
+  @@index([status])
+}
+
+model OffboardingAuditLog {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  action    String
+  actorId   String?  @map("actor_id")
+  actorName String?  @map("actor_name")
+  fromState String?  @map("from_state")
+  toState   String?  @map("to_state")
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session   OffboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("offboarding_audit_logs")
+  @@schema("employee")
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+// ==========================================
+// 7. MODULE: PAYROLL (schema: "payroll")
+// ==========================================
+
+model PayrollPeriod {
+  id                  String    @id @default(uuid())
+  companyId           String    @map("company_id")
+  month               Int
+  year                Int
+  startDate           DateTime  @map("start_date")
+  endDate             DateTime  @map("end_date")
+  status              String    @default("DRAFT") // DRAFT, CALCULATED, VALIDATED, PAID
+  totalGross          Decimal   @default(0.0) @db.Decimal(14, 2) @map("total_gross")
+  totalNet            Decimal   @default(0.0) @db.Decimal(14, 2) @map("total_net")
+  totalTax            Decimal   @default(0.0) @db.Decimal(14, 2) @map("total_tax")
+  totalEmployeeSocial Decimal   @default(0.0) @db.Decimal(14, 2) @map("total_employee_social")
+  totalEmployerSocial Decimal   @default(0.0) @db.Decimal(14, 2) @map("total_employer_social")
+  totalCost           Decimal   @default(0.0) @db.Decimal(14, 2) @map("total_cost")
+  payslipsCount       Int       @default(0) @map("payslips_count")
+  processedAt         DateTime? @map("processed_at")
+  validatedAt         DateTime? @map("validated_at")
+  validatedBy         String?   @map("validated_by")
+  paidAt              DateTime? @map("paid_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  payslips Payslip[]
+
+  @@unique([companyId, month, year])
+  @@index([companyId])
+  @@map("payroll_periods")
+  @@schema("payroll")
+}
+
+model Payslip {
+  id                  String    @id @default(uuid())
+  companyId           String    @map("company_id")
+  periodId            String    @map("period_id")
+  employeeId          String    @map("employee_id")
+  status              String    @default("DRAFT") // DRAFT, VALIDATED, PAID
+
+  // Snapshot de l'employe lors du calcul
+  employeeName        String    @map("employee_name")
+  employeeEmail       String    @map("employee_email")
+  jobTitle            String?   @map("job_title")
+  departmentName      String?   @map("department_name")
+  contractType        String    @map("contract_type")
+  isCadre             Boolean   @default(false) @map("is_cadre")
+  taxParts            Float     @default(1.0) @map("tax_parts")
+  presenceDays        Int       @default(22) @map("presence_days")
+  workingDays         Int       @default(22) @map("working_days")
+
+  // Elements de remuneration
+  baseSalary          Decimal   @default(0.0) @db.Decimal(12, 2) @map("base_salary")
+  sursalaire          Decimal   @default(0.0) @db.Decimal(12, 2)
+  overtimePay         Decimal   @default(0.0) @db.Decimal(12, 2) @map("overtime_pay")
+  transportAllowance  Decimal   @default(0.0) @db.Decimal(12, 2) @map("transport_allowance")
+  transportExempt     Decimal   @default(0.0) @db.Decimal(12, 2) @map("transport_exempt")
+  taxableBonuses      Decimal   @default(0.0) @db.Decimal(12, 2) @map("taxable_bonuses")
+  nonTaxableBonuses   Decimal   @default(0.0) @db.Decimal(12, 2) @map("non_taxable_bonuses")
+  grossSalary         Decimal   @default(0.0) @db.Decimal(12, 2) @map("gross_salary")
+  grossCotisable      Decimal   @default(0.0) @db.Decimal(12, 2) @map("gross_cotisable")
+  grossTaxable        Decimal   @default(0.0) @db.Decimal(12, 2) @map("gross_taxable")
+
+  // Cotisations Sociales
+  ipresEmployee       Decimal   @default(0.0) @db.Decimal(12, 2) @map("ipres_employee")
+  ipresEmployer       Decimal   @default(0.0) @db.Decimal(12, 2) @map("ipres_employer")
+  cssPfEmployer       Decimal   @default(0.0) @db.Decimal(12, 2) @map("css_pf_employer")
+  cssAtEmployer       Decimal   @default(0.0) @db.Decimal(12, 2) @map("css_at_employer")
+  cfceEmployer        Decimal   @default(0.0) @db.Decimal(12, 2) @map("cfce_employer")
+  totalEmployeeSocial Decimal   @default(0.0) @db.Decimal(12, 2) @map("total_employee_social")
+  totalEmployerSocial Decimal   @default(0.0) @db.Decimal(12, 2) @map("total_employer_social")
+
+  // Fiscalite & Retenues
+  taxIncomeTax        Decimal   @default(0.0) @db.Decimal(12, 2) @map("tax_income_tax")
+  advancesDeducted    Decimal   @default(0.0) @db.Decimal(12, 2) @map("advances_deducted")
+  otherDeductions     Decimal   @default(0.0) @db.Decimal(12, 2) @map("other_deductions")
+  totalDeductions     Decimal   @default(0.0) @db.Decimal(12, 2) @map("total_deductions")
+
+  // Soldes Nets & Couts
+  netSalary           Decimal   @default(0.0) @db.Decimal(12, 2) @map("net_salary")
+  employerTotalCost   Decimal   @default(0.0) @db.Decimal(12, 2) @map("employer_total_cost")
+
+  // Modalite de paiement
+  paymentMethod       String    @default("transfer") @map("payment_method") // transfer, wave, orange_money, cash
+  paymentReference    String?   @map("payment_reference")
+  paidAt              DateTime? @map("paid_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  period   PayrollPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  employee Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lines    PayslipLine[]
+
+  @@unique([periodId, employeeId])
+  @@index([companyId])
+  @@index([employeeId])
+  @@map("payslips")
+  @@schema("payroll")
+}
+
+model PayslipLine {
+  id             String   @id @default(uuid())
+  payslipId      String   @map("payslip_id")
+  code           String
+  label          String
+  category       String   @default("gain") // gain, social_employee, social_employer, tax, deduction
+  base           Decimal  @default(0.0) @db.Decimal(12, 2)
+  rateEmployee   Float?   @map("rate_employee")
+  amountEmployee Decimal? @db.Decimal(12, 2) @map("amount_employee")
+  rateEmployer   Float?   @map("rate_employer")
+  amountEmployer Decimal? @db.Decimal(12, 2) @map("amount_employer")
+  order          Int      @default(0)
+
+  payslip Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+
+  @@index([payslipId])
+  @@map("payslip_lines")
+  @@schema("payroll")
+}
+
+model PayrollVariable {
+  id                 String   @id @default(uuid())
+  companyId          String   @map("company_id")
+  employeeId         String   @map("employee_id")
+  month              Int
+  year               Int
+  name               String
+  amount             Decimal  @db.Decimal(12, 2)
+  isTaxable          Boolean  @default(true) @map("is_taxable")
+  isSubjectToSocial  Boolean  @default(true) @map("is_subject_to_social")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, month, year])
+  @@index([employeeId])
+  @@map("payroll_variables")
+  @@schema("payroll")
+}
+
+// ==========================================
+// 8. MODULE: PERFORMANCE (schema: "performance")
+// ==========================================
+
+model PerformanceTemplate {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  title       String
+  description String?
+  category    String   @default("ANNUAL") // ANNUAL, PROBATION, PROFESSIONAL, QUARTERLY
+  sections    Json     // Sections, questions, criteria, and rating scales
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company   Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  campaigns PerformanceCampaign[]
+
+  @@map("performance_templates")
+  @@schema("performance")
+  @@index([companyId])
+  @@index([category])
+}
+
+model PerformanceCampaign {
+  id          String    @id @default(uuid())
+  companyId   String    @map("company_id")
+  templateId  String    @map("template_id")
+  title       String
+  description String?
+  year        Int
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime  @map("end_date")
+  status      String    @default("DRAFT") // DRAFT, ACTIVE, CLOSED, ARCHIVED
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  company     Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  template    PerformanceTemplate     @relation(fields: [templateId], references: [id])
+  evaluations PerformanceEvaluation[]
+
+  @@map("performance_campaigns")
+  @@schema("performance")
+  @@index([companyId])
+  @@index([templateId])
+  @@index([status])
+  @@index([year])
+}
+
+model PerformanceEvaluation {
+  id                String    @id @default(uuid())
+  companyId         String    @map("company_id")
+  campaignId        String    @map("campaign_id")
+  employeeId        String    @map("employee_id")
+  evaluatorId       String    @map("evaluator_id")
+  status            String    @default("NOT_STARTED") // NOT_STARTED, SELF_EVALUATION, MANAGER_REVIEW, CALIBRATION, COMPLETED, CANCELLED
+  selfRating        Float?    @map("self_rating")
+  managerRating     Float?    @map("manager_rating")
+  finalRating       Float?    @map("final_rating")
+  selfReviewData    Json?     @map("self_review_data")
+  managerReviewData Json?     @map("manager_review_data")
+  sharedNotes       String?   @map("shared_notes")
+  employeeSignedAt  DateTime? @map("employee_signed_at")
+  managerSignedAt   DateTime? @map("manager_signed_at")
+  completedAt       DateTime? @map("completed_at")
+  pdfSummaryUrl     String?   @map("pdf_summary_url")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  company   Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  campaign  PerformanceCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  employee  Employee              @relation("EvaluationEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  evaluator Employee              @relation("EvaluationEvaluator", fields: [evaluatorId], references: [id])
+  auditLogs PerformanceAuditLog[]
+
+  @@unique([campaignId, employeeId])
+  @@map("performance_evaluations")
+  @@schema("performance")
+  @@index([companyId])
+  @@index([campaignId])
+  @@index([employeeId])
+  @@index([evaluatorId])
+  @@index([status])
+}
+
+model PerformanceObjective {
+  id           String    @id @default(uuid())
+  companyId    String    @map("company_id")
+  employeeId   String    @map("employee_id")
+  title        String
+  description  String?
+  category     String    @default("INDIVIDUAL") // INDIVIDUAL, TEAM, STRATEGIC
+  weight       Int       @default(1)
+  targetValue  Float?    @map("target_value")
+  currentValue Float?    @default(0.0) @map("current_value")
+  unit         String?   // "%", "EUR", "XOF", "KPI", etc.
+  progress     Float     @default(0.0) // 0 à 100 %
+  status       String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, ACHIEVED, EXCEEDED, CANCELLED
+  dueDate      DateTime? @map("due_date")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("performance_objectives")
+  @@schema("performance")
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+model Skill {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  name        String
+  category    String   @default("TECHNICAL") // TECHNICAL, SOFT, LEADERSHIP
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeSkills EmployeeSkill[]
+
+  @@unique([companyId, name])
+  @@map("skills")
+  @@schema("performance")
+  @@index([companyId])
+  @@index([category])
+}
+
+model EmployeeSkill {
+  id           String   @id @default(uuid())
+  employeeId   String   @map("employee_id")
+  skillId      String   @map("skill_id")
+  currentLevel Int      @default(1) @map("current_level") // 1 à 5
+  targetLevel  Int?     @map("target_level")
+  assessedAt   DateTime @default(now()) @map("assessed_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, skillId])
+  @@map("employee_skills")
+  @@schema("performance")
+  @@index([employeeId])
+  @@index([skillId])
+}
+
+model PerformanceAuditLog {
+  id           String   @id @default(uuid())
+  evaluationId String   @map("evaluation_id")
+  action       String   // STATUS_CHANGE, SELF_REVIEW_SUBMITTED, MANAGER_REVIEW_SUBMITTED, SIGNED, etc.
+  actorId      String?  @map("actor_id")
+  actorIp      String?  @map("actor_ip")
+  details      Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  evaluation PerformanceEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("performance_audit_logs")
+  @@schema("performance")
+  @@index([evaluationId])
+  @@index([createdAt])
+}
+

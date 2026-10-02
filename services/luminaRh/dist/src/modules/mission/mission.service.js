@@ -75,7 +75,8 @@ let MissionService = class MissionService {
             },
         });
         if (dto.employee_ids && dto.employee_ids.length > 0) {
-            await Promise.all(dto.employee_ids.map(empId => this.prisma.missionAssignment.create({
+            const validEmployeeIds = await this.filterCompanyEmployees(companyId, dto.employee_ids);
+            await Promise.all(validEmployeeIds.map(empId => this.prisma.missionAssignment.create({
                 data: {
                     missionId: mission.id,
                     employeeId: empId,
@@ -83,6 +84,18 @@ let MissionService = class MissionService {
             }).catch(() => null)));
         }
         return this.findOne(companyId, mission.id);
+    }
+    async filterCompanyEmployees(companyId, employeeIds) {
+        if (!employeeIds || employeeIds.length === 0)
+            return [];
+        const validEmployees = await this.prisma.employee.findMany({
+            where: {
+                id: { in: employeeIds },
+                companyId,
+            },
+            select: { id: true },
+        });
+        return validEmployees.map(e => e.id);
     }
     async update(companyId, id, dto) {
         await this.findOne(companyId, id);
@@ -110,7 +123,8 @@ let MissionService = class MissionService {
                 where: { missionId: id },
             });
             if (dto.employee_ids.length > 0) {
-                await Promise.all(dto.employee_ids.map(empId => this.prisma.missionAssignment.create({
+                const validEmployeeIds = await this.filterCompanyEmployees(companyId, dto.employee_ids);
+                await Promise.all(validEmployeeIds.map(empId => this.prisma.missionAssignment.create({
                     data: {
                         missionId: id,
                         employeeId: empId,
@@ -122,7 +136,8 @@ let MissionService = class MissionService {
     }
     async assignEmployees(companyId, id, employeeIds, comment) {
         await this.findOne(companyId, id);
-        await Promise.all(employeeIds.map(empId => this.prisma.missionAssignment.create({
+        const validEmployeeIds = await this.filterCompanyEmployees(companyId, employeeIds);
+        await Promise.all(validEmployeeIds.map(empId => this.prisma.missionAssignment.create({
             data: {
                 missionId: id,
                 employeeId: empId,

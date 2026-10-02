@@ -3,9 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const platform_fastify_1 = require("@nestjs/platform-fastify");
 const app_module_1 = require("./app.module");
 async function bootstrap() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    const app = await core_1.NestFactory.create(app_module_1.AppModule, new platform_fastify_1.FastifyAdapter());
     app.setGlobalPrefix('api');
     const allowedOrigins = process.env.ALLOWED_ORIGINS
         ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
@@ -16,7 +17,7 @@ async function bootstrap() {
                 callback(null, true);
             }
             else {
-                callback(new Error(`Origin ${origin} is not allowed by CORS`));
+                callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
             }
         },
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -41,10 +42,10 @@ async function bootstrap() {
         .build();
     const document = swagger_1.SwaggerModule.createDocument(app, config);
     swagger_1.SwaggerModule.setup('docs', app, document);
-    const port = process.env.PORT ?? 3000;
-    await app.listen(port);
+    const port = Number(process.env.PORT) || 3000;
+    await app.listen(port, '0.0.0.0');
     const logger = new common_1.Logger('Bootstrap');
-    logger.log(`LuminaRH Monolith is running on port ${port}`);
+    logger.log(`LuminaRH Monolith is running on port ${port} (Fastify)`);
     logger.log(`Swagger documentation is available at http://localhost:${port}/docs`);
 }
 bootstrap();

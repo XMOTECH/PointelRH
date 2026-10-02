@@ -17,6 +17,8 @@ export declare class AnalyticsController {
         success: boolean;
         data: {
             date: string;
+            total_employees: number;
+            present_count: number;
             present: number;
             absent: number;
             late: number;

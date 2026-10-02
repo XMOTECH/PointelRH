@@ -6,7 +6,7 @@ import { AdvanceService } from './advance.service';
 import { AdvanceController } from './advance.controller';
 
 @Module({
-  controllers: [EmployeeController, EmployeeMeController, AdvanceController],
+  controllers: [AdvanceController, EmployeeMeController, EmployeeController],
   providers: [EmployeeService, AdvanceService],
   exports: [EmployeeService, AdvanceService],
 })

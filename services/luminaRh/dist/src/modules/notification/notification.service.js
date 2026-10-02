@@ -60,11 +60,13 @@ let NotificationService = NotificationService_1 = class NotificationService {
         const smtpHost = this.config.get('SMTP_HOST', 'smtp.gmail.com');
         const smtpPort = Number(this.config.get('SMTP_PORT', 587));
         const smtpSecure = this.config.get('SMTP_SECURE') === 'true' || this.config.get('SMTP_SECURE') === true;
-        const rawUser = this.config.get('SMTP_USER', 'luminarhsn@gmail.com');
-        const rawPass = this.config.get('SMTP_PASS', 'htlkmlnitskgeacs');
-        const smtpUser = rawUser ? rawUser.replace(/^["']|["']$/g, '').trim() : 'luminarhsn@gmail.com';
-        const smtpPass = rawPass ? rawPass.replace(/^["']|["']$/g, '').replace(/\s+/g, '').trim() : 'htlkmlnitskgeacs';
-        this.logger.log(`[Diagnostic SMTP] Utilisateur: '${smtpUser}' (${smtpUser?.length} chars), Pass: '${smtpPass ? smtpPass.substring(0, 4) + '***' + smtpPass.substring(smtpPass.length - 4) : 'absent'}' (${smtpPass?.length} chars)`);
+        const rawUser = this.config.get('SMTP_USER', '');
+        const rawPass = this.config.get('SMTP_PASS', '');
+        const smtpUser = rawUser ? rawUser.replace(/^["']|["']$/g, '').trim() : undefined;
+        const smtpPass = rawPass ? rawPass.replace(/^["']|["']$/g, '').replace(/\s+/g, '').trim() : undefined;
+        if (!smtpUser || !smtpPass) {
+            this.logger.warn('[SMTP] SMTP_USER ou SMTP_PASS non configuré. Les emails seront désactivés.');
+        }
         this.transporter = nodemailer.createTransport({
             host: smtpHost,
             port: smtpPort,

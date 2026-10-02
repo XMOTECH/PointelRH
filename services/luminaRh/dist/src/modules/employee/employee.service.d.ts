@@ -22,6 +22,7 @@ export declare class EmployeeService {
             startTime: string | null;
             endTime: string | null;
             graceMinutes: number;
+            workDays: number[];
         } | null;
     } & {
         id: string;
@@ -42,6 +43,8 @@ export declare class EmployeeService {
         transportAllowance: import("@prisma/client/runtime/library").Decimal;
         maritalStatus: string;
         taxParts: number;
+        isCadre: boolean;
+        jobTitle: string | null;
     }>;
     list(companyId: string, filters: {
         departmentId?: string;
@@ -65,6 +68,7 @@ export declare class EmployeeService {
             startTime: string | null;
             endTime: string | null;
             graceMinutes: number;
+            workDays: number[];
         } | null;
         user: {
             isActive: boolean;
@@ -89,6 +93,8 @@ export declare class EmployeeService {
         transportAllowance: import("@prisma/client/runtime/library").Decimal;
         maritalStatus: string;
         taxParts: number;
+        isCadre: boolean;
+        jobTitle: string | null;
     })[]>;
     findOne(companyId: string, id: string): Promise<{
         department: {
@@ -107,6 +113,7 @@ export declare class EmployeeService {
             startTime: string | null;
             endTime: string | null;
             graceMinutes: number;
+            workDays: number[];
         } | null;
         user: {
             id: string;
@@ -140,6 +147,8 @@ export declare class EmployeeService {
         transportAllowance: import("@prisma/client/runtime/library").Decimal;
         maritalStatus: string;
         taxParts: number;
+        isCadre: boolean;
+        jobTitle: string | null;
     }>;
     update(companyId: string, id: string, dto: Partial<CreateEmployeeDto> & {
         status?: string;
@@ -160,6 +169,7 @@ export declare class EmployeeService {
             startTime: string | null;
             endTime: string | null;
             graceMinutes: number;
+            workDays: number[];
         } | null;
     } & {
         id: string;
@@ -180,6 +190,8 @@ export declare class EmployeeService {
         transportAllowance: import("@prisma/client/runtime/library").Decimal;
         maritalStatus: string;
         taxParts: number;
+        isCadre: boolean;
+        jobTitle: string | null;
     }>;
     remove(companyId: string, id: string): Promise<{
         deleted: boolean;
@@ -208,6 +220,7 @@ export declare class EmployeeService {
             startTime: string | null;
             endTime: string | null;
             graceMinutes: number;
+            workDays: number[];
         } | null;
     } & {
         id: string;
@@ -228,5 +241,7 @@ export declare class EmployeeService {
         transportAllowance: import("@prisma/client/runtime/library").Decimal;
         maritalStatus: string;
         taxParts: number;
+        isCadre: boolean;
+        jobTitle: string | null;
     }>;
 }

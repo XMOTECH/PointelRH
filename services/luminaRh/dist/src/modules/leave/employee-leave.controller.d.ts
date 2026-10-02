@@ -22,7 +22,7 @@ export declare class EmployeeLeaveController {
             attachment_path: any;
             half_day: any;
             half_day_period: any;
-            days_count: any;
+            days_count: number;
             created_at: any;
             employee: {
                 id: any;
@@ -46,10 +46,10 @@ export declare class EmployeeLeaveController {
                 is_active: boolean;
             };
             year: number;
-            allocated: import("@prisma/client/runtime/library").Decimal;
-            used: import("@prisma/client/runtime/library").Decimal;
-            pending: import("@prisma/client/runtime/library").Decimal;
-            remaining: import("@prisma/client/runtime/library").Decimal;
+            allocated: number;
+            used: number;
+            pending: number;
+            remaining: number;
         }[];
     }>;
     createMyLeave(user: CurrentUserDto, dto: CreateLeaveRequestDto): Promise<{
@@ -70,7 +70,7 @@ export declare class EmployeeLeaveController {
             attachment_path: any;
             half_day: any;
             half_day_period: any;
-            days_count: any;
+            days_count: number;
             created_at: any;
             employee: {
                 id: any;

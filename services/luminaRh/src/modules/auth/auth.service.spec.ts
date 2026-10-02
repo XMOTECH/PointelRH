@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { KeycloakAdminService } from './keycloak-admin.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -23,6 +24,13 @@ describe('AuthService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn((key: string, defaultValue: string) => defaultValue),
+          },
+        },
+        {
+          provide: KeycloakAdminService,
+          useValue: {
+            createUser: jest.fn(),
+            deleteUser: jest.fn(),
           },
         },
       ],

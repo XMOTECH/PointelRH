@@ -14,6 +14,7 @@ const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 class UpdateDepartmentDto {
     name;
+    manager_id;
 }
 exports.UpdateDepartmentDto = UpdateDepartmentDto;
 __decorate([
@@ -23,4 +24,10 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateDepartmentDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'uuid-employee', description: 'ID de l\'employé manager', required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateDepartmentDto.prototype, "manager_id", void 0);
 //# sourceMappingURL=update-department.dto.js.map

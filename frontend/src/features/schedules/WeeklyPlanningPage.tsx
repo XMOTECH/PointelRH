@@ -1,386 +1,472 @@
-import React from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
-  Clock,
-  Search,
-  Briefcase,
-  Moon,
-  Palmtree,
-  CalendarOff,
-  Pencil,
-  AlertCircle,
-} from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { schedulesApi } from './api/schedules.api';
+import { departmentsApi } from '../departments/api/departments.api';
 import { Spinner } from '@/components/ui/Spinner';
-import { format, startOfWeek, addDays, isToday } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { ScheduleOverrideModal } from './components/ScheduleOverrideModal';
+import { FormattedNumber } from '@/components/ui/FormattedNumber';
+import { startOfWeek, addDays, format } from 'date-fns';
 import { toast } from 'sonner';
+import { ShiftModal } from './components/ShiftModal';
+import type { ShiftFormData } from './components/ShiftModal';
+import { DuplicateWeekModal } from './components/DuplicateWeekModal';
+import { ShiftTemplatesDrawer } from './components/ShiftTemplatesDrawer';
+import { DayNoteModal } from './components/DayNoteModal';
+import { PlanningToolbar } from './components/PlanningToolbar';
+import { PlanningDayHeader } from './components/PlanningDayHeader';
+import { PlanningDayNotesRow } from './components/PlanningDayNotesRow';
+import { PlanningDepartmentGroup } from './components/PlanningDepartmentGroup';
+import { cleanLabel, PLANNING_MIN_WIDTH, getEmployeeFullName } from './utils/planning.utils';
+import type { ShiftItem, EmployeeRow } from './types';
 
-const DAYS_SHORT = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
-
-/* ─── Barre shift style Teams ─────────────────────────────────── */
-function ShiftCell({ shift, onClick }: { shift: any; onClick: () => void }) {
-  // Repos — cellule quasi vide (style Teams: jours off = vide)
-  if (shift.status === 'rest') {
-    return (
-      <div
-        onClick={onClick}
-        className="h-14 flex items-center justify-center rounded-lg cursor-pointer
-                   hover:bg-gray-100 transition-colors group/rest"
-      >
-        <div className="flex items-center gap-1 text-gray-300 group-hover/rest:text-gray-400 transition-colors">
-          <Moon size={12} />
-          <span className="text-[10px] font-semibold uppercase tracking-wide">Repos</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Congé
-  if (shift.status === 'leave') {
-    return (
-      <div
-        onClick={onClick}
-        className="h-14 flex items-center gap-2 px-3 rounded-lg cursor-pointer
-                   bg-emerald-500 text-white shadow-sm shadow-emerald-500/25
-                   hover:bg-emerald-600 hover:shadow-md transition-all"
-      >
-        <Palmtree size={14} className="flex-shrink-0 opacity-80" />
-        <div className="flex flex-col min-w-0">
-          <span className="text-xs font-bold leading-tight">Congé</span>
-          {shift.reason && (
-            <span className="text-[10px] font-medium opacity-75 truncate leading-tight">{shift.reason}</span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Absent (override off)
-  if (shift.status === 'off') {
-    return (
-      <div
-        onClick={onClick}
-        className="h-14 flex items-center gap-2 px-3 rounded-lg cursor-pointer
-                   bg-rose-500 text-white shadow-sm shadow-rose-500/25
-                   hover:bg-rose-600 hover:shadow-md transition-all"
-      >
-        <CalendarOff size={14} className="flex-shrink-0 opacity-80" />
-        <div className="flex flex-col min-w-0">
-          <span className="text-xs font-bold leading-tight">Absent</span>
-          {shift.reason && (
-            <span className="text-[10px] font-medium opacity-75 truncate leading-tight">{shift.reason}</span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Jour de travail — déterminer le sous-type
-  const startTime = shift.start_time || shift.start?.split('T')[1]?.substring(0, 5) || '';
-  const endTime = shift.end_time || shift.end?.split('T')[1]?.substring(0, 5) || '';
-  const isRealShift = shift.type === 'shift';
-  const isOverride = shift.is_override;
-  const isMission = !!shift.mission_title;
-  const isPending = shift.status === 'pending';
-
-  // Couleurs par type (barres pleines — style Teams Shifts)
-  let bgClass = 'bg-primary shadow-primary/25';
-  let hoverClass = 'hover:brightness-110';
-  let Icon = Clock;
-  let label = 'Planning';
-
-  if (isPending) {
-    bgClass = 'bg-amber-500 shadow-amber-500/25';
-    Icon = AlertCircle;
-    label = 'En attente';
-  } else if (isMission) {
-    bgClass = 'bg-indigo-500 shadow-indigo-500/25';
-    Icon = Briefcase;
-    label = shift.mission_title;
-  } else if (isOverride && !isRealShift) {
-    bgClass = 'bg-orange-500 shadow-orange-500/25';
-    Icon = Pencil;
-    label = 'Modifié';
-  }
-
-  return (
-    <div
-      onClick={onClick}
-      className={`h-14 flex items-center gap-2 px-3 rounded-lg cursor-pointer
-                  text-white shadow-sm ${bgClass} ${hoverClass}
-                  hover:shadow-md transition-all`}
-    >
-      <Icon size={14} className="flex-shrink-0 opacity-80" />
-      <div className="flex flex-col min-w-0">
-        <span className="text-xs font-bold leading-tight tracking-tight">
-          {startTime} – {endTime}
-        </span>
-        <span className="text-[10px] font-medium opacity-75 truncate leading-tight">{label}</span>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Page principale ─────────────────────────────────────────── */
 export function WeeklyPlanningPage() {
   const queryClient = useQueryClient();
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
 
-  const [selectedCell, setSelectedCell] = React.useState<{
-    employeeId: string;
-    employeeName: string;
+  // Modales
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [editingShiftData, setEditingShiftData] = useState<{
+    id?: string;
+    employeeId?: string | null;
     date: string;
-    dayData: any;
+    startTime: string;
+    endTime: string;
+    breakMinutes: number;
+    jobTitle?: string | null;
+    color?: string;
+    notes?: string | null;
+    isUnassigned?: boolean;
+    violations?: any[];
   } | null>(null);
 
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isTemplatesDrawerOpen, setIsTemplatesDrawerOpen] = useState(false);
+
+  // Notes de journée (style référence: Cocktail party, Michelin review, Inspection...)
+  const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
+  const [activeDayNoteDate, setActiveDayNoteDate] = useState<string | null>(null);
+
+  // Normalisation semaine
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd');
 
-  const { data: planning, isLoading } = useQuery({
-    queryKey: ['timeline', format(weekStart, 'yyyy-MM-dd')],
-    queryFn: () => schedulesApi.getTimeline({
-      start: format(weekStart, 'yyyy-MM-dd'),
-      end: format(weekEnd, 'yyyy-MM-dd'),
-    }),
+  // Requête matrice semaine
+  const { data: planningData, isLoading } = useQuery({
+    queryKey: ['planning-week', weekStartStr, selectedDepartmentId],
+    queryFn: () => schedulesApi.getWeekPlanning(weekStartStr, selectedDepartmentId || undefined),
   });
 
-  const overrideMutation = useMutation({
-    mutationFn: schedulesApi.saveOverride,
+  // Requête modèles de shifts
+  const { data: templates = [] } = useQuery({
+    queryKey: ['shift-templates'],
+    queryFn: () => schedulesApi.getShiftTemplates(),
+  });
+
+  // Requête départements
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: departmentsApi.getDepartments,
+  });
+
+  // ── Mutations ──
+  const publishMutation = useMutation({
+    mutationFn: () => schedulesApi.publishWeek(weekStartStr, selectedDepartmentId || undefined),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeline'] });
-      toast.success('Planning mis à jour');
-      setSelectedCell(null);
+      queryClient.invalidateQueries({ queryKey: ['planning-week'] });
+      toast.success('Le planning de la semaine a été publié avec succès.');
     },
-    onError: () => toast.error('Erreur lors de la mise à jour'),
+    onError: () => toast.error('Erreur lors de la publication du planning.'),
   });
 
-  const filteredPlanning = planning?.filter((p: any) => {
-    const fullName = `${p.first_name} ${p.last_name}`.toLowerCase();
-    return fullName.includes(searchQuery.toLowerCase());
+  const duplicateMutation = useMutation({
+    mutationFn: schedulesApi.duplicateWeek,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['planning-week'] });
+      toast.success(res.message || 'Semaine dupliquée avec succès.');
+      setIsDuplicateModalOpen(false);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Erreur lors de la duplication de la semaine.');
+    },
   });
 
-  if (isLoading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
+  const createShiftMutation = useMutation({
+    mutationFn: schedulesApi.createShift,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['planning-week'] });
+      if (res.violations?.length > 0) {
+        toast.warning(`Shift créé avec ${res.violations.length} avertissement(s) de conformité.`);
+      } else {
+        toast.success('Shift créé avec succès.');
+      }
+      setIsShiftModalOpen(false);
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Erreur lors de la création du shift.'),
+  });
+
+  const updateShiftMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => schedulesApi.updateShift(id, data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['planning-week'] });
+      if (res.violations?.length > 0) {
+        toast.warning(`Shift modifié avec ${res.violations.length} avertissement(s) de conformité.`);
+      } else {
+        toast.success('Shift mis à jour.');
+      }
+      setIsShiftModalOpen(false);
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Erreur lors de la modification.'),
+  });
+
+  const deleteShiftMutation = useMutation({
+    mutationFn: (id: string) => schedulesApi.deleteShift(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planning-week'] });
+      toast.success('Shift supprimé.');
+      setIsShiftModalOpen(false);
+    },
+    onError: () => toast.error('Erreur lors de la suppression du shift.'),
+  });
+
+  const moveShiftMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { employeeId?: string | null; date?: string; startTime?: string; endTime?: string } }) =>
+      schedulesApi.moveShift(id, payload),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['planning-week'] });
+      if (res?.violations?.length > 0) {
+        toast.warning(`Créneau déplacé avec ${res.violations.length} avertissement(s) de conformité.`);
+      } else {
+        toast.success('Créneau déplacé avec succès.');
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Erreur lors du déplacement du créneau.');
+    },
+  });
+
+  const handleMoveShift = (shiftId: string, targetDate: string, targetEmployeeId?: string | null) => {
+    moveShiftMutation.mutate({
+      id: shiftId,
+      payload: {
+        date: targetDate,
+        employeeId: targetEmployeeId ?? null,
+      },
+    });
+  };
+
+  const createTemplateMutation = useMutation({
+    mutationFn: schedulesApi.createShiftTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shift-templates'] });
+      toast.success('Modèle de shift enregistré.');
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: schedulesApi.deleteShiftTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shift-templates'] });
+      toast.success('Modèle désactivé.');
+    },
+  });
+
+  // Filtrage des employés par recherche textuelle
+  const filteredEmployees = useMemo(() => {
+    if (!planningData?.employees) return [];
+    if (!searchQuery.trim()) return planningData.employees;
+
+    const query = searchQuery.toLowerCase().trim();
+    return planningData.employees.filter((empRow: EmployeeRow) => {
+      const fullName = getEmployeeFullName(empRow.employee).toLowerCase();
+      const job = (empRow.employee.jobTitle || '').toLowerCase();
+      const dept = (empRow.employee.departmentName || '').toLowerCase();
+      return fullName.includes(query) || job.includes(query) || dept.includes(query);
+    });
+  }, [planningData?.employees, searchQuery]);
+
+  // Regroupement par département : n'affiche que les départements avec collaborateurs
+  const departmentGroups = useMemo(() => {
+    const groupMap = new Map<string, { id?: string; name: string; employees: EmployeeRow[] }>();
+
+    filteredEmployees.forEach((empRow: EmployeeRow) => {
+      const deptRaw = empRow.employee.departmentName || 'Équipe Générale';
+      const key = deptRaw.toLowerCase();
+
+      if (!groupMap.has(key)) {
+        const matchingDept = departments.find(
+          (d: any) => d.name.toLowerCase() === key || d.id === deptRaw,
+        );
+        groupMap.set(key, {
+          id: matchingDept?.id,
+          name: deptRaw,
+          employees: [],
+        });
+      }
+
+      groupMap.get(key)!.employees.push(empRow);
+    });
+
+    if (selectedDepartmentId) {
+      const selectedDept = departments.find((d: any) => d.id === selectedDepartmentId);
+      if (selectedDept) {
+        const key = selectedDept.name.toLowerCase();
+        return Array.from(groupMap.values()).filter((g) => g.name.toLowerCase() === key);
+      }
+    }
+
+    return Array.from(groupMap.values());
+  }, [departments, filteredEmployees, selectedDepartmentId]);
+
+  // Liste des employés pour les sélecteurs de modale
+  const employeesList = useMemo(() => {
+    return planningData?.employees.map((e) => ({
+      id: e.employee.id,
+      firstName: e.employee.firstName || (e.employee as any).first_name || '',
+      lastName: e.employee.lastName || (e.employee as any).last_name || '',
+      jobTitle: cleanLabel(e.employee.jobTitle),
+      departmentName: cleanLabel(e.employee.departmentName),
+      totalWeeklyHours: Math.round((e.stats?.totalNetHours || (e as any)?.stats?.total_net_hours || 0) * 10) / 10,
+    })) || [];
+  }, [planningData?.employees]);
+
+  // Totaux globaux consolidés de manière résiliente
+  const totalWeeklyHours = useMemo(() => {
+    if (!planningData?.employees) return 0;
+    return planningData.employees.reduce((acc: number, e: EmployeeRow) => {
+      let empHours = e.stats?.totalNetHours || (e as any)?.stats?.total_net_hours || 0;
+      if (empHours === 0 && e.days) {
+        let mins = 0;
+        Object.values(e.days).forEach((items) => {
+          items?.forEach((item) => {
+            if (item.type === 'shift') {
+              const start = item.startTime || (item as any).start_time;
+              const end = item.endTime || (item as any).end_time;
+              if (start && end) {
+                const [sh, sm] = start.split(':').map(Number);
+                const [eh, em] = end.split(':').map(Number);
+                let diff = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
+                if (diff < 0) diff += 24 * 60;
+                diff -= (item.breakMinutes || 0);
+                if (diff > 0) mins += diff;
+              }
+            }
+          });
+        });
+        if (mins > 0) empHours = Number((mins / 60).toFixed(2));
+      }
+      return acc + empHours;
+    }, 0);
+  }, [planningData?.employees]);
+  const isWeekPublished = planningData?.planningWeek?.status === 'PUBLISHED';
+  const totalViolations = planningData?.violations?.length || 0;
+  const openShiftsCount = planningData?.openShifts?.length || 0;
+
+  // Actions d'ouverture de modales
+  const handleOpenAddShift = (dateStr: string, employeeId?: string) => {
+    setEditingShiftData({
+      date: dateStr,
+      employeeId: employeeId || null,
+      startTime: '09:00',
+      endTime: '17:00',
+      breakMinutes: 30,
+      jobTitle: '',
+      color: '#3B82F6',
+      notes: '',
+      isUnassigned: !employeeId,
+    });
+    setIsShiftModalOpen(true);
+  };
+
+  const handleOpenEditShift = (shift: ShiftItem, dateStr: string, employeeId?: string) => {
+    setEditingShiftData({
+      id: shift.id,
+      date: dateStr,
+      employeeId: employeeId || null,
+      startTime: shift.startTime || '09:00',
+      endTime: shift.endTime || '17:00',
+      breakMinutes: shift.breakMinutes ?? 30,
+      jobTitle: shift.jobTitle || '',
+      color: shift.color || '#3B82F6',
+      notes: shift.notes || '',
+      isUnassigned: !employeeId,
+      violations: shift.violations || [],
+    });
+    setIsShiftModalOpen(true);
+  };
+
+  const handleShiftSubmit = (data: ShiftFormData) => {
+    const payload = {
+      ...data,
+      employeeId: data.employeeId || undefined,
+      jobTitle: data.jobTitle || undefined,
+      notes: data.notes || undefined,
+    };
+    if (editingShiftData?.id) {
+      updateShiftMutation.mutate({
+        id: editingShiftData.id,
+        data: payload,
+      });
+    } else {
+      createShiftMutation.mutate(payload);
+    }
+  };
+
+  // Gestion des notes de journées
+  const handleSaveDayNote = (dateStr: string, noteText: string) => {
+    setDayNotes((prev) => {
+      const updated = { ...prev };
+      if (!noteText) {
+        delete updated[dateStr];
+      } else {
+        updated[dateStr] = noteText;
+      }
+      return updated;
+    });
+    toast.success('Note de journée enregistrée.');
+  };
+
+  const handleDeleteDayNote = (dateStr: string) => {
+    setDayNotes((prev) => {
+      const updated = { ...prev };
+      delete updated[dateStr];
+      return updated;
+    });
+    toast.success('Note supprimée.');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[420px] space-y-3">
+        <Spinner size="lg" />
+        <p className="text-xs text-slate-500 font-medium">Chargement du planning de travail...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-500">
-      {/* ── Header bar ── */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Planning</h1>
-          <p className="text-sm text-on-surface-variant mt-0.5">
-            Semaine du {format(weekStart, 'd MMM', { locale: fr })} au {format(weekEnd, 'd MMM yyyy', { locale: fr })}
-          </p>
-        </div>
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* ── 1. Barre de commande unifiée & HUD Opérationnel (Architecture SaaS Pro) ── */}
+      <PlanningToolbar
+        currentDate={currentDate}
+        weekStart={weekStart}
+        weekEnd={weekEnd}
+        isPublished={isWeekPublished}
+        searchQuery={searchQuery}
+        selectedDepartmentId={selectedDepartmentId}
+        departments={departments}
+        totalWeeklyHours={totalWeeklyHours}
+        totalEmployeesCount={planningData?.employees.length || 0}
+        openShiftsCount={openShiftsCount}
+        violationsCount={totalViolations}
+        onPrevWeek={() => setCurrentDate(addDays(currentDate, -7))}
+        onNextWeek={() => setCurrentDate(addDays(currentDate, 7))}
+        onToday={() => setCurrentDate(new Date())}
+        onSearchChange={setSearchQuery}
+        onDepartmentChange={setSelectedDepartmentId}
+        onOpenCreateShift={() => handleOpenAddShift(weekStartStr)}
+        onOpenDuplicate={() => setIsDuplicateModalOpen(true)}
+        onOpenTemplates={() => setIsTemplatesDrawerOpen(true)}
+        onPublish={() => publishMutation.mutate()}
+        isPublishing={publishMutation.isPending}
+      />
 
-        <div className="flex items-center gap-3 w-full lg:w-auto">
-          {/* Navigation semaine */}
-          <div className="flex items-center bg-surface-container-lowest rounded-lg border border-outline-variant">
-            <button
-              onClick={() => setCurrentDate(addDays(currentDate, -7))}
-              className="p-2 hover:bg-surface-container rounded-l-lg transition-colors"
-            >
-              <ChevronLeft size={18} className="text-on-surface-variant" />
-            </button>
-            <button
-              onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5 transition-colors"
-            >
-              Aujourd'hui
-            </button>
-            <button
-              onClick={() => setCurrentDate(addDays(currentDate, 7))}
-              className="p-2 hover:bg-surface-container rounded-r-lg transition-colors"
-            >
-              <ChevronRight size={18} className="text-on-surface-variant" />
-            </button>
-          </div>
-
-          {/* Recherche */}
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40" size={15} />
-            <input
-              type="text"
-              placeholder="Rechercher un collaborateur..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-surface-container-lowest rounded-lg text-sm
-                         border border-outline-variant focus:ring-2 focus:ring-primary/20
-                         focus:border-primary/40 transition-all outline-none placeholder:text-on-surface-variant/40"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Grille planning (style Teams Shifts) ── */}
-      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden">
+      {/* ── 3. Grille Principale WFM (Architecture CSS Grid Strictement Alignée) ── */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            {/* Header jours */}
-            <thead>
-              <tr>
-                <th className="sticky left-0 z-20 bg-surface-container-lowest px-5 py-3 text-left
-                               border-b border-r border-outline-variant min-w-[220px]">
-                  <span className="text-xs font-semibold text-on-surface-variant/60 uppercase tracking-wider">
-                    Collaborateur
-                  </span>
-                </th>
-                {weekDays.map((day, i) => {
-                  const today = isToday(day);
-                  return (
-                    <th
-                      key={day.toString()}
-                      className={`px-2 py-3 border-b border-outline-variant min-w-[130px] text-center
-                                  ${today ? 'bg-primary/5' : ''}`}
-                    >
-                      <span className="text-[10px] font-semibold text-on-surface-variant/50 uppercase tracking-wider block">
-                        {DAYS_SHORT[i]}
-                      </span>
-                      <span className={`text-lg font-bold block leading-tight
-                        ${today ? 'text-primary' : 'text-on-surface'}`}>
-                        {format(day, 'd')}
-                      </span>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
+          <div className={PLANNING_MIN_WIDTH}>
+            {/* En-tête des 7 jours avec pastille aujourd'hui */}
+            <PlanningDayHeader
+              weekDays={weekDays}
+              daysSummary={planningData?.daysSummary}
+            />
 
-            {/* Corps */}
-            <tbody>
-              {filteredPlanning?.map((emp: any, rowIdx: number) => (
-                <tr
-                  key={emp.employee_id}
-                  className={`group transition-colors hover:bg-primary/[0.02]
-                              ${rowIdx % 2 === 1 ? 'bg-surface-container-low/30' : ''}`}
-                >
-                  {/* Colonne employé */}
-                  <td className="sticky left-0 z-10 px-5 py-3 border-r border-outline-variant
-                                 bg-inherit group-hover:bg-primary/[0.02]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center
-                                      text-xs font-bold text-primary border border-primary/20 flex-shrink-0">
-                        {emp.first_name?.[0]}{emp.last_name?.[0]}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-on-surface truncate leading-tight">
-                          {emp.first_name} {emp.last_name}
-                        </p>
-                        {emp.schedule_name && (
-                          <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold
-                                           bg-primary/8 text-primary/70 leading-none">
-                            {emp.schedule_name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
+            {/* Ligne des notes du jour (Day notes 💬) */}
+            <PlanningDayNotesRow
+              weekDays={weekDays}
+              notes={dayNotes}
+              onEditNote={(dateStr) => setActiveDayNoteDate(dateStr)}
+            />
 
-                  {/* Cellules jours */}
-                  {weekDays.map((day) => {
-                    const dayStr = format(day, 'yyyy-MM-dd');
-                    const today = isToday(day);
-                    const dayShifts = emp.shifts?.filter((s: any) => s.date === dayStr) || [];
-
-                    return (
-                      <td
-                        key={dayStr}
-                        className={`p-1.5 border-r border-outline-variant/30 align-top
-                                    ${today ? 'bg-primary/5' : ''}`}
-                      >
-                        <div className="flex flex-col gap-1">
-                          {dayShifts.length > 0 ? dayShifts.map((shift: any, idx: number) => (
-                            <ShiftCell
-                              key={shift.id || `${dayStr}-${idx}`}
-                              shift={shift}
-                              onClick={() => setSelectedCell({
-                                employeeId: emp.employee_id,
-                                employeeName: `${emp.first_name} ${emp.last_name}`,
-                                date: dayStr,
-                                dayData: shift,
-                              })}
-                            />
-                          )) : (
-                            <div
-                              onClick={() => setSelectedCell({
-                                employeeId: emp.employee_id,
-                                employeeName: `${emp.first_name} ${emp.last_name}`,
-                                date: dayStr,
-                                dayData: { status: 'rest' },
-                              })}
-                              className="h-14 rounded-lg border border-dashed border-outline-variant/30
-                                         flex items-center justify-center cursor-pointer
-                                         hover:border-primary/30 hover:bg-primary/5 transition-all
-                                         opacity-0 group-hover:opacity-100"
-                            />
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
+            {/* Groupes par département (sans balises <table> disjointes) */}
+            <div className="divide-y divide-slate-200">
+              {departmentGroups.map((group) => (
+                <PlanningDepartmentGroup
+                  key={group.name}
+                  departmentId={group.id}
+                  departmentName={group.name}
+                  employees={group.employees}
+                  openShifts={planningData?.openShifts || []}
+                  weekDays={weekDays}
+                  defaultExpanded={true}
+                  onAddPeople={() => handleOpenAddShift(weekStartStr)}
+                  onAddShift={(dateStr, empId) => handleOpenAddShift(dateStr, empId)}
+                  onEditShift={(shift, dateStr, empId) => handleOpenEditShift(shift, dateStr, empId)}
+                  onMoveShift={handleMoveShift}
+                />
               ))}
 
-              {(!filteredPlanning || filteredPlanning.length === 0) && (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <CalendarIcon size={40} className="mx-auto text-on-surface-variant/20 mb-3" />
-                    <p className="text-sm text-on-surface-variant/50 font-medium">Aucun collaborateur trouvé</p>
-                  </td>
-                </tr>
+              {departmentGroups.length === 0 && (
+                <div className="py-16 text-center bg-white">
+                  <CalendarIcon size={36} className="mx-auto text-slate-300 mb-2" />
+                  <p className="text-xs text-slate-500 font-medium">
+                    Aucun collaborateur trouvé pour cette sélection.
+                  </p>
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Légende ── */}
-      <div className="flex flex-wrap items-center gap-4 px-1">
-        {[
-          { color: 'bg-primary', label: 'Travail' },
-          { color: 'bg-orange-500', label: 'Modifié' },
-          { color: 'bg-emerald-500', label: 'Congé' },
-          { color: 'bg-rose-500', label: 'Absent' },
-          { color: 'bg-indigo-500', label: 'Mission' },
-          { color: 'bg-amber-500', label: 'En attente' },
-          { color: 'bg-gray-300', label: 'Repos' },
-        ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <div className={`w-3 h-3 rounded ${color}`} />
-            <span className="text-[11px] font-medium text-on-surface-variant/60">{label}</span>
-          </div>
-        ))}
-      </div>
 
-      {/* ── Override Modal ── */}
-      {selectedCell && (
-        <ScheduleOverrideModal
-          isOpen={!!selectedCell}
-          onClose={() => setSelectedCell(null)}
-          employeeName={selectedCell.employeeName}
-          date={new Date(selectedCell.date)}
-          isLoading={overrideMutation.isPending}
-          initialData={{
-            is_off: selectedCell.dayData.status === 'off' || selectedCell.dayData.status === 'rest',
-            start_time: selectedCell.dayData.start_time?.substring(0, 5)
-              || selectedCell.dayData.start?.split('T')[1]?.substring(0, 5)
-              || '08:00',
-            end_time: selectedCell.dayData.end_time?.substring(0, 5)
-              || selectedCell.dayData.end?.split('T')[1]?.substring(0, 5)
-              || '17:00',
-            reason: selectedCell.dayData.reason || '',
-          }}
-          onSubmit={(data) => overrideMutation.mutate({
-            employee_id: selectedCell.employeeId,
-            date: selectedCell.date,
-            ...data,
-          })}
+      {/* ── 5. Modales ── */}
+      {isShiftModalOpen && (
+        <ShiftModal
+          isOpen={isShiftModalOpen}
+          onClose={() => setIsShiftModalOpen(false)}
+          onSubmit={handleShiftSubmit}
+          onDelete={editingShiftData?.id ? () => deleteShiftMutation.mutate(editingShiftData.id!) : undefined}
+          isLoading={createShiftMutation.isPending || updateShiftMutation.isPending}
+          isDeleting={deleteShiftMutation.isPending}
+          employees={employeesList}
+          templates={templates}
+          initialData={editingShiftData || undefined}
+        />
+      )}
+
+      {isDuplicateModalOpen && (
+        <DuplicateWeekModal
+          isOpen={isDuplicateModalOpen}
+          onClose={() => setIsDuplicateModalOpen(false)}
+          currentWeekStart={weekStart}
+          onConfirm={(payload) => duplicateMutation.mutate({ ...payload, departmentId: selectedDepartmentId || undefined })}
+          isLoading={duplicateMutation.isPending}
+        />
+      )}
+
+      {isTemplatesDrawerOpen && (
+        <ShiftTemplatesDrawer
+          isOpen={isTemplatesDrawerOpen}
+          onClose={() => setIsTemplatesDrawerOpen(false)}
+          templates={templates}
+          onCreateTemplate={(data) => createTemplateMutation.mutate({ ...data, departmentId: selectedDepartmentId || undefined })}
+          onDeleteTemplate={(id) => deleteTemplateMutation.mutate(id)}
+          isCreating={createTemplateMutation.isPending}
+        />
+      )}
+
+      {activeDayNoteDate && (
+        <DayNoteModal
+          isOpen={!!activeDayNoteDate}
+          dateStr={activeDayNoteDate}
+          initialNote={dayNotes[activeDayNoteDate] || ''}
+          onClose={() => setActiveDayNoteDate(null)}
+          onSave={handleSaveDayNote}
+          onDelete={handleDeleteDayNote}
         />
       )}
     </div>

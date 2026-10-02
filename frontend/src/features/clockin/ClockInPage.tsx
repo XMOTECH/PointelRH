@@ -17,7 +17,6 @@ import { useClockIn } from './hooks/useClockIn';
 import { useClockOut } from './hooks/useClockOut';
 import { useRealTimeClock, useTodayStatus } from './hooks/hooks';
 import { ClockCard, FaceRecognitionCard, SuccessMessage, ClockOutSuccessMessage, ErrorMessage } from './components';
-import { CLOCK_IN_MESSAGES, SPACING, LAYOUT } from './constants';
 import { useFaceEnrollmentStatus } from '@/features/employees/hooks/useFaceEnrollment';
 import { FaceEnrollmentModal } from '@/features/employees/components/FaceEnrollmentModal';
 
@@ -25,10 +24,11 @@ type ClockInMode = 'web' | 'face';
 
 export default function ClockInPage() {
   const { user } = useAuth();
+  const targetId = user?.employee_id || user?.id;
   const currentTime = useRealTimeClock();
-  const { todayAttendance, isCheckedIn, isCheckedOut } = useTodayStatus(user?.employee_id);
+  const { todayAttendance, isCheckedOut, hasActiveSession } = useTodayStatus(targetId);
   const [mode, setMode] = useState<ClockInMode>('web');
-  const { data: faceStatus } = useFaceEnrollmentStatus(user?.employee_id);
+  const { data: faceStatus } = useFaceEnrollmentStatus(targetId);
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
   const needsEnrollment = mode === 'face' && faceStatus && !faceStatus.enrolled;
 
@@ -48,114 +48,92 @@ export default function ClockInPage() {
     error: clockOutErrorObj,
   } = useClockOut();
 
-  // Determine clock state based on today's attendance
-  const clockState = isCheckedOut || clockOutSuccess
-    ? 'complete'
-    : isCheckedIn || clockInSuccess
-      ? 'checked_in'
+  // Détermination de l'état : en session active, en pause (séance précédente clôturée), ou idle
+  const clockState = (hasActiveSession || clockInSuccess) && !clockOutSuccess
+    ? 'checked_in'
+    : (isCheckedOut || clockOutSuccess)
+      ? 'paused'
       : 'idle';
 
   const isPending = clockInPending || clockOutPending;
 
   // Extract error messages safely
-  const clockInErrorMessage = (clockInErrorObj as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Une erreur est survenue.';
-  const clockOutErrorMessage = (clockOutErrorObj as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Une erreur est survenue lors du pointage de sortie.';
+  const clockInErrStatus = (clockInErrorObj as any)?.response?.status;
+  const clockInErrorMessage = clockInErrStatus === 409
+    ? ((clockInErrorObj as any)?.response?.data?.message || 'Vous avez déjà une session active.')
+    : (clockInErrorObj as any)?.response?.data?.message || (clockInErrorObj as any)?.response?.data?.error || 'Une erreur est survenue lors du pointage.';
+  const clockOutErrorMessage = (clockOutErrorObj as any)?.response?.data?.message || (clockOutErrorObj as any)?.response?.data?.error || 'Une erreur est survenue lors du pointage de sortie.';
+
+  const userCompanyId = user?.company_id || (user as any)?.companyId;
 
   const handleFaceClockIn = (descriptor: number[]) => {
     clockIn({
       channel: 'face',
-      payload: { descriptor },
+      company_id: userCompanyId,
+      companyId: userCompanyId,
+      payload: {
+        descriptor,
+        companyId: userCompanyId,
+      },
     });
   };
 
   return (
-    <div className="clock-in-container" style={{ maxWidth: LAYOUT.containerMaxWidth, margin: '0 auto' }}>
-      {/* En-tête */}
-      <div style={{ marginBottom: SPACING.lg, textAlign: 'center' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-          {CLOCK_IN_MESSAGES.title}
-        </h2>
-        <p style={{ color: 'var(--text-muted)', marginTop: SPACING.sm }}>
-          {clockState === 'checked_in'
-            ? CLOCK_IN_MESSAGES.clockOutDescription
-            : clockState === 'complete'
-              ? CLOCK_IN_MESSAGES.dayCompleteDescription
-              : CLOCK_IN_MESSAGES.description}
-        </p>
-      </div>
+    <div className="w-full max-w-3xl mx-auto space-y-6 pt-2">
 
-      {/* Sélecteur de mode */}
+      {/* Sélecteur de mode (Segmented Control Unifié Style Apple) */}
       {clockState === 'idle' && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '8px',
-            marginBottom: SPACING.lg,
-          }}
-        >
-          <button
-            onClick={() => setMode('web')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 20px',
-              borderRadius: '999px',
-              border: '2px solid',
-              borderColor: mode === 'web' ? 'var(--primary)' : 'var(--border-light)',
-              backgroundColor: mode === 'web' ? 'var(--primary)' : 'transparent',
-              color: mode === 'web' ? 'white' : 'var(--text-muted)',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            <Monitor size={16} />
-            Web
-          </button>
-          <button
-            onClick={() => setMode('face')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 20px',
-              borderRadius: '999px',
-              border: '2px solid',
-              borderColor: mode === 'face' ? 'var(--primary)' : 'var(--border-light)',
-              backgroundColor: mode === 'face' ? 'var(--primary)' : 'transparent',
-              color: mode === 'face' ? 'white' : 'var(--text-muted)',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            <ScanFace size={16} />
-            Reconnaissance Faciale
-          </button>
+        <div className="flex justify-center">
+          <div className="p-1 bg-surface-container-low border border-on-surface/10 rounded-full inline-flex items-center gap-1">
+            <button
+              onClick={() => setMode('web')}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-extrabold tracking-wide uppercase transition-all duration-300 cursor-pointer ${
+                mode === 'web'
+                  ? 'bg-primary text-on-primary shadow-md'
+                  : 'text-on-surface-variant hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <Monitor size={15} />
+              Pointage Web
+            </button>
+            <button
+              onClick={() => setMode('face')}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-extrabold tracking-wide uppercase transition-all duration-300 cursor-pointer ${
+                mode === 'face'
+                  ? 'bg-primary text-on-primary shadow-md'
+                  : 'text-on-surface-variant hover:text-on-surface bg-transparent'
+              }`}
+            >
+              <ScanFace size={15} />
+              Reconnaissance Faciale
+            </button>
+          </div>
         </div>
       )}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: LAYOUT.gridColumns,
-          gap: LAYOUT.gridGap,
-        }}
-      >
+      <div className="w-full">
         {mode === 'web' || clockState !== 'idle' ? (
           <ClockCard
             currentTime={currentTime}
             onClockIn={() => clockIn({
               channel: 'web',
-              payload: { user_id: user?.id || '' },
+              company_id: userCompanyId,
+              companyId: userCompanyId,
+              payload: {
+                user_id: user?.id || (user as any)?.user_id || user?.employee_id || '',
+                userId: user?.id || (user as any)?.user_id || user?.employee_id || '',
+                employee_id: user?.employee_id || user?.id || '',
+                email: user?.email || '',
+                companyId: userCompanyId,
+              },
             })}
             onClockOut={() => {
-              if (user?.employee_id) {
-                clockOut({ employee_id: user.employee_id });
+              const empId = user?.employee_id || user?.id || '';
+              if (empId) {
+                clockOut({
+                  employee_id: empId,
+                  company_id: userCompanyId,
+                });
               }
             }}
             isPending={isPending}
@@ -163,51 +141,21 @@ export default function ClockInPage() {
             todayAttendance={todayAttendance}
           />
         ) : needsEnrollment ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '20px',
-              padding: '40px 24px',
-              borderRadius: '20px',
-              border: '2px dashed var(--border-light)',
-              backgroundColor: 'var(--surface-container-low, #f8f9fa)',
-              textAlign: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--primary) 0%, #00897B 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <ScanFace size={32} color="white" />
+          <div className="flex flex-col items-center gap-5 p-10 bg-surface-container-lowest border border-dashed border-outline-variant rounded-3xl text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <ScanFace size={32} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 8px' }}>
+              <h3 className="text-lg font-bold text-on-surface">
                 Configurez la reconnaissance faciale
               </h3>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0, maxWidth: 360 }}>
+              <p className="text-xs text-on-surface-variant mt-1 max-w-sm">
                 Pour pointer par reconnaissance faciale, vous devez d'abord enregistrer votre visage. Cela ne prend que quelques secondes.
               </p>
             </div>
             <button
               onClick={() => setEnrollModalOpen(true)}
-              className="btn btn-primary"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 28px',
-                fontSize: '0.95rem',
-                fontWeight: 600,
-              }}
+              className="btn btn-primary flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-2xl"
             >
               <UserPlus size={18} />
               Enregistrer mon visage
@@ -217,17 +165,20 @@ export default function ClockInPage() {
           <FaceRecognitionCard
             onFaceDetected={handleFaceClockIn}
             isPending={isPending}
+            isSuccess={clockInSuccess}
+            isError={clockInError}
+            errorMessage={clockInErrorMessage}
             disabled={clockState !== 'idle'}
           />
         )}
       </div>
 
       {/* Messages de statut */}
-      <div style={{ marginTop: SPACING.lg }}>
+      <div>
         {clockInSuccess && clockState === 'checked_in' && !clockOutSuccess && (
           <SuccessMessage timestamp={new Date()} />
         )}
-        {(clockOutSuccess || (clockState === 'complete' && todayAttendance)) && (
+        {(clockOutSuccess || (clockState === 'paused' && todayAttendance)) && (
           <ClockOutSuccessMessage
             workMinutes={todayAttendance?.work_minutes ?? null}
             overtimeMinutes={todayAttendance?.overtime_minutes ?? null}
@@ -238,133 +189,53 @@ export default function ClockInPage() {
       </div>
 
       {/* Espace Collaborateur - Raccourcis & Indicateurs */}
-      <div
-        style={{
-          marginTop: '40px',
-          paddingTop: '30px',
-          borderTop: '1px solid var(--border-light, #e2e8f0)',
-        }}
-      >
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '15px', color: '#2d3748' }}>
+      <div className="pt-6 border-t border-on-surface/10 space-y-4">
+        <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">
           Mon Espace LuminaRH
         </h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '15px',
-          }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
           <Link
             to="/my-advances"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              padding: '16px',
-              borderRadius: '12px',
-              border: '1px solid #edf2f7',
-              backgroundColor: 'white',
-              textDecoration: 'none',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'none';
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
-            }}
+            className="flex flex-col gap-2 p-4 rounded-2xl border border-on-surface/10 bg-surface-container-lowest hover:border-primary/30 transition-all group"
           >
-            <HeartHandshake size={20} className="text-primary" />
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2d3748' }}>Prêts & Acomptes</span>
-            <span style={{ fontSize: '0.75rem', color: '#718096' }}>Demandes d'aides & acomptes</span>
+            <HeartHandshake size={20} className="text-primary group-hover:scale-110 transition-transform" />
+            <div>
+              <span className="text-xs font-bold text-on-surface block">Prêts & Acomptes</span>
+              <span className="text-[11px] text-on-surface-variant">Demandes d'aides</span>
+            </div>
           </Link>
 
           <Link
             to="/my-leaves"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              padding: '16px',
-              borderRadius: '12px',
-              border: '1px solid #edf2f7',
-              backgroundColor: 'white',
-              textDecoration: 'none',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'none';
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
-            }}
+            className="flex flex-col gap-2 p-4 rounded-2xl border border-on-surface/10 bg-surface-container-lowest hover:border-primary/30 transition-all group"
           >
-            <PlaneTakeoff size={20} className="text-primary" />
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2d3748' }}>Mes Congés</span>
-            <span style={{ fontSize: '0.75rem', color: '#718096' }}>Demandes de congés</span>
+            <PlaneTakeoff size={20} className="text-primary group-hover:scale-110 transition-transform" />
+            <div>
+              <span className="text-xs font-bold text-on-surface block">Mes Congés</span>
+              <span className="text-[11px] text-on-surface-variant">Demandes de congés</span>
+            </div>
           </Link>
 
           <Link
             to="/my-missions"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              padding: '16px',
-              borderRadius: '12px',
-              border: '1px solid #edf2f7',
-              backgroundColor: 'white',
-              textDecoration: 'none',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'none';
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
-            }}
+            className="flex flex-col gap-2 p-4 rounded-2xl border border-on-surface/10 bg-surface-container-lowest hover:border-primary/30 transition-all group"
           >
-            <Briefcase size={20} className="text-primary" />
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2d3748' }}>Mes Missions</span>
-            <span style={{ fontSize: '0.75rem', color: '#718096' }}>Suivi des affectations</span>
+            <Briefcase size={20} className="text-primary group-hover:scale-110 transition-transform" />
+            <div>
+              <span className="text-xs font-bold text-on-surface block">Mes Missions</span>
+              <span className="text-[11px] text-on-surface-variant">Affectations</span>
+            </div>
           </Link>
 
           <Link
             to="/my-profile"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              padding: '16px',
-              borderRadius: '12px',
-              border: '1px solid #edf2f7',
-              backgroundColor: 'white',
-              textDecoration: 'none',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'none';
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
-            }}
+            className="flex flex-col gap-2 p-4 rounded-2xl border border-on-surface/10 bg-surface-container-lowest hover:border-primary/30 transition-all group"
           >
-            <User size={20} className="text-primary" />
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2d3748' }}>Mon Profil</span>
-            <span style={{ fontSize: '0.75rem', color: '#718096' }}>Mes informations & PIN</span>
+            <User size={20} className="text-primary group-hover:scale-110 transition-transform" />
+            <div>
+              <span className="text-xs font-bold text-on-surface block">Mon Profil</span>
+              <span className="text-[11px] text-on-surface-variant">Code PIN & Infos</span>
+            </div>
           </Link>
         </div>
       </div>

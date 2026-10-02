@@ -6,11 +6,6 @@ import {
   Calendar,
   Plus,
   X,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Hourglass,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { leavesApi, type LeaveRequest, type LeaveBalance } from './api/leaves.api';
@@ -22,50 +17,86 @@ import { fr } from 'date-fns/locale';
 import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
 
-const STATUS_CONFIG: Record<string, { label: string; icon: any; badgeClass: string }> = {
-  pending: { label: 'En attente', icon: Hourglass, badgeClass: 'bg-amber-100 text-amber-700 border-amber-200' },
-  approved: { label: 'Approuvé', icon: CheckCircle2, badgeClass: 'bg-green-100 text-green-700 border-green-200' },
-  rejected: { label: 'Refusé', icon: XCircle, badgeClass: 'bg-red-100 text-red-700 border-red-200' },
-  escalated: { label: 'Escaladé', icon: AlertTriangle, badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+const STATUS_CONFIG: Record<string, { label: string; variant: 'warning' | 'success' | 'error' | 'default' }> = {
+  pending: { label: 'En attente', variant: 'warning' },
+  approved: { label: 'Approuvé', variant: 'success' },
+  rejected: { label: 'Refusé', variant: 'error' },
+  escalated: { label: 'Escaladé', variant: 'warning' },
 };
 
 const FILTER_TABS: { key: FilterStatus; label: string }[] = [
-  { key: 'all', label: 'Tous' },
-  { key: 'pending', label: 'Attente' },
-  { key: 'approved', label: 'Approuvés' },
-  { key: 'rejected', label: 'Refusés' },
+  { key: 'all', label: 'Toutes' },
+  { key: 'pending', label: 'En attente' },
+  { key: 'approved', label: 'Approuvées' },
+  { key: 'rejected', label: 'Refusées' },
 ];
 
+function safeText(val: any, fallback = ''): string {
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object' && val !== null) {
+    if (typeof val.name === 'string') return val.name;
+    if (typeof val.label === 'string') return val.label;
+    if (typeof val.title === 'string') return val.title;
+  }
+  return fallback;
+}
+
+function parseDecimal(val: any, fallback = 0): number {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') return parseFloat(val) || fallback;
+  if (typeof val === 'object' && val !== null) {
+    if (typeof val.toNumber === 'function') return val.toNumber();
+    if ('s' in val && 'e' in val && 'd' in val && Array.isArray(val.d)) {
+      const numStr = val.d.join('');
+      const sign = val.s === -1 ? -1 : 1;
+      const exp = val.e;
+      const raw = parseFloat(numStr) * Math.pow(10, exp - numStr.length + 1);
+      return isNaN(raw) ? fallback : sign * raw;
+    }
+    if (typeof val.toString === 'function') return parseFloat(val.toString()) || fallback;
+  }
+  return fallback;
+}
+
 function BalanceCard({ balance }: { balance: LeaveBalance }) {
-  const pct = balance.allocated > 0 ? ((balance.used + balance.pending) / balance.allocated) * 100 : 0;
+  const allocated = parseDecimal(balance.allocated, 0);
+  const used = parseDecimal(balance.used, 0);
+  const pending = parseDecimal(balance.pending, 0);
+  const remaining = parseDecimal(balance.remaining, 0);
+
+  const pct = allocated > 0 ? Math.min(100, Math.round(((used + pending) / allocated) * 100)) : 0;
   const lt = balance.leave_type;
-  const color = (typeof lt === 'object' && lt ? lt.color : null) || '#3B82F6';
+  const leaveName = safeText(lt, 'Congé');
 
   return (
-    <Card className="premium-card p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-        <span className="font-bold text-sm text-on-surface">{typeof lt === 'object' && lt ? lt.name : 'Congé'}</span>
+    <div className="bg-surface-container-lowest border border-on-surface/15 rounded-2xl p-5 shadow-none flex flex-col justify-between space-y-4">
+      <div>
+        <div>
+          <span className="font-semibold text-sm text-on-surface">{leaveName}</span>
+        </div>
+        <div className="mt-3 flex items-baseline gap-1.5">
+          <span className="text-3xl font-display font-bold text-on-surface">{remaining}</span>
+          <span className="text-sm font-medium text-on-surface-variant">/ {allocated} jours</span>
+        </div>
       </div>
-      <div className="flex items-baseline justify-between">
-        <span className="text-2xl font-black text-on-surface">{balance.remaining}</span>
-        <span className="text-xs text-on-surface-variant">/ {balance.allocated} jours</span>
+
+      <div className="space-y-2">
+        <div className="w-full bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500 bg-primary"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-[11px] text-on-surface-variant">
+          <span>Pris : <strong className="text-on-surface font-medium">{used}j</strong></span>
+          <span>En attente : <strong className="text-on-surface font-medium">{pending}j</strong></span>
+        </div>
       </div>
-      <div className="w-full bg-surface-container-low rounded-full h-2">
-        <div
-          className="h-2 rounded-full transition-all"
-          style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: color }}
-        />
-      </div>
-      <div className="flex justify-between text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider">
-        <span>Utilisés : {balance.used}</span>
-        <span>En attente : {balance.pending}</span>
-      </div>
-    </Card>
+    </div>
   );
 }
 
@@ -100,26 +131,27 @@ export const MyLeavesPage: React.FC = () => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-8"
+      className="space-y-6 w-full"
     >
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-black text-on-surface tracking-tighter uppercase flex items-center gap-3">
-            <PlaneTakeoff size={28} />
-            Mes Congés
-          </h1>
-          <p className="text-on-surface-variant mt-1 font-medium">
-            Consultez vos soldes et gérez vos demandes de congé.
+          <h1 className="text-2xl font-display font-bold text-on-surface">Mes Congés</h1>
+          <p className="text-sm text-on-surface-variant mt-1">
+            Consultez vos soldes et gérez l'ensemble de vos demandes de congé.
           </p>
         </div>
-        <Button variant="primary" onClick={() => setShowModal(true)} className="gap-2">
+        <Button
+          variant="primary"
+          onClick={() => setShowModal(true)}
+          className="rounded-full shadow-sm gap-2 shrink-0 self-start sm:self-auto"
+        >
           <Plus size={18} />
           Nouvelle demande
         </Button>
       </div>
 
-      {/* Balance Cards */}
+      {/* Balance Cards Grid */}
       {balances && balances.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {balances.map((b: LeaveBalance) => (
@@ -128,113 +160,140 @@ export const MyLeavesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 bg-surface-container-low p-1 rounded-xl border border-outline-variant w-fit">
-        {FILTER_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-              filter === tab.key
-                ? 'bg-surface-container-lowest text-primary shadow-sm ring-1 ring-outline-variant'
-                : 'text-on-surface-variant/40 hover:text-on-surface'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Segmented Control Filter Switcher */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="inline-flex p-1 bg-surface-container-low border border-on-surface/10 rounded-full">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                filter === tab.key
+                  ? 'bg-surface-container-lowest text-on-surface shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Leave Requests List */}
-      <div className="space-y-3">
+      {/* Table Unifiée Style Admin */}
+      <div className="bg-surface-container-lowest border border-on-surface/15 rounded-2xl shadow-none overflow-hidden">
+        <div className="px-6 py-4 border-b border-on-surface/10 flex items-center justify-between">
+          <h2 className="text-base font-bold text-on-surface">Historique de mes demandes</h2>
+          <span className="text-xs text-on-surface-variant font-medium">
+            {filteredLeaves.length} demande{filteredLeaves.length > 1 ? 's' : ''}
+          </span>
+        </div>
+
         {filteredLeaves.length === 0 ? (
-          <Card className="premium-card p-12 text-center">
-            <PlaneTakeoff size={40} className="mx-auto mb-3 text-on-surface-variant/20" />
-            <p className="text-on-surface-variant/40 italic">Aucune demande de congé à afficher.</p>
-          </Card>
+          <div className="text-center py-12">
+            <PlaneTakeoff size={40} className="mx-auto text-on-surface-variant/30 mb-3" />
+            <p className="text-sm font-medium text-on-surface-variant">Aucune demande de congé à afficher</p>
+          </div>
         ) : (
-          filteredLeaves.map((leave: LeaveRequest) => {
-            const statusCfg = STATUS_CONFIG[leave.status] || STATUS_CONFIG.pending;
-            const StatusIcon = statusCfg.icon;
-            const lt = leave.leave_type;
-            const leaveTypeName = typeof lt === 'object' && lt ? lt.name : (lt || 'Congé');
-            const leaveColor = (typeof lt === 'object' && lt ? lt.color : null) || '#6B7280';
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-on-surface/10 bg-surface-container-low/30">
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Type de Congé <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Période demandée <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Durée <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Motif / Justificatif <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+                    Statut <span className="text-on-surface-variant/50 ml-1">↕</span>
+                  </th>
+                  <th className="py-3.5 px-4 text-xs font-semibold text-on-surface-variant whitespace-nowrap text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-on-surface/10">
+                {filteredLeaves.map((leave: LeaveRequest) => {
+                  const statusCfg = STATUS_CONFIG[leave.status] || STATUS_CONFIG.pending;
+                  const lt = leave.leave_type;
+                  const leaveTypeName = safeText(lt, 'Congé');
+                  const reasonText = safeText(leave.reason, '');
+                  const rejectionText = safeText(leave.rejection_reason, '');
+                  const approverName = [safeText(leave.approver?.first_name, ''), safeText(leave.approver?.last_name, '')].filter(Boolean).join(' ');
+                  const daysCount = parseDecimal(leave.days_count, 0);
 
-            return (
-              <Card key={leave.id} className="premium-card p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    {/* Type badge */}
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0"
-                      style={{ backgroundColor: leaveColor }}
-                    >
-                      <PlaneTakeoff size={18} />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-on-surface">
-                          {leaveTypeName}
-                        </span>
-                        {leave.half_day && (
-                          <span className="text-[10px] font-bold bg-surface-container-low px-2 py-0.5 rounded-full text-on-surface-variant uppercase">
-                            {leave.half_day_period === 'morning' ? 'Matin' : 'Après-midi'}
+                  return (
+                    <tr key={leave.id} className="hover:bg-surface-container-low/50 border-b border-on-surface/10 last:border-b-0 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-on-surface whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span>{leaveTypeName}</span>
+                          {leave.half_day && (
+                            <span className="text-[10px] font-bold bg-surface-container-low border border-on-surface/10 px-2 py-0.5 rounded-full text-on-surface-variant uppercase">
+                              {leave.half_day_period === 'morning' ? 'Matin' : 'Après-midi'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-on-surface whitespace-nowrap text-xs">
+                        <div className="flex items-center gap-1.5 font-medium">
+                          <Calendar size={13} className="text-on-surface-variant shrink-0" />
+                          <span>
+                            {format(new Date(leave.start_date), 'dd MMM', { locale: fr })}
+                            {' → '}
+                            {format(new Date(leave.end_date), 'dd MMM yyyy', { locale: fr })}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-mono font-medium text-on-surface whitespace-nowrap">
+                        {daysCount > 0 ? `${daysCount} jour${daysCount > 1 ? 's' : ''}` : '—'}
+                      </td>
+                      <td className="py-3.5 px-4 text-on-surface-variant max-w-[260px] truncate text-xs">
+                        {reasonText || (
+                          leave.status === 'rejected' && rejectionText ? (
+                            <span className="text-rose-600 font-medium">Refus : {rejectionText}</span>
+                          ) : (
+                            <span className="text-on-surface-variant/40">—</span>
+                          )
+                        )}
+                        {leave.status === 'approved' && approverName && (
+                          <span className="block text-[10px] text-on-surface-variant/60 mt-0.5">
+                            Validé par {approverName}
                           </span>
                         )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-on-surface-variant/60">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          {format(new Date(leave.start_date), 'dd MMM', { locale: fr })}
-                          {' - '}
-                          {format(new Date(leave.end_date), 'dd MMM yyyy', { locale: fr })}
-                        </span>
-                        {leave.days_count && (
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} />
-                            {leave.days_count} jour{Number(leave.days_count) > 1 ? 's' : ''}
-                          </span>
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <Badge variant={statusCfg.variant}>
+                          {statusCfg.label}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        {leave.status === 'pending' ? (
+                          <Button
+                            variant="tertiary"
+                            size="sm"
+                            className="hover:bg-rose-500/10 text-rose-600 hover:text-rose-700 !p-1.5 rounded-full"
+                            onClick={() => cancelMutation.mutate(leave.id)}
+                            disabled={cancelMutation.isPending}
+                            title="Annuler la demande"
+                          >
+                            <X size={15} />
+                          </Button>
+                        ) : (
+                          <span className="text-on-surface-variant/30 text-xs">—</span>
                         )}
-                      </div>
-                      {leave.reason && (
-                        <p className="text-xs text-on-surface-variant/50 mt-1 truncate">{leave.reason}</p>
-                      )}
-                      {leave.status === 'rejected' && leave.rejection_reason && (
-                        <p className="text-xs text-red-600 mt-1">
-                          Motif : {leave.rejection_reason}
-                        </p>
-                      )}
-                      {leave.status === 'approved' && leave.approver && (
-                        <p className="text-[10px] text-on-surface-variant/40 mt-1">
-                          Approuvé par {leave.approver.first_name} {leave.approver.last_name}
-                          {leave.approved_at && ` le ${format(new Date(leave.approved_at), 'dd/MM/yyyy', { locale: fr })}`}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <Badge className={`${statusCfg.badgeClass} flex items-center gap-1`}>
-                      <StatusIcon size={12} />
-                      {statusCfg.label}
-                    </Badge>
-                    {leave.status === 'pending' && (
-                      <Button
-                        variant="tertiary"
-                        size="sm"
-                        className="hover:bg-red-50 hover:text-red-600 !p-2"
-                        onClick={() => cancelMutation.mutate(leave.id)}
-                        disabled={cancelMutation.isPending}
-                      >
-                        <X size={16} />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            );
-          })
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

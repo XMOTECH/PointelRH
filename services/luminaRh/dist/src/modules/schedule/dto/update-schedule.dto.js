@@ -14,6 +14,9 @@ const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 class UpdateScheduleDto {
     name;
+    start_time;
+    end_time;
+    grace_minutes;
 }
 exports.UpdateScheduleDto = UpdateScheduleDto;
 __decorate([
@@ -23,4 +26,22 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateScheduleDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '08:00', description: 'Heure de début', required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateScheduleDto.prototype, "start_time", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '17:00', description: 'Heure de fin', required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateScheduleDto.prototype, "end_time", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 15, description: 'Tolérance de retard en minutes', required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdateScheduleDto.prototype, "grace_minutes", void 0);
 //# sourceMappingURL=update-schedule.dto.js.map

@@ -93,19 +93,52 @@ export class AnalyticsService {
     }));
   }
 
-  async getPresenceTrend(companyId: string) {
-    // Generate simple historical data from snapshots or raw attendances
-    const snapshots = await this.prisma.dailySnapshot.findMany({
-      where: { companyId },
-      orderBy: { date: 'desc' },
-      take: 7,
+  async getPresenceTrend(companyId: string, days = 7) {
+    const totalEmployees = await this.prisma.employee.count({
+      where: { companyId, status: 'active' },
     });
 
-    return snapshots.map((s) => ({
-      date: s.date.toISOString().split('T')[0],
-      present: s.presentCount,
-      absent: s.absentCount,
-      late: s.lateCount,
-    }));
+    const result = [];
+    const today = new Date();
+
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+      const endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+      const dateStr = startOfDay.toISOString().split('T')[0];
+
+      const presentCount = await this.prisma.attendance.count({
+        where: {
+          employee: { companyId },
+          clockIn: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      });
+
+      const lateCount = await this.prisma.attendance.count({
+        where: {
+          employee: { companyId },
+          isLate: true,
+          clockIn: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      });
+
+      result.push({
+        date: dateStr,
+        total_employees: totalEmployees,
+        present_count: presentCount,
+        present: presentCount,
+        absent: Math.max(0, totalEmployees - presentCount),
+        late: lateCount,
+      });
+    }
+
+    return result;
   }
 }

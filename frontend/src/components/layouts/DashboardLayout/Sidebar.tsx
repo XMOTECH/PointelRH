@@ -20,6 +20,9 @@ import {
   ListTodo,
   Coins,
   HeartHandshake,
+  UserPlus,
+  UserMinus,
+  Award,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -64,8 +67,11 @@ const navSections: NavSection[] = [
   },
   {
     title: 'Organisation',
-    roles: ['admin'],
+    roles: ['admin', 'manager'],
     items: [
+      { icon: <UserPlus size={20} />, label: 'Onboarding', path: '/onboarding', roles: ['admin', 'manager'] },
+      { icon: <UserMinus size={20} />, label: 'Offboarding', path: '/offboarding', roles: ['admin', 'manager'] },
+      { icon: <Award size={20} />, label: 'Performance', path: '/performance', roles: ['admin', 'manager'] },
       { icon: <Building2 size={20} />, label: 'Départements', path: '/departments', roles: ['admin'] },
       { icon: <Users size={20} />, label: 'Employés', path: '/employees', roles: ['admin'] },
       { icon: <ShieldCheck size={20} />, label: 'Managers', path: '/managers', roles: ['admin'] },
@@ -102,7 +108,6 @@ const navSections: NavSection[] = [
     title: 'Système',
     roles: ['admin'],
     items: [
-      { icon: <ShieldCheck size={20} />, label: 'Utilisateurs', path: '/admin/users', roles: ['admin'] },
       { icon: <Settings size={20} />, label: 'Paramètres', path: '/settings', roles: ['admin'] },
     ],
   },
@@ -129,6 +134,7 @@ const navSections: NavSection[] = [
       { icon: <PlaneTakeoff size={20} />, label: 'Mes Congés', path: '/my-leaves', roles: ['employee'] },
       { icon: <CalendarDays size={20} />, label: 'Mon Planning', path: '/my-schedule', roles: ['employee'] },
       { icon: <HeartHandshake size={20} />, label: 'Acomptes & Prêts', path: '/my-advances', roles: ['employee'] },
+      { icon: <Award size={20} />, label: 'Mes Évaluations', path: '/performance', roles: ['employee'] },
     ],
   },
   {
@@ -168,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
         <button
           onClick={onToggleCollapse}
           title={isCollapsed ? "Agrandir le menu" : "Réduire le menu"}
-          className="absolute -right-3.5 top-6 z-50 w-7 h-7 rounded-full bg-surface-container-lowest border border-on-surface/15 shadow-sm flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
+          className="absolute -right-3.5 top-6 z-50 w-7 h-7 rounded-full bg-surface-container-lowest border border-on-surface/15 shadow-sm flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -218,7 +224,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
                         : "gap-3.5 px-3.5 py-2.5",
                       isActive
                         ? "bg-primary text-on-primary font-semibold shadow-none"
-                        : "text-on-surface-variant font-medium hover:bg-surface-container hover:text-on-surface"
+                        : "text-on-surface-variant font-medium hover:text-primary transition-colors"
                     )}
                   >
                     <div className="text-current shrink-0">
@@ -261,7 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
           <div className="flex flex-col gap-1">
             <div
               onClick={() => navigate('/my-profile')}
-              className="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-container transition-colors cursor-pointer group"
+              className="flex items-center gap-3 p-2 rounded-xl transition-colors cursor-pointer group"
             >
               <div className="w-10 h-10 rounded-full overflow-hidden border border-on-surface/15 shrink-0">
                 <img src={adminAvatar} alt={user?.name || 'Profile'} className="w-full h-full object-cover" />

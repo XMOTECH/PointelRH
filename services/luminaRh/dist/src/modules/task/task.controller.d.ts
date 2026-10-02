@@ -82,7 +82,7 @@ export declare class TaskController {
         success: boolean;
         message: string;
     }>;
-    addComment(id: string, userId: string, content: string, attachments?: any[]): Promise<{
+    addComment(id: string, employeeId: string | null, content: string, attachments?: any[]): Promise<{
         success: boolean;
         data: {
             id: string;

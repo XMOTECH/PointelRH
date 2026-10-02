@@ -15,6 +15,8 @@ const swagger_1 = require("@nestjs/swagger");
 class ClockInDto {
     channel;
     payload;
+    company_id;
+    companyId;
     latitude;
     longitude;
 }
@@ -36,6 +38,26 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: 'Le contenu du pointage (payload) est requis' }),
     __metadata("design:type", Object)
 ], ClockInDto.prototype, "payload", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: 'uuid-company',
+        description: 'UUID de l\'entreprise',
+        required: false,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ClockInDto.prototype, "company_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: 'uuid-company',
+        description: 'UUID de l\'entreprise (camelCase)',
+        required: false,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ClockInDto.prototype, "companyId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
         example: 14.6937,

@@ -25,14 +25,14 @@ export const Header: React.FC = () => {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate('/notifications')}
-          className="p-2.5 text-on-surface-variant/70 hover:bg-surface-container hover:text-primary rounded-xl transition-colors relative group"
+          className="p-2 text-on-surface-variant/70 hover:text-primary transition-colors relative cursor-pointer"
         >
           <Bell size={20} strokeWidth={1.75} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full ring-2 ring-surface" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full ring-2 ring-surface" />
         </button>
         <button
           onClick={() => navigate('/settings')}
-          className="p-2.5 text-on-surface-variant/70 hover:bg-surface-container hover:text-primary rounded-xl transition-colors"
+          className="p-2 text-on-surface-variant/70 hover:text-primary transition-colors cursor-pointer"
         >
           <CircleHelp size={20} strokeWidth={1.75} />
         </button>
