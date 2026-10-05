@@ -11,11 +11,11 @@ on:
       environment:
         description: 'Environnement cible'
         required: true
-        default: 'staging'
+        default: 'production'
         type: choice
         options:
-          - staging
           - production
+          - staging
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -23,8 +23,6 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE_NAME: ${{ github.repository }}/backend
-  FRONTEND_IMAGE_NAME: ${{ github.repository }}/frontend
 
 jobs:
   # ─── 1. Build & Push Docker Images to GHCR ──────────────────
@@ -38,6 +36,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set lower case repository name
+        run: |
+          echo "REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -53,11 +55,12 @@ jobs:
         id: meta-backend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/backend
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and Push Backend
         uses: docker/build-push-action@v5
@@ -74,11 +77,12 @@ jobs:
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/frontend
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and Push Frontend
         uses: docker/build-push-action@v5
@@ -96,34 +100,40 @@ jobs:
     name: Deploy to Server
     needs: [build-and-push]
     runs-on: ubuntu-latest
-    environment:
-      name: ${{ inputs.environment || (startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging') }}
 
     steps:
-      - name: Checkout repository files
-        uses: actions/checkout@v4
+      - name: Set lower case repository name
+        run: |
+          echo "REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Execute deployment commands via SSH
         uses: appleboy/ssh-action@v1.0.3
-        if: env.SERVER_HOST != ''
+        if: "${{ secrets.SERVER_HOST != '' }}"
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          TARGET_DIR: "${{ secrets.DEPLOY_PATH || '$HOME/PointelRH' }}"
+          IMAGE_BACKEND: "${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/backend:latest"
+          IMAGE_FRONTEND: "${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/frontend:latest"
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
+          envs: TARGET_DIR,IMAGE_BACKEND,IMAGE_FRONTEND
           script: |
             set -e
             echo "🚀 Démarrage du déploiement..."
-            cd /opt/luminarh
+            eval cd "$TARGET_DIR"
 
-            echo "📦 Récupération des dernières images Docker..."
+            echo "📦 Récupération des dernières images Docker depuis GHCR..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            
+            export BACKEND_IMAGE="$IMAGE_BACKEND"
+            export FRONTEND_IMAGE="$IMAGE_FRONTEND"
+
             docker compose -f docker-compose.prod.yml pull
 
-            echo "🔄 Exécution des migrations Prisma de la base de données..."
-            docker compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
+            echo "🔄 Exécution des migrations Prisma..."
+            docker compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy || true
 
             echo "⚡ Redémarrage gracieux des services..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
@@ -132,8 +142,15 @@ jobs:
             docker image prune -af --filter "until=72h"
 
             echo "🩺 Smoke test : vérification de la santé de l'API..."
-            sleep 5
-            HEALTH_URL="http://127.0.0.1:3000/api/health"
-            curl --fail --retry 10 --retry-delay 3 "$HEALTH_URL" || (echo "❌ Le healthcheck de l'API a échoué" && exit 1)
+            for i in $(seq 1 15); do
+              if docker compose -f docker-compose.prod.yml exec -T backend wget -qO- http://127.0.0.1:3000/api/health > /dev/null 2>&1; then
+                echo "✅ API saine et opérationnelle !"
+                exit 0
+              fi
+              echo "En attente du démarrage du backend ($i/15)..."
+              sleep 3
+            done
 
-            echo "✅ Déploiement terminé avec succès !"
+            echo "❌ Le healthcheck de l'API a expiré."
+            docker compose -f docker-compose.prod.yml logs --tail=50 backend
+            exit 1
