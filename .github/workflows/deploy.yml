@@ -25,7 +25,7 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # ─── 1. Build & Push Docker Images to GHCR ──────────────────
+  # 1. Build and Push Docker Images to GHCR
   build-and-push:
     name: Build & Push Images
     runs-on: ubuntu-latest
@@ -95,7 +95,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─── 2. Déploiement distant sur VPS via SSH ─────────────────
+  # 2. Deploiement distant sur VPS via SSH
   deploy:
     name: Deploy to Server
     needs: [build-and-push]
@@ -108,7 +108,6 @@ jobs:
 
       - name: Execute deployment commands via SSH
         uses: appleboy/ssh-action@v1.0.3
-        if: "${{ secrets.SERVER_HOST != '' }}"
         env:
           TARGET_DIR: "${{ secrets.DEPLOY_PATH || '$HOME/PointelRH' }}"
           IMAGE_BACKEND: "${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/backend:latest"
@@ -121,10 +120,10 @@ jobs:
           envs: TARGET_DIR,IMAGE_BACKEND,IMAGE_FRONTEND
           script: |
             set -e
-            echo "🚀 Démarrage du déploiement..."
+            echo "[DEPLOY] Demarrage du deploiement..."
             eval cd "$TARGET_DIR"
 
-            echo "📦 Récupération des dernières images Docker depuis GHCR..."
+            echo "[DEPLOY] Recuperation des dernieres images Docker depuis GHCR..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             
             export BACKEND_IMAGE="$IMAGE_BACKEND"
@@ -132,25 +131,25 @@ jobs:
 
             docker compose -f docker-compose.prod.yml pull
 
-            echo "🔄 Exécution des migrations Prisma..."
+            echo "[DEPLOY] Execution des migrations Prisma..."
             docker compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy || true
 
-            echo "⚡ Redémarrage gracieux des services..."
+            echo "[DEPLOY] Redemarrage des services..."
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-            echo "🧹 Nettoyage des anciennes images..."
+            echo "[DEPLOY] Nettoyage des anciennes images..."
             docker image prune -af --filter "until=72h"
 
-            echo "🩺 Smoke test : vérification de la santé de l'API..."
+            echo "[DEPLOY] Smoke test : verification de la sante de l API..."
             for i in $(seq 1 15); do
               if docker compose -f docker-compose.prod.yml exec -T backend wget -qO- http://127.0.0.1:3000/api/health > /dev/null 2>&1; then
-                echo "✅ API saine et opérationnelle !"
+                echo "[SUCCESS] API saine et operationnelle !"
                 exit 0
               fi
-              echo "En attente du démarrage du backend ($i/15)..."
+              echo "En attente du demarrage du backend ($i/15)..."
               sleep 3
             done
 
-            echo "❌ Le healthcheck de l'API a expiré."
+            echo "[ERROR] Le healthcheck de l API a expire."
             docker compose -f docker-compose.prod.yml logs --tail=50 backend
             exit 1
