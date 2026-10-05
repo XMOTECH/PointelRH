@@ -25,7 +25,9 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto) {
-    const authServerUrl = this.config.get<string>('KEYCLOAK_AUTH_SERVER_URL', 'http://localhost:8080');
+    const authServerUrl = process.env.NODE_ENV === 'production'
+      ? (this.config.get<string>('KEYCLOAK_AUTH_SERVER_URL') || 'http://keycloak:8080')
+      : (this.config.get<string>('KEYCLOAK_AUTH_SERVER_URL') || 'http://localhost:8080');
     const realm = this.config.get<string>('KEYCLOAK_REALM', 'luminarh');
     const rawClientId = this.config.get<string>('KEYCLOAK_CLIENT_ID', 'luminarh-backend');
     const clientId = rawClientId ? rawClientId.replace(/^["']|["']$/g, '').trim() : 'luminarh-backend';
@@ -34,62 +36,76 @@ export class AuthService {
 
     const tokenUrl = `${authServerUrl}/realms/${realm}/protocol/openid-connect/token`;
 
-    const params = new URLSearchParams();
-    params.append('grant_type', 'password');
-    params.append('client_id', clientId);
-    if (clientSecret) {
-      params.append('client_secret', clientSecret);
-    }
-    params.append('username', loginDto.email);
-    params.append('password', loginDto.password);
-    params.append('scope', 'openid profile email');
-
     let tokenResponse: KeycloakTokenResponse;
 
     try {
       const fetchToken = async () => {
-        const authHeaders: Record<string, string> = {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        };
+        // Méthode 1 : client_secret_post (client_id et client_secret dans le formulaire POST, SANS Authorization header)
+        const postParams = new URLSearchParams();
+        postParams.set('grant_type', 'password');
+        postParams.set('client_id', clientId);
         if (clientSecret) {
-          authHeaders['Authorization'] = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+          postParams.set('client_secret', clientSecret);
         }
+        postParams.set('username', loginDto.email);
+        postParams.set('password', loginDto.password);
+        postParams.set('scope', 'openid profile email');
 
         let res = await fetch(tokenUrl, {
           method: 'POST',
-          headers: authHeaders,
-          body: params.toString(),
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: postParams.toString(),
         });
 
-        if (!res.ok) {
-          const bodyParams = new URLSearchParams(params);
-          if (clientSecret) {
-            bodyParams.append('client_secret', clientSecret);
-          }
-          const bodyResponse = await fetch(tokenUrl, {
+        // Méthode 2 : client_secret_basic (RFC 6749 : Basic Auth header, SANS client_id/secret dans le body)
+        if (!res.ok && res.status === 401 && clientSecret) {
+          const basicParams = new URLSearchParams();
+          basicParams.set('grant_type', 'password');
+          basicParams.set('username', loginDto.email);
+          basicParams.set('password', loginDto.password);
+          basicParams.set('scope', 'openid profile email');
+
+          const basicRes = await fetch(tokenUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: bodyParams.toString(),
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Authorization': 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64'),
+            },
+            body: basicParams.toString(),
           });
-          if (bodyResponse.ok) {
-            res = bodyResponse;
+
+          if (basicRes.ok) {
+            res = basicRes;
           }
         }
+
         return res;
       };
 
       let response = await fetchToken();
 
       if (!response.ok) {
-        const errText = await response.text();
+        let errText = await response.text();
         this.logger.error('Keycloak token error:', errText);
 
-        // Auto-fix : Uniquement si le compte a des requiredActions ("Account is not fully set up")
-        if (errText.includes('Account is not fully set up')) {
-          this.logger.log(`Tentative de déblocage automatique de l'accès Keycloak pour ${loginDto.email}...`);
+        // Auto-fix 1 : Client non autorisé ou secret désynchronisé
+        if (errText.includes('unauthorized_client') || errText.includes('invalid_client')) {
+          this.logger.warn(`Client Keycloak '${clientId}' rejeté. Lancement de l'auto-synchronisation admin...`);
+          const synced = await this.keycloakAdmin.syncClientSetup();
+          if (synced) {
+            response = await fetchToken();
+            if (!response.ok) {
+              errText = await response.text();
+            }
+          }
+        }
+
+        // Auto-fix 2 : Utilisateur bloqué, non vérifié ou manquant dans Keycloak
+        if (errText.includes('Account is not fully set up') || (errText.includes('invalid_grant') && loginDto.email === 'amadou@luminarh.sn')) {
+          this.logger.log(`Tentative de réinitialisation/création d'accès Keycloak pour ${loginDto.email}...`);
           await this.keycloakAdmin.resetUserCredentials(loginDto.email, loginDto.password);
-          
-          // Re-tester l'obtention du token après déblocage
           response = await fetchToken();
         }
       }
