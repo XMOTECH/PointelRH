@@ -21,3 +21,4 @@ export * from './LiveDurationBadge';
 export * from './ColorPickerBar';
 export * from './EmployeePicker';
 export * from './Combobox';
+export * from './Drawer';

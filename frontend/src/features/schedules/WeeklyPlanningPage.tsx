@@ -16,6 +16,7 @@ import { PlanningToolbar } from './components/PlanningToolbar';
 import { PlanningDayHeader } from './components/PlanningDayHeader';
 import { PlanningDayNotesRow } from './components/PlanningDayNotesRow';
 import { PlanningDepartmentGroup } from './components/PlanningDepartmentGroup';
+import { SchedulesNavigationTabs } from './components/SchedulesNavigationTabs';
 import { cleanLabel, PLANNING_MIN_WIDTH, getEmployeeFullName } from './utils/planning.utils';
 import type { ShiftItem, EmployeeRow } from './types';
 
@@ -70,6 +71,12 @@ export function WeeklyPlanningPage() {
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
     queryFn: departmentsApi.getDepartments,
+  });
+
+  // Requête horaires contractuels (pour le compteur de l'onglet)
+  const { data: schedules = [] } = useQuery({
+    queryKey: ['schedules'],
+    queryFn: schedulesApi.getSchedules,
   });
 
   // ── Mutations ──
@@ -349,6 +356,11 @@ export function WeeklyPlanningPage() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
+      {/* ── Sub-Navigation Tabs ── */}
+      <div className="flex items-center justify-between">
+        <SchedulesNavigationTabs schedulesCount={schedules.length} />
+      </div>
+
       {/* ── 1. Barre de commande unifiée & HUD Opérationnel (Architecture SaaS Pro) ── */}
       <PlanningToolbar
         currentDate={currentDate}

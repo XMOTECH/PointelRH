@@ -28,7 +28,10 @@ export const schedulesApi = {
     api.delete(`/api/schedules/${id}`).then(() => undefined),
 
   assignScheduleToEmployee: (employeeId: string, scheduleId: string | null) =>
-    api.patch(`/api/employees/${employeeId}`, { schedule_id: scheduleId }).then(res => res.data?.data ?? res.data),
+    api.put(`/api/employees/${employeeId}`, { scheduleId: scheduleId, schedule_id: scheduleId }).then(res => res.data?.data ?? res.data),
+
+  assignEmployeesToSchedule: (scheduleId: string, employeeIds: string[]) =>
+    api.post(`/api/schedules/${scheduleId}/assign`, { employeeIds }).then(res => res.data?.data ?? res.data),
 
   // ── Moteur WFM : Matrice Semaine & Publication ──
   getWeekPlanning: (date: string, departmentId?: string): Promise<PlanningWeekResponse> =>

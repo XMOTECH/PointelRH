@@ -1,30 +1,41 @@
-import React from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useMemo } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Combobox } from '@/components/ui/Combobox';
+import { SegmentedControl, type SegmentedOption } from '@/components/ui/SegmentedControl';
 import { useQuery } from '@tanstack/react-query';
 import { employeesApi } from '@/features/employees/api/employees.api';
+import { schedulesApi } from '@/features/schedules/api/schedules.api';
 import { useOnboardingTemplates } from '../hooks/useOnboarding';
 import type { CreateSessionPayload } from '../types';
 
 const schema = z.object({
-  templateId: z.string().min(1, 'Veuillez sélectionner un modèle d\'onboarding'),
-  candidateFirstName: z.string().min(1, 'Le prénom est requis'),
-  candidateLastName: z.string().min(1, 'Le nom est requis'),
-  candidateEmail: z.string().email('Adresse email invalide'),
-  candidatePhone: z.string().min(6, 'Numéro de téléphone requis'),
-  departmentId: z.string().min(1, 'Le département est requis'),
+  templateId: z.string().min(1, 'Sélectionnez un parcours'),
+  candidateFirstName: z.string().min(1, 'Prénom requis'),
+  candidateLastName: z.string().min(1, 'Nom requis'),
+  candidateEmail: z.string().email('Email invalide'),
+  candidatePhone: z.string().min(6, 'Téléphone requis'),
+  departmentId: z.string().min(1, 'Département requis'),
   scheduleId: z.string().optional(),
-  contractType: z.string().min(1, 'Le type de contrat est requis'),
-  targetStartDate: z.string().min(1, 'La date de prise de poste est requise'),
-  probationDurationMonths: z.number().min(0).max(12),
-  baseSalary: z.number().min(0).optional(),
-  transportAllowance: z.number().min(0).optional(),
+  contractType: z.string().min(1, 'Type de contrat requis'),
+  targetStartDate: z.string().min(1, 'Date requise'),
+  probationDurationMonths: z.coerce.number().min(0).max(12).optional(),
+  baseSalary: z.coerce.number().min(0).optional(),
+  transportAllowance: z.coerce.number().min(0).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
+
+const CONTRACT_OPTIONS: SegmentedOption<string>[] = [
+  { value: 'cdi', label: 'CDI' },
+  { value: 'cdd', label: 'CDD' },
+  { value: 'stage', label: 'Stage' },
+  { value: 'interim', label: 'Intérim' },
+];
 
 interface Props {
   open: boolean;
@@ -47,13 +58,16 @@ export const CreateSessionModal: React.FC<Props> = ({
   });
   const { data: schedules = [] } = useQuery({
     queryKey: ['schedules'],
-    queryFn: employeesApi.getSchedules,
+    queryFn: schedulesApi.getSchedules,
     enabled: open,
   });
 
   const {
     register,
+    control,
     handleSubmit,
+    setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<FormValues>({
@@ -69,149 +83,244 @@ export const CreateSessionModal: React.FC<Props> = ({
       contractType: 'cdi',
       targetStartDate: new Date().toISOString().split('T')[0],
       probationDurationMonths: 3,
-      baseSalary: 250000,
+      baseSalary: undefined,
       transportAllowance: 20800,
     },
   });
+
+  // Présélection automatique du premier horaire contractuel s'il existe
+  React.useEffect(() => {
+    if (open && schedules.length > 0 && !watch('scheduleId')) {
+      setValue('scheduleId', schedules[0].id);
+    }
+  }, [open, schedules, setValue, watch]);
+
+  const templateOptions = useMemo(() => {
+    return templates.map((t) => ({
+      value: t.id,
+      label: t.name,
+      badge: `${t.templateTasks?.length || 0} tâches`,
+    }));
+  }, [templates]);
+
+  const departmentOptions = useMemo(() => {
+    return departments.map((d: any) => ({
+      value: d.id,
+      label: d.name,
+    }));
+  }, [departments]);
+
+  const scheduleOptions = useMemo(() => {
+    return [
+      { value: '', label: 'Horaire libre / non assigné' },
+      ...schedules.map((s: any) => {
+        const startTime = s.start_time || s.startTime || '08:00';
+        const endTime = s.end_time || s.endTime || '17:00';
+        const days = s.work_days || s.workDays || [1, 2, 3, 4, 5];
+        const grace = s.grace_minutes ?? s.graceMinutes ?? 15;
+        return {
+          value: s.id,
+          label: s.name,
+          badge: `${startTime} — ${endTime}`,
+          description: `${days.length} j/semaine · Tolérance +${grace} min`,
+        };
+      }),
+    ];
+  }, [schedules]);
 
   const handleFormSubmit = (values: FormValues) => {
     onSubmit({
       ...values,
       scheduleId: values.scheduleId || undefined,
+      baseSalary: values.baseSalary ? Number(values.baseSalary) : undefined,
+      transportAllowance: values.transportAllowance ? Number(values.transportAllowance) : undefined,
+      probationDurationMonths:
+        typeof values.probationDurationMonths === 'number'
+          ? Number(values.probationDurationMonths)
+          : undefined,
     });
     reset();
   };
 
-  const inputClass =
-    'w-full h-10 px-3 rounded-lg bg-surface-container-low border border-on-surface/10 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30';
-  const labelClass = 'block text-xs font-bold text-on-surface-variant mb-1';
-
   return (
-    <Modal open={open} onClose={onClose} title="Initier un nouvel Onboarding">
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col gap-5 p-2">
-        {/* Choix du Template Métier */}
-        <div>
-          <label className={labelClass}>Modèle de parcours d'intégration (Métier / Site) *</label>
-          <select {...register('templateId')} className={inputClass}>
-            <option value="">Sélectionnez un modèle...</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} ({t.templateTasks?.length || 0} tâches)
-              </option>
-            ))}
-          </select>
-          {errors.templateId && <p className="text-xs text-red-500 mt-1">{errors.templateId.message}</p>}
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Nouvel onboarding"
+      className="sm:max-w-xl overflow-visible"
+    >
+      <form noValidate onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 pt-1">
+        {/* Identité */}
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="Prénom *"
+            placeholder="Amadou"
+            error={errors.candidateFirstName?.message}
+            {...register('candidateFirstName')}
+          />
+          <Input
+            label="Nom *"
+            placeholder="Diallo"
+            error={errors.candidateLastName?.message}
+            {...register('candidateLastName')}
+          />
         </div>
 
-        {/* Identité du candidat */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Prénom du collaborateur *</label>
-            <input {...register('candidateFirstName')} placeholder="Amadou" className={inputClass} />
-            {errors.candidateFirstName && <p className="text-xs text-red-500 mt-1">{errors.candidateFirstName.message}</p>}
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            type="email"
+            label="Email *"
+            placeholder="candidat@email.com"
+            error={errors.candidateEmail?.message}
+            {...register('candidateEmail')}
+          />
+          <Input
+            label="Téléphone *"
+            placeholder="+221 77 000 00 00"
+            error={errors.candidatePhone?.message}
+            {...register('candidatePhone')}
+          />
+        </div>
+
+        {/* Parcours & Contrat */}
+        <div className="space-y-3 pt-2 border-t border-outline-variant/40">
+          <Controller
+            control={control}
+            name="templateId"
+            render={({ field }) => (
+              <Combobox
+                label="Parcours d'intégration *"
+                placeholder="Sélectionner un parcours..."
+                searchPlaceholder="Rechercher un parcours..."
+                options={templateOptions}
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.templateId?.message}
+              />
+            )}
+          />
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              Contrat *
+            </label>
+            <Controller
+              control={control}
+              name="contractType"
+              render={({ field }) => (
+                <SegmentedControl
+                  options={CONTRACT_OPTIONS}
+                  value={field.value}
+                  onChange={field.onChange}
+                  size="sm"
+                  name="contract-type-select"
+                />
+              )}
+            />
           </div>
-          <div>
-            <label className={labelClass}>Nom de famille *</label>
-            <input {...register('candidateLastName')} placeholder="Diallo" className={inputClass} />
-            {errors.candidateLastName && <p className="text-xs text-red-500 mt-1">{errors.candidateLastName.message}</p>}
+
+          <div className="grid grid-cols-2 gap-3">
+            <Controller
+              control={control}
+              name="departmentId"
+              render={({ field }) => (
+                <Combobox
+                  label="Département *"
+                  placeholder="Sélectionner..."
+                  searchPlaceholder="Rechercher..."
+                  options={departmentOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.departmentId?.message}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="scheduleId"
+              render={({ field }) => (
+                <Combobox
+                  label="Horaire"
+                  placeholder="Standard"
+                  searchPlaceholder="Rechercher..."
+                  options={scheduleOptions}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </div>
+
+          <div className="w-1/2 pr-1.5">
+            <Input
+              type="date"
+              label="Date de début *"
+              error={errors.targetStartDate?.message}
+              {...register('targetStartDate')}
+            />
           </div>
         </div>
 
-        {/* Contact (pour Magic Link) */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Email personnel (envoi Magic Link) *</label>
-            <input {...register('candidateEmail')} type="email" placeholder="candidat@email.sn" className={inputClass} />
-            {errors.candidateEmail && <p className="text-xs text-red-500 mt-1">{errors.candidateEmail.message}</p>}
-          </div>
-          <div>
-            <label className={labelClass}>Téléphone Mobile (SMS / WhatsApp) *</label>
-            <input {...register('candidatePhone')} placeholder="+221 77 123 45 67" className={inputClass} />
-            {errors.candidatePhone && <p className="text-xs text-red-500 mt-1">{errors.candidatePhone.message}</p>}
-          </div>
-        </div>
-
-        {/* Affectation & Contrat */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Département d'affectation *</label>
-            <select {...register('departmentId')} className={inputClass}>
-              <option value="">Sélectionnez un département...</option>
-              {departments.map((d: any) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-            {errors.departmentId && <p className="text-xs text-red-500 mt-1">{errors.departmentId.message}</p>}
-          </div>
-          <div>
-            <label className={labelClass}>Type de contrat *</label>
-            <select {...register('contractType')} className={inputClass}>
-              <option value="cdi">CDI</option>
-              <option value="cdd">CDD</option>
-              <option value="stage">Stage</option>
-              <option value="interim">Intérim / Journalier</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Planning & Date d'embauche */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Planning horaire (ex: 3x8)</label>
-            <select {...register('scheduleId')} className={inputClass}>
-              <option value="">Horaire standard</option>
-              {schedules.map((s: any) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Date de prise de poste prévue (Jour J) *</label>
-            <input {...register('targetStartDate')} type="date" className={inputClass} />
-            {errors.targetStartDate && <p className="text-xs text-red-500 mt-1">{errors.targetStartDate.message}</p>}
-          </div>
-        </div>
-
-        {/* Période d'essai & Paie */}
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className={labelClass}>Période d'essai (mois)</label>
-            <input
-              {...register('probationDurationMonths', { valueAsNumber: true })}
+        {/* Conditions financières */}
+        <div className="pt-2 border-t border-outline-variant/40">
+          <div className="grid grid-cols-3 gap-2.5">
+            <Input
               type="number"
               min={0}
               max={12}
-              className={inputClass}
+              label="Essai"
+              placeholder="3"
+              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              rightIcon={<span className="text-[10px] font-semibold text-on-surface-variant/60">mois</span>}
+              error={errors.probationDurationMonths?.message}
+              {...register('probationDurationMonths')}
             />
-          </div>
-          <div>
-            <label className={labelClass}>Salaire de Base Brut (FCFA)</label>
-            <input
-              {...register('baseSalary', { valueAsNumber: true })}
+
+            <Input
               type="number"
-              className={inputClass}
+              min={0}
+              step="any"
+              label="Salaire brut"
+              placeholder="250 000"
+              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              rightIcon={<span className="text-[10px] font-semibold text-on-surface-variant/60">FCFA</span>}
+              error={errors.baseSalary?.message}
+              {...register('baseSalary')}
             />
-          </div>
-          <div>
-            <label className={labelClass}>Indemnité Transport (FCFA)</label>
-            <input
-              {...register('transportAllowance', { valueAsNumber: true })}
+
+            <Input
               type="number"
-              className={inputClass}
+              min={0}
+              step="any"
+              label="Transport"
+              placeholder="20 800"
+              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              rightIcon={<span className="text-[10px] font-semibold text-on-surface-variant/60">FCFA</span>}
+              error={errors.transportAllowance?.message}
+              {...register('transportAllowance')}
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-on-surface/10">
-          <Button variant="tertiary" type="button" onClick={onClose} disabled={isLoading}>
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant/50">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            className="h-9 px-4 text-xs font-semibold rounded-lg"
+          >
             Annuler
           </Button>
-          <Button variant="primary" type="submit" isLoading={isLoading}>
-            Créer la session & Générer le Magic Link
+          <Button
+            variant="primary"
+            type="submit"
+            isLoading={isLoading}
+            className="h-9 px-4 text-xs font-semibold rounded-lg shadow-sm"
+          >
+            Créer l'onboarding
           </Button>
         </div>
       </form>

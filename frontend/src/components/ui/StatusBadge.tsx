@@ -7,6 +7,8 @@ export type StatusVariant = 'success' | 'warning' | 'error' | 'info' | 'primary'
 const STATUS_DICTIONARY: Record<string, { label: string; variant: StatusVariant }> = {
   // Onboarding
   DRAFT: { label: 'Brouillon', variant: 'neutral' },
+  INVITED: { label: 'Invité (En attente)', variant: 'warning' },
+  COLLECTING_DATA: { label: 'Données en cours', variant: 'warning' },
   PENDING_SUBMISSION: { label: 'En attente candidat', variant: 'warning' },
   IN_REVIEW: { label: 'En révision RH', variant: 'info' },
   CHANGES_REQUESTED: { label: 'Modifications requises', variant: 'warning' },

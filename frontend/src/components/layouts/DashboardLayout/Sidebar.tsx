@@ -81,8 +81,7 @@ const navSections: NavSection[] = [
     title: 'Planification',
     roles: ['admin', 'manager'],
     items: [
-      { icon: <CalendarRange size={20} />, label: 'Planning Hebdo', path: '/schedules/planning', roles: ['admin', 'manager'] },
-      { icon: <Clock size={20} />, label: 'Modèles Plannings', path: '/schedules', roles: ['admin'] },
+      { icon: <CalendarRange size={20} />, label: 'Planning', path: '/schedules/planning', roles: ['admin', 'manager'] },
       { icon: <PlaneTakeoff size={20} />, label: 'Congés', path: '/leaves', roles: ['admin', 'manager'] },
     ],
   },
@@ -211,7 +210,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggleC
             {/* Section items */}
             <div className="flex flex-col gap-1">
               {section.items.map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive = item.path === '/schedules/planning'
+                  ? location.pathname.startsWith('/schedules')
+                  : location.pathname === item.path;
                 return (
                   <Link
                     key={item.path}

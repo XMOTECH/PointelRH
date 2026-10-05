@@ -122,7 +122,7 @@ export function Combobox<T = any>({
   return (
     <div className={cn('relative w-full text-left', className)} ref={containerRef}>
       {label && (
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
           {label}
           {required && <span className="text-rose-500 ml-0.5">*</span>}
         </label>

@@ -84,7 +84,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   };
 
   return (
-    <div className={cn('relative inline-flex shrink-0 select-none items-center justify-center', className)}>
+    <div className={cn('relative inline-flex shrink-0 select-none items-center justify-center rounded-full', className)}>
       <div
         className={cn(
           'relative flex items-center justify-center overflow-hidden rounded-full border tracking-tight',

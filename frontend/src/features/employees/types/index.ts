@@ -6,6 +6,13 @@ export interface Department {
   parent_id?: string | null;
 }
 
+export interface AssignedEmployeeSummary {
+  id: string;
+  first_name: string;
+  last_name: string;
+  job_title?: string;
+}
+
 export interface Schedule {
   id: string;
   name: string;
@@ -13,7 +20,10 @@ export interface Schedule {
   end_time: string;
   work_days?: number[];
   grace_minutes?: number;
+  assigned_employees_count?: number;
+  assigned_employees?: AssignedEmployeeSummary[];
 }
+
 
 export interface Employee extends User {
   department: Department | string | null;

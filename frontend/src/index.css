@@ -144,6 +144,10 @@
     @apply text-on-surface-variant hover:bg-surface-container hover:text-on-surface px-4 py-2 rounded-lg font-medium transition-all active:scale-[0.98] flex items-center justify-center gap-2;
   }
 
+  .btn-outline {
+    @apply border border-outline-variant bg-surface-container-lowest text-on-surface px-4 py-2 rounded-lg font-medium transition-all hover:bg-surface-container active:scale-[0.98] flex items-center justify-center gap-2;
+  }
+
   .btn-ghost {
     @apply text-on-surface-variant hover:bg-surface-container hover:text-on-surface px-4 py-2 rounded-lg font-medium transition-all active:scale-[0.98] flex items-center justify-center gap-2;
   }

@@ -67,11 +67,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     <div
       onClick={onClick}
       className={cn(
-        'relative p-5 rounded-2xl bg-surface-container-lowest border border-on-surface/10 shadow-sm flex flex-col justify-between transition-all duration-200',
-        onClick && 'cursor-pointer hover:border-primary/40 hover:shadow-md active:scale-[0.99]',
+        'relative p-4 rounded-xl bg-surface-container-lowest border border-on-surface/10 shadow-2xs flex flex-col justify-between transition-all duration-200',
+        onClick && 'cursor-pointer hover:border-primary/40 hover:shadow-xs active:scale-[0.99]',
         className
       )}
     >
+
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">

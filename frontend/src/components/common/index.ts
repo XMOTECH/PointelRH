@@ -6,3 +6,4 @@ export * from './TabsFilter';
 export * from './EmptyState';
 export * from './UserAvatarCell';
 export * from './ActionMenu';
+export * from './ConfirmationSuccessView';
