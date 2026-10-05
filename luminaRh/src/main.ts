@@ -19,22 +19,34 @@ async function bootstrap() {
   // Set global API prefix to match legacy microservices structure
   app.setGlobalPrefix('api');
 
-  // Enable CORS with strict allowed origins (including Vite port 5180)
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-    : ['http://localhost:5180', 'http://127.0.0.1:5180', 'http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
+  // Enable CORS with strict allowed origins
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
 
-  // Les ports localhost de dev ne sont autorisés automatiquement qu'en dehors de la production
-  const devOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1):(517[0-9]|518[0-9]|3000)$/;
+  // Pattern autorisant localhost, 127.0.0.1 et n'importe quelle adresse IP directe (ex: http://20.215.48.31)
+  const ipOrLocalhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1|(?:[0-9]{1,3}\.){3}[0-9]{1,3})(?::[0-9]+)?$/;
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
-      // Allow requests with no origin or allowed dev origins (including port 5180)
-      if (!origin || allowedOrigins.includes(origin) || (!isProduction && devOriginPattern.test(origin))) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
+      // Requêtes sans Origin (ex: curl, mobile, appels internes)
+      if (!origin) {
+        return callback(null, true);
       }
+
+      // Origines explicitement déclarées dans ALLOWED_ORIGINS (ou wildcard *)
+      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Origines directes par IP ou localhost
+      if (ipOrLocalhostPattern.test(origin)) {
+        return callback(null, true);
+      }
+
+      // Rejet propre sans lever d'exception 500
+      callback(null, false);
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
