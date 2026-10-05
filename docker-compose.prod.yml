@@ -36,13 +36,13 @@ services:
 
   # ─── DATABASE (PostgreSQL) ──────────────────────────────────
   luminarh-db:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: luminarh-db
     restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-luminarh_db}
       POSTGRES_USER: ${POSTGRES_USER:-luminarh_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-luminarh_prod_pass}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -52,19 +52,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   # ─── REDIS (Cache & BullMQ) ─────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: luminarh-redis
     restart: always
-    command: redis-server --requirepass "${REDIS_PASSWORD}"
+    command: redis-server --requirepass "${REDIS_PASSWORD:-luminarh_redis_pass}"
     volumes:
       - redis_data:/data
     networks:
       - luminarh_net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-luminarh_redis_pass}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -76,8 +77,8 @@ services:
     command: start-dev --import-realm
     restart: always
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_prod_pass}
     volumes:
       - ./infra/keycloak/realm/luminarh-realm.json:/opt/keycloak/data/import/luminarh-realm.json:ro
     networks:
