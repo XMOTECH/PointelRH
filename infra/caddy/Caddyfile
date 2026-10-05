@@ -2,19 +2,17 @@
 # LuminaRH / PointelRH — Caddy Reverse Proxy & TLS Configuration
 # ─────────────────────────────────────────────────────────────
 {
-    # En production, spécifier l'email pour le renouvellement Let's Encrypt
     email {$ACME_EMAIL:admin@luminarh.sn}
-    # En dev ou local, support de localhost avec certificats auto-signés
-    local_certs
 }
 
 # ── Site Principal (Frontend & API) ──────────────────────────
-{$DOMAIN:localhost} {
+# Écoute sur le domaine configuré (ex: rh.pointel.com avec SSL auto)
+# ou par défaut sur le port HTTP :80 (compatible localhost et IP Azure directe)
+{$DOMAIN::80} {
     encode zstd gzip
 
     # En-têtes de sécurité
     header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "SAMEORIGIN"
         Referrer-Policy "strict-origin-when-cross-origin"
@@ -24,30 +22,17 @@
 
     # API NestJS (Fastify)
     handle /api/* {
-        reverse_proxy backend:3000 {
-            header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-        }
+        reverse_proxy backend:3000
     }
 
     # Documentation Swagger (si activée)
     handle /docs* {
-        reverse_proxy backend:3000 {
-            header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-        }
+        reverse_proxy backend:3000
     }
 
     # Frontend SPA (Nginx)
     handle {
-        reverse_proxy frontend:80 {
-            header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-        }
+        reverse_proxy frontend:80
     }
 
     # Journalisation d'accès au format JSON
@@ -62,18 +47,11 @@
     encode zstd gzip
 
     header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
         X-Content-Type-Options "nosniff"
         -Server
     }
 
-    reverse_proxy keycloak:8080 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-        header_up X-Forwarded-Port {server_port}
-    }
+    reverse_proxy keycloak:8080
 
     log {
         output stdout
