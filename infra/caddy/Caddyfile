@@ -1,14 +1,8 @@
 # ─────────────────────────────────────────────────────────────
-# LuminaRH / PointelRH — Caddy Reverse Proxy & TLS Configuration
+# LuminaRH / PointelRH — Caddy Reverse Proxy Configuration
+# Mode HTTP direct (compatible IP publique et localhost sans SSL)
 # ─────────────────────────────────────────────────────────────
-{
-    email {$ACME_EMAIL:admin@luminarh.sn}
-}
-
-# ── Site Principal (Frontend & API) ──────────────────────────
-# Écoute sur le domaine configuré (ex: rh.pointel.com avec SSL auto)
-# ou par défaut sur le port HTTP :80 (compatible localhost et IP Azure directe)
-{$DOMAIN::80} {
+:80 {
     encode zstd gzip
 
     # En-têtes de sécurité
@@ -34,24 +28,6 @@
     handle {
         reverse_proxy frontend:80
     }
-
-    # Journalisation d'accès au format JSON
-    log {
-        output stdout
-        format json
-    }
-}
-
-# ── Sous-domaine Keycloak IAM (si configuré) ─────────────────
-{$AUTH_DOMAIN:auth.localhost} {
-    encode zstd gzip
-
-    header {
-        X-Content-Type-Options "nosniff"
-        -Server
-    }
-
-    reverse_proxy keycloak:8080
 
     log {
         output stdout
