@@ -12,7 +12,7 @@ services:
 
   # ─── DATABASE (PostgreSQL) ──────────────────────────────────
   luminarh-db:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: luminarh-db
     restart: unless-stopped
     ports:
@@ -27,9 +27,10 @@ services:
       - luminarh_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-luminarh_user} -d ${POSTGRES_DB:-luminarh_db}"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
 
   # ─── REDIS (Cache & Queues) ─────────────────────────────────
   redis:
