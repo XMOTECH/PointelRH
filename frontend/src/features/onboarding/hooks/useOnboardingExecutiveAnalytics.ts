@@ -66,13 +66,14 @@ export function useOnboardingExecutiveAnalytics(sessions: OnboardingSession[]): 
 
     sessions.forEach((session) => {
       const staging = (session.stagingData as Record<string, any>) || (session as any).staging_data || {};
-      const emp = session.employee || {};
+      const emp = (session.employee || {}) as any;
 
       const clean = (val: any) =>
         val && typeof val === 'string' && val.trim() !== 'undefined' && val.trim() !== 'null' ? val.trim() : '';
 
       const fName = clean(staging.candidateFirstName) || clean(staging.candidate_first_name) || clean(emp.firstName);
       const lName = clean(staging.candidateLastName) || clean(staging.candidate_last_name) || clean(emp.lastName);
+
       let candidateName = `${fName} ${lName}`.trim();
       if (!candidateName) {
         candidateName = clean(staging.candidateName) || (clean(staging.candidateEmail) ? clean(staging.candidateEmail).split('@')[0] : 'Nouveau Collaborateur');

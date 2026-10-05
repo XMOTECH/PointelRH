@@ -1,0 +1,59 @@
+{
+    "realm":  "luminarh",
+    "users":  [
+                  {
+                      "username":  "amadou@luminarh.sn",
+                      "email":  "amadou@luminarh.sn",
+                      "firstName":  "Amadou",
+                      "lastName":  "Diallo",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "password",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "admin"
+                                     ]
+                  },
+                  {
+                      "username":  "mandiaye@luminarh.sn",
+                      "email":  "mandiaye@luminarh.sn",
+                      "firstName":  "Mandiaye",
+                      "lastName":  "Diagne",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "password",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "employee"
+                                     ]
+                  },
+                  {
+                      "username":  "fatou@luminarh.sn",
+                      "email":  "fatou@luminarh.sn",
+                      "firstName":  "Fatou",
+                      "lastName":  "Sow",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "password",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "manager"
+                                     ]
+                  }
+              ]
+}

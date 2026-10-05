@@ -33,9 +33,10 @@ export const OnboardingTableRow: React.FC<Props> = ({ session, onSelect }) => {
   const lName = clean(staging.candidateLastName) || clean(staging.candidate_last_name) || clean(session.employee?.lastName);
   let name = `${fName} ${lName}`.trim();
   if (!name) {
-    const direct = clean(staging.candidateName) || clean(staging.fullName) || clean(session.employee?.fullName);
+    const direct = clean(staging.candidateName) || clean(staging.fullName) || clean((session.employee as any)?.fullName);
     name = direct || (staging.candidateEmail ? staging.candidateEmail.split('@')[0] : 'Nouveau Collaborateur');
   }
+
 
   const email = staging.candidateEmail || staging.candidate_email || session.employee?.email || '—';
   const phone = staging.candidatePhone || staging.candidate_phone || '';

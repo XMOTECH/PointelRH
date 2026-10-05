@@ -4,8 +4,8 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { schedulesApi } from './api/schedules.api';
 import { departmentsApi } from '../departments/api/departments.api';
 import { Spinner } from '@/components/ui/Spinner';
-import { FormattedNumber } from '@/components/ui/FormattedNumber';
 import { startOfWeek, addDays, format } from 'date-fns';
+
 import { toast } from 'sonner';
 import { ShiftModal } from './components/ShiftModal';
 import type { ShiftFormData } from './components/ShiftModal';

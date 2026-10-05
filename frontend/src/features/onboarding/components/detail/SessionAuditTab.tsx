@@ -10,9 +10,9 @@ import {
   UserCheck, 
   Activity,
   User,
-  Shield,
-  Clock
+  Shield
 } from 'lucide-react';
+
 import type { OnboardingAuditLog } from '../../types';
 
 interface Props {

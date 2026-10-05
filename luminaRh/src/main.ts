@@ -5,10 +5,16 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    // trustProxy : l'app tourne derrière le reverse proxy (Caddy) → vraie IP client via X-Forwarded-For
+    new FastifyAdapter({ trustProxy: true }),
   );
+
+  // Arrêt propre sur SIGTERM (docker stop / redéploiement) : fermeture des connexions Prisma
+  app.enableShutdownHooks();
   
   // Set global API prefix to match legacy microservices structure
   app.setGlobalPrefix('api');
@@ -18,10 +24,13 @@ async function bootstrap() {
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
     : ['http://localhost:5180', 'http://127.0.0.1:5180', 'http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
 
+  // Les ports localhost de dev ne sont autorisés automatiquement qu'en dehors de la production
+  const devOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1):(517[0-9]|518[0-9]|3000)$/;
+
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
       // Allow requests with no origin or allowed dev origins (including port 5180)
-      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1):(517[0-9]|518[0-9]|3000)$/.test(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || (!isProduction && devOriginPattern.test(origin))) {
         callback(null, true);
       } else {
         callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
@@ -57,13 +66,19 @@ async function bootstrap() {
     )
     .build();
     
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  // Swagger : actif en dev, désactivé en production sauf SWAGGER_ENABLED=true
+  const swaggerEnabled = !isProduction || process.env.SWAGGER_ENABLED === 'true';
+  if (swaggerEnabled) {
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port, '0.0.0.0');
   const logger = new Logger('Bootstrap');
   logger.log(`LuminaRH Monolith is running on port ${port} (Fastify)`);
-  logger.log(`Swagger documentation is available at http://localhost:${port}/docs`);
+  if (swaggerEnabled) {
+    logger.log(`Swagger documentation is available at http://localhost:${port}/docs`);
+  }
 }
 bootstrap();

@@ -7,11 +7,10 @@ import {
   Pencil,
   Copy,
   Trash2,
-  ShieldAlert,
   Sparkles,
   AlertTriangle,
-  X,
 } from 'lucide-react';
+
 import { schedulesApi } from './api/schedules.api';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -186,8 +185,9 @@ export const ScheduleListPage: React.FC = () => {
       {/* ── Cards Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {filteredSchedules.map((schedule) => {
-          const { dailyHours, netDailyHours, netWeeklyHours, breakMinutes } = calculateWeeklyMetrics(schedule);
+          const { netDailyHours, netWeeklyHours, breakMinutes } = calculateWeeklyMetrics(schedule);
           const workDays = schedule.work_days || [1, 2, 3, 4, 5];
+
           const assignedCount = schedule.assigned_employees_count || 0;
           const assignedEmployees = schedule.assigned_employees || [];
 

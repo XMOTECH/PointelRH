@@ -13,10 +13,11 @@ const STEP_LABELS = ['État civil', 'Paiement & Tailles', 'Documents', 'Finalisa
 
 export const PortalHeader: React.FC<Props> = ({
   currentStep,
-  companyName,
-  showMobilePreview,
+  companyName: _companyName,
+  showMobilePreview: _showMobilePreview,
   onToggleMobilePreview,
 }) => {
+
   return (
     <header className="w-full max-w-5xl flex items-center justify-between py-4 px-2">
       <div className="flex items-center gap-3">

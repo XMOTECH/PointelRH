@@ -1,0 +1,142 @@
+name: luminarh-production
+
+networks:
+  luminarh_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+services:
+
+  # ─── REVERSE PROXY & SSL (Caddy) ────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: luminarh-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - AUTH_DOMAIN=${AUTH_DOMAIN:-auth.localhost}
+      - ACME_EMAIL=${ACME_EMAIL:-admin@luminarh.sn}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - luminarh_net
+
+  # ─── DATABASE (PostgreSQL) ──────────────────────────────────
+  luminarh-db:
+    image: postgres:16-alpine
+    container_name: luminarh-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-luminarh_db}
+      POSTGRES_USER: ${POSTGRES_USER:-luminarh_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - luminarh_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-luminarh_user} -d ${POSTGRES_DB:-luminarh_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── REDIS (Cache & BullMQ) ─────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: luminarh-redis
+    restart: always
+    command: redis-server --requirepass "${REDIS_PASSWORD}"
+    volumes:
+      - redis_data:/data
+    networks:
+      - luminarh_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── KEYCLOAK (IAM) ─────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.0
+    container_name: luminarh-keycloak
+    command: start-dev --import-realm
+    restart: always
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      - ./infra/keycloak/realm/luminarh-realm.json:/opt/keycloak/data/import/luminarh-realm.json:ro
+    networks:
+      - luminarh_net
+
+  # ─── BACKEND MONOLITHE ──────────────────────────────────────
+  backend:
+    image: ${BACKEND_IMAGE:-luminarh-backend:latest}
+    build:
+      context: ./luminaRh
+      dockerfile: Dockerfile
+    container_name: luminarh-backend
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-luminarh_user}:${POSTGRES_PASSWORD}@luminarh-db:5432/${POSTGRES_DB:-luminarh_db}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - KEYCLOAK_AUTH_SERVER_URL=${KEYCLOAK_AUTH_SERVER_URL:-http://keycloak:8080}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-luminarh}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-luminarh-backend}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_ADMIN_USER=${KEYCLOAK_ADMIN}
+      - KEYCLOAK_ADMIN_PASS=${KEYCLOAK_ADMIN_PASSWORD}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - SWAGGER_ENABLED=${SWAGGER_ENABLED:-false}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+    depends_on:
+      luminarh-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - luminarh_net
+
+  # ─── FRONTEND (React SPA / Nginx) ───────────────────────────
+  frontend:
+    image: ${FRONTEND_IMAGE:-luminarh-frontend:latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+        VITE_GOOGLE_CLIENT_ID: "${VITE_GOOGLE_CLIENT_ID:-}"
+        VITE_KEYCLOAK_URL: "${VITE_KEYCLOAK_URL:-https://${AUTH_DOMAIN:-auth.localhost}}"
+        VITE_KEYCLOAK_REALM: "${KEYCLOAK_REALM:-luminarh}"
+        VITE_KEYCLOAK_CLIENT_ID: "${KEYCLOAK_CLIENT_ID:-luminarh-backend}"
+    container_name: luminarh-frontend
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - luminarh_net

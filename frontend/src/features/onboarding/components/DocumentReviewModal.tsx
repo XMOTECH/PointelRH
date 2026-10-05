@@ -7,12 +7,10 @@ import {
   FileText,
   AlertCircle,
   ExternalLink,
-  Download,
   IdCard,
   CreditCard,
-  ShieldCheck,
-  Eye,
 } from 'lucide-react';
+
 import { toast } from 'sonner';
 import type { EmployeeDocument } from '../types';
 

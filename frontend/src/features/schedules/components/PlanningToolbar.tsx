@@ -78,11 +78,11 @@ export const PlanningToolbar: React.FC<PlanningToolbarProps> = ({
   const formattedDateRange = useMemo(() => {
     const startMonth = format(weekStart, 'MMMM', { locale: fr });
     const endMonth = format(weekEnd, 'MMMM', { locale: fr });
-    const year = format(weekEnd, 'yyyy', { locale: fr });
 
     if (startMonth === endMonth) {
       return `${format(weekStart, 'd')} — ${format(weekEnd, 'd MMMM yyyy', { locale: fr })}`;
     }
+
     return `${format(weekStart, 'd MMM', { locale: fr })} — ${format(weekEnd, 'd MMM yyyy', { locale: fr })}`;
   }, [weekStart, weekEnd]);
 

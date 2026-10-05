@@ -1,6 +1,6 @@
 import React from 'react';
 import { MetricCard } from '@/components/common/MetricCard';
-import { Users, AlertCircle, FileCheck2, Zap, Clock, ShieldCheck } from 'lucide-react';
+import { Users, AlertCircle, Clock, ShieldCheck } from 'lucide-react';
 import type { ExecutiveAnalytics } from '../hooks/useOnboardingExecutiveAnalytics';
 
 interface Props {
@@ -16,10 +16,11 @@ export const OnboardingMetricsGrid: React.FC<Props> = ({
   totalCount,
   inReviewCount,
   readyDayOneCount,
-  completedCount,
+  completedCount: _completedCount,
   isLoading,
   analytics,
 }) => {
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {/* 1. Volume actif & Arrivées imminentes */}

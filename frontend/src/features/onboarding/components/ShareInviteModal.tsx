@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Check, Copy, ExternalLink, Mail, MessageSquare, SendHorizontal, Sparkles } from 'lucide-react';
+import { Check, Copy, ExternalLink, Mail, MessageSquare, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+
+
 import { buildMagicLink, buildWhatsAppShareUrl, buildMailtoShareUrl } from '../utils/shareUtils';
 import type { OnboardingSession } from '../types';
 
@@ -45,8 +47,8 @@ export const ShareInviteModal: React.FC<Props> = ({
     const direct =
       cleanStr(staging.candidateName) ||
       cleanStr(staging.fullName) ||
-      cleanStr(session.employee?.fullName) ||
-      cleanStr(session.candidateName);
+      cleanStr((session.employee as any)?.fullName) ||
+      cleanStr((session as any).candidateName);
     if (direct) {
       candidateName = direct;
     } else {
@@ -56,8 +58,9 @@ export const ShareInviteModal: React.FC<Props> = ({
   }
 
   const email = staging.candidateEmail || staging.candidate_email || session.employee?.email || '';
-  const phone = staging.candidatePhone || staging.candidate_phone || session.employee?.phone || '';
+  const phone = staging.candidatePhone || staging.candidate_phone || (session.employee as any)?.phone || '';
   const token = session.magicToken || (session as any).magic_token || '';
+
   const magicLink = buildMagicLink(token);
 
   const handleCopyLink = () => {

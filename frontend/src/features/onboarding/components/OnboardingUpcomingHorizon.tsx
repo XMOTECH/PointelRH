@@ -1,5 +1,6 @@
 import React from 'react';
-import { Calendar, UserCheck, Clock, ArrowRight } from 'lucide-react';
+import { Calendar, UserCheck, ArrowRight } from 'lucide-react';
+
 import type { UpcomingArrival } from '../hooks/useOnboardingExecutiveAnalytics';
 
 interface Props {

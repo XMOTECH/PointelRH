@@ -3,10 +3,9 @@ import {
   Copy,
   ArrowRight,
   CalendarBlank,
-  Clock,
   Warning,
-  Sparkle,
 } from '@phosphor-icons/react';
+
 import { addDays, format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Modal } from '@/components/ui/Modal';

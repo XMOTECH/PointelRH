@@ -22,6 +22,9 @@ npm-debug.log.*
 yarn-error.log
 yarn-error.log.*
 pointel-mobile/node_modules/
+*lint_*.txt
+*.tsbuildinfo
+
 
 # ==========================================
 # 📦 Dépendances PHP (Backend Laravel)
@@ -54,14 +57,11 @@ services/*/storage/tmp/*
 # ==========================================
 # 🎨 Fichiers compilés et publics
 # ==========================================
-services/*/public/hot
-services/*/public/storage
-services/*/public/build/
-services/*/public/mix-manifest.json
-services/*/public/css/
-services/*/public/js/
+dist/
+luminaRh/dist/
 frontend/dist/
 frontend/build/
+
 
 # ==========================================
 # 🗄️ Bases de données locales

@@ -71,8 +71,9 @@ export const CreateSessionModal: React.FC<Props> = ({
     reset,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     defaultValues: {
+
       templateId: '',
       candidateFirstName: '',
       candidateLastName: '',

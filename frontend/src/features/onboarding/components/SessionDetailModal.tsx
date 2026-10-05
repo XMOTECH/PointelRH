@@ -69,7 +69,7 @@ export const SessionDetailModal: React.FC<Props> = ({ open, onClose, sessionId }
 
   // ── Résolution robuste des données candidat ──
   const staging = (session?.stagingData as Record<string, any>) || (session as any)?.staging_data || {};
-  const emp = session?.employee || {};
+  const emp = (session?.employee || {}) as any;
 
   const clean = (val: any): string => {
     if (!val || typeof val !== 'string') return '';
@@ -81,14 +81,14 @@ export const SessionDetailModal: React.FC<Props> = ({ open, onClose, sessionId }
   const lName = clean(staging.candidateLastName) || clean(staging.candidate_last_name) || clean(emp.lastName) || clean(emp.last_name);
   let candidateName = `${fName} ${lName}`.trim();
   if (!candidateName) {
-    const direct = clean(staging.candidateName) || clean(staging.fullName) || clean(emp.fullName) || clean(session?.candidateName);
+    const direct = clean(staging.candidateName) || clean(staging.fullName) || clean(emp.fullName) || clean((session as any)?.candidateName);
     candidateName = direct || (clean(staging.candidateEmail) ? clean(staging.candidateEmail).split('@')[0] : 'Nouveau Collaborateur');
   }
 
   const candidateEmail = clean(staging.candidateEmail) || clean(staging.candidate_email) || clean(emp.email);
   const candidatePhone = clean(staging.candidatePhone) || clean(staging.candidate_phone) || clean(emp.phone);
-  const templateTitle = session?.template?.name || '';
   const candidateRole = clean(staging.jobTitle) || clean(staging.position) || clean(emp.jobTitle) || clean(emp.position) || '';
+
 
   const rawToken = session?.magicToken || (session as any)?.magic_token || '';
   const magicLink = rawToken ? buildMagicLink(rawToken) : '';

@@ -24,10 +24,11 @@ export function PillGroup<T = any>({
   value,
   onChange,
   size = 'sm',
-  variant = 'outline',
+  variant: _variant = 'outline',
   className = '',
   disabled = false,
 }: PillGroupProps<T>) {
+
   const sizeClasses = {
     xs: 'px-2 py-0.5 text-[11px] gap-1 rounded-md',
     sm: 'px-2.5 py-1 text-xs gap-1.5 rounded-lg',

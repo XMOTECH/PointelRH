@@ -6,107 +6,106 @@ networks:
 
 volumes:
   postgres_data:
-#  redis_data:
+  redis_data:
 
 services:
 
-  # ─── DATABASE ─────────────────────────────────────────────
+  # ─── DATABASE (PostgreSQL) ──────────────────────────────────
   luminarh-db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: luminarh-db
     restart: unless-stopped
     ports:
-      - "5437:5432"
+      - "${POSTGRES_PORT:-5437}:5432"
     environment:
-      POSTGRES_DB: luminarh_db
-      POSTGRES_USER: luminarh_user
-      POSTGRES_PASSWORD: luminarh_pass
+      POSTGRES_DB: ${POSTGRES_DB:-luminarh_db}
+      POSTGRES_USER: ${POSTGRES_USER:-luminarh_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-luminarh_pass}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - luminarh_net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U luminarh_user -d luminarh_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-luminarh_user} -d ${POSTGRES_DB:-luminarh_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-#  # ─── REDIS ────────────────────────────────────────────────
-#  redis:
-#    image: redis:7-alpine
-#    container_name: redis
-#    restart: unless-stopped
-#    volumes:
-#      - redis_data:/data
-#    networks:
-#      - luminarh_net
-#    healthcheck:
-#      test: ["CMD", "redis-cli", "ping"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
+  # ─── REDIS (Cache & Queues) ─────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: luminarh-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - luminarh_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # ─── KEYCLOAK (IAM) ───────────────────────────────────────
+  # ─── KEYCLOAK (IAM) ─────────────────────────────────────────
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.0
-    container_name: keycloak
+    container_name: luminarh-keycloak
     command: start-dev --import-realm
     restart: unless-stopped
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
     ports:
       - "8085:8080"
     volumes:
-      - ./keycloak/luminarh-realm.json:/opt/keycloak/data/import/luminarh-realm.json:ro
+      - ./infra/keycloak/realm/luminarh-realm.json:/opt/keycloak/data/import/luminarh-realm.json:ro
     networks:
       - luminarh_net
 
-  # ─── LUMINA RH MONOLITH ──────────────────────────────────
-  luminarh-service:
+  # ─── BACKEND MONOLITHE (NestJS / Fastify / Prisma) ──────────
+  backend:
     build:
-      context: ./services/luminaRh
+      context: ./luminaRh
       dockerfile: Dockerfile
-    container_name: luminarh-service
-    command: sh -c "npm install --no-audit --legacy-peer-deps && npx prisma generate && npm run build && npm run start:prod"
+    container_name: luminarh-backend
     restart: unless-stopped
     ports:
-      - "8001:3000"   # Expose directement sur le port 8001 (remplace Kong)
-    volumes:
-      - ./services/luminaRh:/app
-      - /app/node_modules
-    env_file:
-      - ./services/luminaRh/.env
+      - "8001:3000"
     environment:
-      - DATABASE_URL=postgresql://luminarh_user:luminarh_pass@luminarh-db:5432/luminarh_db?schema=public
-#      - REDIS_HOST=redis
-      - KEYCLOAK_AUTH_SERVER_URL=http://keycloak:8080
-      - KEYCLOAK_REALM=luminarh
-      - KEYCLOAK_CLIENT_ID=luminarh-backend
-      - KEYCLOAK_CLIENT_SECRET=z9yDCh9WO3B8PclSsZirS5nXLZWmCRVU
+      - NODE_ENV=${NODE_ENV:-development}
       - PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-luminarh_user}:${POSTGRES_PASSWORD:-luminarh_pass}@luminarh-db:5432/${POSTGRES_DB:-luminarh_db}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KEYCLOAK_AUTH_SERVER_URL=${KEYCLOAK_AUTH_SERVER_URL:-http://keycloak:8080}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-luminarh}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-luminarh-backend}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-z9yDCh9WO3B8PclSsZirS5nXLZWmCRVU}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5180,http://localhost:3000,http://127.0.0.1:5180,http://127.0.0.1:3000}
+      - SWAGGER_ENABLED=true
     depends_on:
       luminarh-db:
         condition: service_healthy
-#      redis:
-#        condition: service_healthy
+      redis:
+        condition: service_healthy
       keycloak:
         condition: service_started
     networks:
       - luminarh_net
 
-#  # ─── FRONTEND ────────────────────────────────────────────
-#  frontend:
-#    build:
-#      context: ./frontend
-#      dockerfile: Dockerfile
-#      args:
-#        VITE_API_URL: ""
-#    container_name: frontend
-#    restart: unless-stopped
-#    ports:
-#      - "3000:80"
-#    depends_on:
-#      - luminarh-service
-#    networks:
-#      - luminarh_net
+  # ─── FRONTEND (React SPA / Nginx) ───────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+        VITE_KEYCLOAK_URL: "http://localhost:8085"
+    container_name: luminarh-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - luminarh_net
