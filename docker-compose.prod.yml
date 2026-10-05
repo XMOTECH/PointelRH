@@ -95,17 +95,17 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-luminarh_user}:${POSTGRES_PASSWORD}@luminarh-db:5432/${POSTGRES_DB:-luminarh_db}?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-luminarh_user}:${POSTGRES_PASSWORD:-luminarh_prod_pass}@luminarh-db:5432/${POSTGRES_DB:-luminarh_db}?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-luminarh_redis_pass}
       - KEYCLOAK_AUTH_SERVER_URL=${KEYCLOAK_AUTH_SERVER_URL:-http://keycloak:8080}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-luminarh}
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-luminarh-backend}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_ADMIN_USER=${KEYCLOAK_ADMIN}
-      - KEYCLOAK_ADMIN_PASS=${KEYCLOAK_ADMIN_PASSWORD}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-z9yDCh9WO3B8PclSsZirS5nXLZWmCRVU}
+      - KEYCLOAK_ADMIN_USER=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASS=${KEYCLOAK_ADMIN_PASSWORD:-admin_prod_pass}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://20.215.48.31,http://127.0.0.1}
       - SWAGGER_ENABLED=${SWAGGER_ENABLED:-false}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
